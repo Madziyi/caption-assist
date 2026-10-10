@@ -145,6 +145,7 @@ The exact fields may evolve through an approved architecture change, but UI comp
 
 - Main caption view must remain usable without fine motor interaction once a conversation starts.
 - Text size must support large viewing sizes.
+- Typography: use **Atkinson Hyperlegible** from Google Fonts for body text and caption words; use **Inter** from Google Fonts for headings. Keep readable local/system fallbacks in the implementation.
 - Strong contrast and clear current-speaker emphasis.
 - Keyboard-accessible controls for core desktop actions.
 - Status must clearly distinguish listening, connecting, reconnecting, microphone blocked, and stopped states.

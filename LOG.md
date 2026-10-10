@@ -34,3 +34,12 @@ Use this format:
 - **Live state:** No live system or provider was inspected; `LIVE-STATE.md` remains unverified.
 - **Known issues:** Application scaffold, runtime, deployment, provider configuration, and all implementation/test infrastructure remain to be established during CAPTION-001 planning and execution.
 - **Next action:** Planner resyncs `main` and writes the approved CAPTION-001 implementation plan into `NOW.md`.
+
+### 2026-10-10 — Typography decision recorded
+- **Changed:** Added the requested typography contract to the accessibility requirements in `PROJECT.md`.
+- **Decisions:** Atkinson Hyperlegible is the body/caption font and Inter is the heading font, both sourced from Google Fonts with readable local/system fallbacks.
+- **Verification:** Repository sync confirmed `main` matches `origin/main`; no application scaffold or UI files exist to implement or visually verify yet.
+- **Quality:** No visual, browser, text-scaling, or readability evidence produced; typography remains pending implementation and UAT.
+- **Live state:** Unchanged; no live system was inspected.
+- **Known issues:** The font choice is documented but not yet wired into application code because no application exists in the repository.
+- **Next action:** Apply the typography contract when the approved application scaffold is created.
