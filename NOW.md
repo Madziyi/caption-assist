@@ -1,7 +1,7 @@
 # Active Initiative
 
 **Initiative:** CAPTION-001 — Conversation Core
-**Status:** COMPLETE — source implementation; real provider/audio UAT pending
+**Status:** COMPLETE — source implementation and user-observed functional validation; deeper quality checks pending
 **Planner:** Planner agent  
 **Implementation / verification:** Builder agent
 
@@ -40,7 +40,7 @@ Build the first functioning one-device conversation-captioning path: microphone 
 
 ## Blockers
 
-- Real AssemblyAI/provider and physical-microphone UAT depends on locally available credentials and hardware; source implementation is complete with those checks explicitly pending.
+- None for progression. Sustained-session, intentional reconnect, formal latency/accuracy, and broader browser/device checks remain pending.
 
 ## Verification plan
 
@@ -54,4 +54,4 @@ Build the first functioning one-device conversation-captioning path: microphone 
 
 ## Next action
 
-Planner/user performs real microphone + AssemblyAI UAT when credentials and hardware are available, then reviews the source handoff without starting CAPTION-002.
+Planner reviews the user-observed functional validation and may advance to CAPTION-002 while preserving the deeper CAPTION-001 quality checks as pending.

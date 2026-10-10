@@ -30,7 +30,7 @@ None.
 ## Done
 
 - **BOOTSTRAP** `[done]` — Establish verified repository context and shared Planner/Builder workflow.
-- **CAPTION-001** `[done]` — Conversation Core source implementation complete; real microphone/provider UAT remains explicitly pending.
+- **CAPTION-001** `[done]` — Conversation Core source implementation and user-observed functional validation complete; deeper quality checks remain pending.
 
 ## Deferred
 

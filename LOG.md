@@ -50,7 +50,7 @@ Use this format:
 - **Verification:** `npm run typecheck` passed; `npm run lint` passed; `npm test` passed with 3 files and 10 tests; `npm run build` passed with routes `/` and `/api/transcription/session`; `git diff --check` passed. Local POST without configuration returned controlled HTTP 503. Browser UAT verified idle, permission-needed, end, keyboard focus, and typography states.
 - **Quality:** Recorded source/browser evidence in `QUALITY.md`. No latency, accuracy, sustained-session, reconnect, or cost measurements were invented.
 - **Live state:** No deployed environment or live AssemblyAI session was verified; `LIVE-STATE.md` remains unverified.
-- **Known issues:** Real microphone/provider UAT is pending because this environment had no usable microphone/provider credential. Short outage audio replay is not implemented by design. Next build reports a non-blocking host-level parent `package-lock.json` warning.
+- **Known issues:** Builder-observed microphone/provider UAT was unavailable in that environment; a later user-observed functional report is recorded below. Short outage audio replay is not implemented by design. Next build reports a non-blocking host-level parent `package-lock.json` warning.
 - **Next action:** Planner/user runs the real microphone → AudioWorklet → AssemblyAI → caption UI path when credentials and hardware are available; do not start CAPTION-002.
 
 ### 2026-10-10 — CAPTION-001 — newest captions first
@@ -59,5 +59,14 @@ Use this format:
 - **Verification:** Focused source inspection plus the standard typecheck, lint, test, build, and diff checks are required before publishing.
 - **Quality:** This is a caption-readability/usability adjustment; no new latency, accuracy, or live-provider measurement was produced.
 - **Live state:** Unchanged; no live system was inspected.
-- **Known issues:** Real microphone/provider UAT remains pending as previously recorded.
+- **Known issues:** Builder-observed microphone/provider UAT was unavailable; later user-observed functional validation is recorded below.
 - **Next action:** Planner/user verifies newest-first order during the next real conversation session.
+
+### 2026-10-10 — CAPTION-001 — user-observed real-world validation
+- **Changed:** Updated `NOW.md`, `TASKS.md`, and `QUALITY.md` to record the user's real-world functional report without changing application behavior.
+- **Decisions:** Treat the report as user-observed real UAT, not Builder-observed UAT. Record only that the real application was used, captioning is functioning, the user reports it is working very well, and newest-first ordering is implemented.
+- **Verification:** Confirmed commit `07f41bc3060f5ae6c4b54d9d26cc312afbba1c57` is present on synchronized `main`.
+- **Quality:** No latency, accuracy, duration, browser/device, reconnect, or 30-minute stability values were inferred. Those checks remain pending.
+- **Live state:** No deployment or live infrastructure verification was performed; `LIVE-STATE.md` remains unchanged.
+- **Known issues:** Deeper CAPTION-001 quality validation is still outstanding despite functional progression being supported.
+- **Next action:** Planner may advance to CAPTION-002 after review while retaining the pending quality checks.

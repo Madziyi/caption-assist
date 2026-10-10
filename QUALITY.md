@@ -96,7 +96,7 @@ Record measured provider billing/configuration or carefully calculated cost from
 
 ### 2026-10-10 — CAPTION-001 source and browser verification
 - Environment/device: Codex in-app browser on the local Next.js development server; desktop viewport. Node.js `v22.15.0` for source gates.
-- Audio path: Real microphone/provider path not completed. The browser remained at the microphone-permission state without a usable local provider credential; no raw audio was stored.
+- Audio path: Builder-observed real microphone/provider path was not completed during that verification session; the browser remained at the microphone-permission state without a usable local provider credential. A later user-observed real UAT report is recorded below; no raw audio was stored.
 - Session length: UI smoke session only; started from idle, observed the permission-needed state, then ended the conversation.
 - Latency observations/measurements: Not measured.
 - Accuracy observations/measurements: Not measured.
@@ -104,7 +104,19 @@ Record measured provider billing/configuration or carefully calculated cost from
 - Failure/recovery tests: Missing server configuration returned controlled HTTP 503 JSON without exposing a secret. Reconnect and cleanup logic are covered at source level but need real provider verification.
 - Accessibility observations: Idle/start/end states rendered; keyboard focus reached the primary action with a visible focus ring. Computed browser styles reported Atkinson Hyperlegible for body text and Inter for headings. Narrow/mobile viewport and text-scaling UAT remain pending.
 - Cost evidence: Not measured.
-- Result: Automated source gates passed; real microphone/provider acceptance remains pending because credentials and hardware were unavailable in this environment.
+- Result: Automated source gates passed; Builder-observed real microphone/provider acceptance was unavailable in that environment. Later user-observed functional validation is recorded below, with deeper quality checks still pending.
+
+### 2026-10-10 — CAPTION-001 user-observed real UAT
+- Environment/device: Not reported by the user.
+- Audio path: The user reports using the real application and reports that captioning is functioning very well. This is user-observed evidence for the actual microphone → AssemblyAI → caption UI path, not Builder-observed UAT.
+- Session length: Not reported.
+- Latency observations/measurements: No exact latency measurement reported.
+- Accuracy observations/measurements: Qualitative report only; no WER, accuracy percentage, or representative test set reported.
+- Speaker observations: Speaker attribution remains out of scope for CAPTION-001.
+- Failure/recovery tests: Not reported; intentional network interruption/reconnect remains pending.
+- Accessibility observations: Newest-first finalized-caption ordering is implemented. No additional device, browser, or text-scaling details were reported.
+- Cost evidence: Not measured.
+- Result: User-observed functional validation supports progression to CAPTION-002. Sustained 30-minute stability, reconnect behavior, formal latency/accuracy measurements, and broader browser/device coverage remain pending.
 
 Append concise entries:
 
