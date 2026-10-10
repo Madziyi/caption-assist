@@ -1,0 +1,107 @@
+@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:wght@400;700&family=Inter:wght@500;600;700&display=swap");
+
+:root {
+  color-scheme: light;
+  --ink: #17202a;
+  --muted: #536170;
+  --surface: #f8fafc;
+  --panel: #ffffff;
+  --line: #d8e0e8;
+  --accent: #145da0;
+  --accent-dark: #0b477e;
+  --success: #1f7a4d;
+  --warning: #855d00;
+  --danger: #a52f2f;
+}
+
+* { box-sizing: border-box; }
+
+html { background: var(--surface); }
+
+body {
+  margin: 0;
+  background: var(--surface);
+  color: var(--ink);
+  font-family: "Atkinson Hyperlegible", system-ui, sans-serif;
+  font-size: 1.2rem;
+  line-height: 1.5;
+}
+
+button { font: inherit; }
+
+h1, h2, h3 { font-family: Inter, system-ui, sans-serif; letter-spacing: -0.02em; }
+
+.conversation-shell {
+  width: min(100% - 2rem, 80rem);
+  min-height: 100svh;
+  margin: 0 auto;
+  padding: clamp(1.25rem, 3vw, 3rem) 0 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.conversation-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 1.25rem;
+}
+
+.eyebrow { margin: 0; color: var(--muted); font-size: 0.95rem; font-weight: 700; letter-spacing: 0.04em; }
+h1 { margin: 0.1rem 0 0; font-size: clamp(2rem, 4vw, 3.25rem); }
+
+.status { display: flex; align-items: center; gap: 0.55rem; min-height: 2.5rem; font-weight: 700; white-space: nowrap; }
+.status-dot { width: 0.85rem; height: 0.85rem; border-radius: 999px; background: var(--muted); box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--muted) 15%, transparent); }
+.status-listening .status-dot { background: var(--success); box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--success) 18%, transparent); }
+.status-reconnecting .status-dot, .status-connecting .status-dot, .status-requesting_permission .status-dot { background: var(--warning); box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--warning) 18%, transparent); }
+.status-error .status-dot { background: var(--danger); box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--danger) 18%, transparent); }
+.status-detail { color: var(--muted); font-size: 0.95rem; font-weight: 400; }
+
+.caption-stage {
+  min-height: clamp(13rem, 32vh, 24rem);
+  display: grid;
+  place-items: center;
+  padding: clamp(1.5rem, 5vw, 4rem);
+  background: var(--panel);
+  border: 2px solid var(--line);
+  border-radius: 1.25rem;
+  text-align: center;
+}
+
+.current-caption { max-width: 66rem; margin: 0; font-size: clamp(2.1rem, 5vw, 4.8rem); font-weight: 700; line-height: 1.12; }
+.interim-caption { color: #1c4266; }
+.caption-placeholder { max-width: 40rem; margin: 0; color: var(--muted); font-size: clamp(1.3rem, 2.5vw, 2rem); }
+
+.history { display: flex; flex-direction: column; gap: 0.75rem; min-height: 5rem; }
+.history-caption { margin: 0; padding: 0.85rem 1.1rem; border-left: 0.35rem solid var(--accent); background: #eef4f9; font-size: clamp(1.3rem, 2.4vw, 2rem); }
+
+.notice { border-radius: 0.85rem; padding: 1rem 1.15rem; }
+.notice p { margin: 0.35rem 0 0; }
+.notice-warning { color: #573e00; background: #fff5d6; border: 1px solid #e8c75d; }
+.notice-error { color: #6b1c1c; background: #fff0f0; border: 1px solid #e2a5a5; }
+.notice-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.9rem; }
+
+.conversation-controls { display: flex; justify-content: flex-end; margin-top: auto; padding-top: 1rem; }
+.button { min-height: 3.25rem; border: 2px solid transparent; border-radius: 0.65rem; padding: 0.65rem 1.2rem; cursor: pointer; font-weight: 700; }
+.button:focus-visible { outline: 4px solid #f1bd4b; outline-offset: 3px; }
+.button:disabled { cursor: wait; opacity: 0.65; }
+.button-primary { color: #fff; background: var(--accent); }
+.button-primary:hover { background: var(--accent-dark); }
+.button-end { color: #fff; background: var(--danger); }
+.button-secondary { color: var(--accent-dark); background: #fff; border-color: var(--accent); }
+.button-quiet { color: var(--ink); background: transparent; border-color: var(--line); }
+
+@media (max-width: 600px) {
+  body { font-size: 1.08rem; }
+  .conversation-header { flex-direction: column; }
+  .status { white-space: normal; }
+  .conversation-controls, .button { width: 100%; }
+  .button { min-height: 3.5rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
+}

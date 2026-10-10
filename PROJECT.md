@@ -58,6 +58,19 @@ The repository is currently a context-only starter. Its ten tracked files are th
 - Test/build/lint/typecheck commands: none are declared or runnable from the current repository contents.
 - Documentation conflicts: none found between the starter README/prompts and the durable product context.
 
+## CAPTION-001 source baseline — 2026-10-10
+
+The first application scaffold is now present in source. These are source facts, not deployment or provider-live verification:
+
+- Runtime/tooling observed: Node.js `v22.15.0`, npm `11.3.0`.
+- Application: Next.js `16.4.0`, React/React DOM `19.3.0`, App Router, strict TypeScript, `src/` layout.
+- TypeScript: `6.0.3`, selected because the current Next.js ESLint parser does not yet support TypeScript 7 in this environment.
+- Verification tooling: Vitest `5.0.3`, Testing Library React `16.3.3`, ESLint `9.39.5`, jsdom `29.1.1`.
+- Speech source path: browser AudioWorklet → in-memory mono 16 kHz PCM16 chunks → AssemblyAI v3 WebSocket adapter. The browser receives a short-lived token from `POST /api/transcription/session`; the permanent key remains server-only.
+- AssemblyAI source configuration: `wss://streaming.assemblyai.com/v3/ws`, `speech_model=universal-streaming-english`, `sample_rate=16000`, and approximately 100 ms binary frames.
+- Transcript state: normalized `CaptionEvent` values held in memory only; no database, local/session storage, audio persistence, analytics, authentication, or provider proxy was added.
+- Typography: browser CSS loads Atkinson Hyperlegible for body/caption text and Inter for headings from Google Fonts, with system fallbacks. Build-time font downloading is intentionally avoided so offline builds remain possible.
+
 ### Frontend
 - Next.js
 - React

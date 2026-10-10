@@ -43,3 +43,12 @@ Use this format:
 - **Live state:** Unchanged; no live system was inspected.
 - **Known issues:** The font choice is documented but not yet wired into application code because no application exists in the repository.
 - **Next action:** Apply the typography contract when the approved application scaffold is created.
+
+### 2026-10-10 — CAPTION-001 — Conversation Core source implementation
+- **Changed:** Added the Next.js App Router scaffold, strict TypeScript tooling, npm lockfile, server-only temporary-token route, AssemblyAI v3 adapter, AudioWorklet PCM16 pipeline, normalized caption reducer, explicit session/reconnect states, accessible caption-first UI, and focused unit/API tests.
+- **Decisions:** AssemblyAI uses `wss://streaming.assemblyai.com/v3/ws` with `speech_model=universal-streaming-english`; the permanent `ASSEMBLYAI_API_KEY` is server-only; browser audio is mono 16 kHz PCM16 in approximately 100 ms binary frames; captions remain memory-only; speaker attribution and later roadmap features remain out of scope.
+- **Verification:** `npm run typecheck` passed; `npm run lint` passed; `npm test` passed with 3 files and 10 tests; `npm run build` passed with routes `/` and `/api/transcription/session`; `git diff --check` passed. Local POST without configuration returned controlled HTTP 503. Browser UAT verified idle, permission-needed, end, keyboard focus, and typography states.
+- **Quality:** Recorded source/browser evidence in `QUALITY.md`. No latency, accuracy, sustained-session, reconnect, or cost measurements were invented.
+- **Live state:** No deployed environment or live AssemblyAI session was verified; `LIVE-STATE.md` remains unverified.
+- **Known issues:** Real microphone/provider UAT is pending because this environment had no usable microphone/provider credential. Short outage audio replay is not implemented by design. Next build reports a non-blocking host-level parent `package-lock.json` warning.
+- **Next action:** Planner/user runs the real microphone → AudioWorklet → AssemblyAI → caption UI path when credentials and hardware are available; do not start CAPTION-002.

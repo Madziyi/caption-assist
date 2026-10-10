@@ -1,22 +1,23 @@
 # Active Initiative
 
-**Initiative:** BOOTSTRAP — establish caption-system repository baseline  
-**Status:** COMPLETE
+**Initiative:** CAPTION-001 — Conversation Core
+**Status:** COMPLETE — source implementation; real provider/audio UAT pending
 **Planner:** Planner agent  
 **Implementation / verification:** Builder agent
 
 ## Objective
 
-Establish the shared agent context in the new repository, verify the actual repository baseline, and prepare the codebase for `CAPTION-001 — Conversation Core` without making product changes during bootstrap.
+Build the first functioning one-device conversation-captioning path: microphone permission, in-browser 16 kHz mono PCM16 capture, short-lived AssemblyAI v3 streaming authentication, normalized interim/final caption events, accessible caption-first UI, bounded reconnect, and graceful cleanup.
 
 ## Current scope
 
-- Verify GitHub sync workflow.
-- Record the actual repository structure and current stack.
-- Confirm whether the repository is empty, scaffolded, or already contains application code.
-- Identify deployment configuration, CI/CD, environment-variable names, and external providers if they already exist.
-- Preserve the planned product architecture in `PROJECT.md` while clearly distinguishing plans from verified implementation.
-- Make `CAPTION-001` the next ready initiative after bootstrap.
+- Create a strict TypeScript Next.js App Router application using a `src/` layout and committed npm lockfile.
+- Implement an internal streaming transcription-provider boundary with an AssemblyAI v3 adapter using `universal-streaming-english`.
+- Mint short-lived provider tokens server-side through `POST /api/transcription/session`; never expose the permanent API key to client code.
+- Capture microphone audio through an AudioWorklet, resample to mono 16 kHz PCM16, and send approximately 100 ms binary frames.
+- Implement explicit session states, reducer-driven interim/final caption handling, bounded reconnect, and graceful stop cleanup.
+- Build a responsive, keyboard-accessible caption-first interface using Atkinson Hyperlegible for body/caption text and Inter for headings.
+- Add focused unit tests for caption state, PCM/resampling utilities, session transitions, and token-route behavior.
 
 ## Decisions
 
@@ -27,29 +28,30 @@ Establish the shared agent context in the new repository, verify the actual repo
 - Provider-specific STT payloads must be hidden behind an internal adapter/normalizer.
 - Raw audio is not stored by default.
 - Build success alone is insufficient verification for real-time audio work.
+- AssemblyAI v3 `wss://streaming.assemblyai.com/v3/ws` with `speech_model=universal-streaming-english` is the initial provider path; provider-specific events remain behind an adapter.
+- `speakerId` remains `null` for CAPTION-001; diarization and participant identity are later-scope work.
+- Transcript state is memory-only; no audio, transcript, analytics, database, auth, or deployment infrastructure is added in this initiative.
 
 ## Explicit non-goals
 
-- Do not implement CAPTION-001 during bootstrap.
-- Do not create live provider accounts, billing, or secrets during bootstrap unless the human explicitly requests it.
-- Do not claim deployment/provider state that cannot be verified.
+- No speaker diarization, QR rooms, participant devices, WebRTC, hybrid deduplication, sound recognition, persistence, exports, accounts, Supabase, deployment, provider benchmarking, or native apps.
+- No offline/service-worker/PWA installability work for CAPTION-001.
+- No raw-audio replay across provider outages.
 
 ## Blockers
 
-None yet.
+- Real AssemblyAI/provider and physical-microphone UAT depends on locally available credentials and hardware; source implementation is complete with those checks explicitly pending.
 
-## Verification boundary
+## Verification plan
 
-Bootstrap verifies repository/source facts only. Live infrastructure remains unverified unless directly inspected.
-
-## Verified baseline
-
-- Repository is clean and synchronized with `origin/main` on branch `main`.
-- `HEAD` and `origin/main` were both `45e42267fb4dfb38e940beaeadc072f5c2077220` at bootstrap review time.
-- The repository contains only ten tracked starter/context files.
-- No application code, package manager, declared runtime, database/auth setup, deployment configuration, CI/CD, environment-variable source configuration, third-party integration, or test/build/lint/typecheck command exists yet.
-- Existing documentation is consistent with the planned Next.js/React/TypeScript/PWA architecture and AssemblyAI-first provider abstraction; those remain plans until implemented and verified.
+- `npm run lint`
+- `npm run typecheck`
+- `npm test`
+- `npm run build`
+- `git diff --check`
+- Browser UAT for idle/start/error/reconnect/end/responsive states where the local environment supports it.
+- Real microphone/provider path only when valid local configuration and hardware are available; otherwise report pending honestly.
 
 ## Next action
 
-Planner resyncs and converts `NOW.md` to the approved `CAPTION-001` implementation plan. The Builder must not begin CAPTION-001 from this bootstrap handoff.
+Planner/user performs real microphone + AssemblyAI UAT when credentials and hardware are available, then reviews the source handoff without starting CAPTION-002.

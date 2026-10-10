@@ -10,11 +10,9 @@ Use these states:
 
 ## In progress
 
-- **BOOTSTRAP** `[done]` — Establish verified repository context and shared Planner/Builder workflow.
+None.
 
 ## Ready
-
-- **CAPTION-001** `[ready]` — Conversation Core: host microphone → streaming STT → normalized partial/final captions → accessible live caption UI, with honest connection/error state and reconnect behavior.
 
 ## Planned
 
@@ -31,7 +29,8 @@ None.
 
 ## Done
 
-None.
+- **BOOTSTRAP** `[done]` — Establish verified repository context and shared Planner/Builder workflow.
+- **CAPTION-001** `[done]` — Conversation Core source implementation complete; real microphone/provider UAT remains explicitly pending.
 
 ## Deferred
 
