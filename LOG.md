@@ -52,3 +52,12 @@ Use this format:
 - **Live state:** No deployed environment or live AssemblyAI session was verified; `LIVE-STATE.md` remains unverified.
 - **Known issues:** Real microphone/provider UAT is pending because this environment had no usable microphone/provider credential. Short outage audio replay is not implemented by design. Next build reports a non-blocking host-level parent `package-lock.json` warning.
 - **Next action:** Planner/user runs the real microphone → AudioWorklet → AssemblyAI → caption UI path when credentials and hardware are available; do not start CAPTION-002.
+
+### 2026-10-10 — CAPTION-001 — newest captions first
+- **Changed:** Updated the live conversation history renderer so the newest finalized caption appears at the top while preserving the reducer’s chronological state order.
+- **Decisions:** Reverse a render-time copy rather than mutating `state.finalized`; interim caption behavior is unchanged.
+- **Verification:** Focused source inspection plus the standard typecheck, lint, test, build, and diff checks are required before publishing.
+- **Quality:** This is a caption-readability/usability adjustment; no new latency, accuracy, or live-provider measurement was produced.
+- **Live state:** Unchanged; no live system was inspected.
+- **Known issues:** Real microphone/provider UAT remains pending as previously recorded.
+- **Next action:** Planner/user verifies newest-first order during the next real conversation session.

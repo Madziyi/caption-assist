@@ -2,6 +2,7 @@
 
 import { useEffect, useReducer, useRef } from "react";
 import { ConversationSession } from "@/lib/captions/session";
+import { newestFirst } from "@/lib/captions/history";
 import { captionReducer, initialCaptionState } from "@/lib/captions/reducer";
 import type { SessionStatus } from "@/lib/captions/types";
 
@@ -90,7 +91,7 @@ export default function HomePage() {
       )}
 
       <section className="history" aria-label="Recent conversation history" aria-live="polite">
-        {state.finalized.map((caption) => (
+        {newestFirst(state.finalized).map((caption) => (
           <p className="history-caption" key={caption.id}>{caption.text}</p>
         ))}
       </section>
