@@ -98,7 +98,7 @@ h1 { margin: 0.1rem 0 0; font-size: clamp(2rem, 4vw, 3.25rem); }
 .speaker-accent-border-neutral { border-left-color: var(--muted); }
 
 .caption-stage {
-  min-height: clamp(13rem, 32vh, 24rem);
+  min-height: 50vh;
   display: grid;
   place-items: center;
   padding: clamp(1.5rem, 5vw, 4rem);
