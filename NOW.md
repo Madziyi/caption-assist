@@ -1,23 +1,24 @@
 # Active Initiative
 
-**Initiative:** CAPTION-001 — Conversation Core
-**Status:** COMPLETE — source implementation and user-observed functional validation; deeper quality checks pending
+**Initiative:** CAPTION-002 — Speaker-aware Table Mode
+**Status:** SOURCE COMPLETE — browser/source verification complete; real multi-speaker/provider UAT pending
 **Planner:** Planner agent  
 **Implementation / verification:** Builder agent
 
 ## Objective
 
-Build the first functioning one-device conversation-captioning path: microphone permission, in-browser 16 kHz mono PCM16 capture, short-lived AssemblyAI v3 streaming authentication, normalized interim/final caption events, accessible caption-first UI, bounded reconnect, and graceful cleanup.
+Extend the working one-device captioning path with AssemblyAI streaming diarization, conversation-local speaker profiles, newest-first speaker-aware chat history, speaker revisions, and responsive speaker management without intentionally delaying live text.
 
 ## Current scope
 
-- Create a strict TypeScript Next.js App Router application using a `src/` layout and committed npm lockfile.
-- Implement an internal streaming transcription-provider boundary with an AssemblyAI v3 adapter using `universal-streaming-english`.
-- Mint short-lived provider tokens server-side through `POST /api/transcription/session`; never expose the permanent API key to client code.
-- Capture microphone audio through an AudioWorklet, resample to mono 16 kHz PCM16, and send approximately 100 ms binary frames.
-- Implement explicit session states, reducer-driven interim/final caption handling, bounded reconnect, and graceful stop cleanup.
-- Build a responsive, keyboard-accessible caption-first interface using Atkinson Hyperlegible for body/caption text and Inter for headings.
-- Add focused unit tests for caption state, PCM/resampling utilities, session transitions, and token-route behavior.
+- Preserve the AssemblyAI v3 `universal-streaming-english` baseline and enable `speaker_labels=true` in the existing adapter.
+- Normalize interim turns, finalized speaker-attributed segments, speaker revisions, and provider status into application-owned events.
+- Namespace turn and speaker identities by provider connection so reconnect labels cannot collide or inherit names.
+- Add in-memory conversation-local speaker profiles with stable ordinal, alternating side, accent, and editable display name.
+- Keep live caption text dominant and immediate while showing the best current speaker label above it.
+- Render newest-first finalized history as separate accessible left/right chat bubbles with derived consecutive-speaker grouping.
+- Add responsive Speakers management and fast naming/renaming/removal without transcript or name persistence.
+- Add focused provider, registry/reducer, grouping, and UI tests plus normal typecheck, lint, test, build, and diff checks.
 
 ## Decisions
 
@@ -29,18 +30,20 @@ Build the first functioning one-device conversation-captioning path: microphone 
 - Raw audio is not stored by default.
 - Build success alone is insufficient verification for real-time audio work.
 - AssemblyAI v3 `wss://streaming.assemblyai.com/v3/ws` with `speech_model=universal-streaming-english` is the initial provider path; provider-specific events remain behind an adapter.
-- `speakerId` remains `null` for CAPTION-001; diarization and participant identity are later-scope work.
-- Transcript state is memory-only; no audio, transcript, analytics, database, auth, or deployment infrastructure is added in this initiative.
+- CAPTION-002 adds AssemblyAI streaming diarization with `speaker_labels=true`; no speaker-count constraints or alternate provider are introduced.
+- Speaker identity is application-owned and connection-scoped; raw provider labels never reach presentation code and names are conversation-local memory only.
+- Caption text is rendered as soon as it arrives; speaker metadata may revise finalized history later without a second network request.
+- Transcript and speaker state remain memory-only; no audio, name, analytics, database, auth, or deployment infrastructure is added in this initiative.
 
 ## Explicit non-goals
 
-- No speaker diarization, QR rooms, participant devices, WebRTC, hybrid deduplication, sound recognition, persistence, exports, accounts, Supabase, deployment, provider benchmarking, or native apps.
-- No offline/service-worker/PWA installability work for CAPTION-001.
+- No QR rooms, participant devices, WebRTC, hybrid deduplication, sound recognition, persistence, exports, accounts, Supabase, deployment, provider benchmarking, model migration, or native apps.
+- No speaker merge/split, bubble editing, manual reassignment, current-user identity, voiceprints, cross-conversation recognition, or expected speaker-count setup.
 - No raw-audio replay across provider outages.
 
 ## Blockers
 
-- None for progression. Sustained-session, intentional reconnect, formal latency/accuracy, and broader browser/device checks remain pending.
+- None currently known. Real diarization UAT depends on credentials, microphone hardware, and multiple available voices; report any unavailable checks honestly.
 
 ## Verification plan
 
@@ -49,9 +52,10 @@ Build the first functioning one-device conversation-captioning path: microphone 
 - `npm test`
 - `npm run build`
 - `git diff --check`
-- Browser UAT for idle/start/error/reconnect/end/responsive states where the local environment supports it.
-- Real microphone/provider path only when valid local configuration and hardware are available; otherwise report pending honestly.
+- Browser UAT for live speaker labels, newest-first bubbles, naming, speaker panel, keyboard behavior, and desktop/narrow responsive states where the local environment supports it.
+- Real microphone/provider UAT for multiple voices, naming during speech, short turns, revisions, reconnect identity isolation, and end/new-conversation lifecycle when valid local configuration and hardware are available.
+- Record only observed speaker counts, perceived latency, grouping, revision, reconnect, and responsive evidence; do not infer metrics.
 
 ## Next action
 
-Planner reviews the user-observed functional validation and may advance to CAPTION-002 while preserving the deeper CAPTION-001 quality checks as pending.
+Planner/user performs real multi-speaker AssemblyAI UAT when credentials, microphone hardware, and available voices support it; do not start CAPTION-003 until the result is reviewed.

@@ -74,7 +74,7 @@ export class ConversationSession {
 
     const provider = this.providerFactory(payload.token);
     this.provider = provider;
-    provider.onEvent((event) => this.dispatch({ type: "CAPTION", event }));
+    provider.onEvent((event) => this.dispatch({ type: "TRANSCRIPTION_EVENT", event }));
     provider.onStatus((status) => this.handleProviderStatus(status));
     try {
       await provider.connect();

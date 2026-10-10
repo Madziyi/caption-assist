@@ -10,13 +10,12 @@ Use these states:
 
 ## In progress
 
-None.
+- **CAPTION-002** `[in-progress]` — Speaker-aware Table Mode: streaming diarization, temporary speaker IDs, rename flow, speaker-aware transcript presentation.
 
 ## Ready
 
 ## Planned
 
-- **CAPTION-002** `[ready]` — Speaker-aware Table Mode: streaming diarization, temporary speaker IDs, rename flow, speaker-aware transcript presentation.
 - **CAPTION-003** `[ready]` — QR participant rooms: guest web join, name, mic permission/test, presence, separate participant streams, exact identity by connection.
 - **CAPTION-004** `[ready]` — Hybrid Mode: room mic + joined mics, authoritative personal streams, duplicate suppression, overlapping connected-speaker handling.
 - **CAPTION-005** `[ready]` — Accessibility layer: refined caption presentation, large text, high contrast, keyboard controls, history behavior, optional non-speech event research/implementation.

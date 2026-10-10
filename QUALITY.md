@@ -118,6 +118,18 @@ Record measured provider billing/configuration or carefully calculated cost from
 - Cost evidence: Not measured.
 - Result: User-observed functional validation supports progression to CAPTION-002. Sustained 30-minute stability, reconnect behavior, formal latency/accuracy measurements, and broader browser/device coverage remain pending.
 
+### 2026-10-10 — CAPTION-002 source and browser verification
+- Environment/device: Codex in-app browser on the local Next.js development server; browser viewport shown in the captured desktop/narrow layout. Node.js `v22.15.0` for source gates.
+- Audio path: Builder did not complete a real multi-speaker microphone → AssemblyAI diarization session. The browser reached the microphone-permission state and the conversation-ended state; no raw audio was stored.
+- Session length: Browser smoke interaction only; no sustained provider session.
+- Latency observations/measurements: No real diarization latency measurement. Source behavior renders interim text immediately and processes speaker metadata in the provider event path without an added request or intentional debounce.
+- Accuracy observations/measurements: No physical-speaker or formal accuracy measurement.
+- Speaker observations: Automated provider tests covered stable opaque connection-scoped IDs, unresolved `UNKNOWN`/`PENDING`/missing labels, mixed word-level segmentation, and speaker revisions. No stable physical speaker count was observed.
+- Failure/recovery tests: Source tests covered revision replacement and connection namespace isolation. Real reconnect identity behavior was not observed.
+- Accessibility observations: Source implements interactive stable speaker labels, neutral non-interactive `Someone`, visible focus styles, keyboard Escape handling, responsive speaker management, and left/right plus name/accent cues. Browser UAT observed the caption-first layout, permission-needed status, and end state; the provider-backed panel was not reachable without a stable speaker event.
+- Cost evidence: Not measured.
+- Result: CAPTION-002 source implementation and browser/source verification are complete. Real multi-speaker diarization, naming during speech, revision, reconnect, and responsive provider-backed UAT remain pending and are not being represented as Builder-observed results.
+
 Append concise entries:
 
 ```text

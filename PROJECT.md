@@ -77,6 +77,7 @@ The first application scaffold is now present in source. These are source facts,
 - TypeScript
 - PWA-capable responsive web application
 - Browser MediaDevices / Web Audio APIs as appropriate
+- CAPTION-002 speaker-aware Table Mode uses in-memory React/reducer state for conversation-local profiles, newest-first chat history, and responsive naming controls.
 
 ### Backend
 - Server-side TypeScript/Node runtime
@@ -89,6 +90,7 @@ The first application scaffold is now present in source. These are source facts,
 - AssemblyAI is the initial implementation candidate.
 - Deepgram and Speechmatics remain benchmark candidates.
 - Provider-specific events must be normalized before entering UI/application state.
+- CAPTION-002 preserves `universal-streaming-english` and enables AssemblyAI `speaker_labels=true` without speaker-count constraints; provider labels are converted to opaque, connection-scoped application speaker IDs.
 
 ### Infrastructure
 - Hosting/deployment provider: not yet verified.
@@ -139,6 +141,20 @@ export type CaptionEvent = {
 ```
 
 The exact fields may evolve through an approved architecture change, but UI components must not depend directly on a speech provider's raw schema.
+
+CAPTION-002 extends the provider boundary with application-owned transcription events for immediate interim captions, finalized turns containing one or more speaker-attributed segments, and quiet speaker revisions. Finalized records carry a stable source-turn identifier so revisions replace the correct turn without changing the user's saved display name. Speaker profiles remain conversation-local and in memory only:
+
+```ts
+export type SpeakerProfile = {
+  id: string;
+  ordinal: number;
+  displayName: string | null;
+  side: "left" | "right";
+  accentIndex: number;
+};
+```
+
+Provider connections receive unique namespaces. A provider label from a later reconnect is therefore a new application identity and is never automatically assigned a prior name.
 
 ## Privacy and security rules
 

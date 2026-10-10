@@ -2,13 +2,26 @@ export type CaptionEvent = {
   id: string;
   text: string;
   speakerId: string | null;
-  speakerName?: string;
   startedAt: number;
   endedAt?: number;
   isFinal: boolean;
   confidence?: number;
   sourceId?: string;
+  sourceTurnId?: string;
 };
+
+export type SpeakerProfile = {
+  id: string;
+  ordinal: number;
+  displayName: string | null;
+  side: "left" | "right";
+  accentIndex: number;
+};
+
+export type TranscriptionEvent =
+  | { type: "interim"; caption: CaptionEvent }
+  | { type: "final_turn"; sourceTurnId: string; captions: CaptionEvent[] }
+  | { type: "speaker_revision"; sourceTurnId: string; captions: CaptionEvent[] };
 
 export type SessionStatus =
   | "idle"
@@ -40,6 +53,7 @@ export type CaptionState = {
   status: SessionStatus;
   finalized: CaptionEvent[];
   interim: CaptionEvent | null;
+  speakers: SpeakerProfile[];
   error: SessionError | null;
   reconnectAttempt: number;
 };

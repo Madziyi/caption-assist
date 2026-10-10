@@ -1,4 +1,4 @@
-import type { CaptionEvent } from "./types";
+import type { CaptionEvent, TranscriptionEvent } from "./types";
 
 export type ProviderStatus =
   | { type: "connected" }
@@ -10,7 +10,7 @@ export interface StreamingTranscriptionProvider {
   connect(): Promise<void>;
   sendAudio(chunk: ArrayBuffer): void;
   terminate(): Promise<void>;
-  onEvent(listener: (event: CaptionEvent) => void): () => void;
+  onEvent(listener: (event: TranscriptionEvent) => void): () => void;
   onStatus(listener: (status: ProviderStatus) => void): () => void;
 }
 
@@ -22,7 +22,8 @@ type AssemblyAIMessage = {
   transcript?: string;
   utterance?: string;
   end_of_turn_confidence?: number;
-  words?: Array<{ start?: number; end?: number; confidence?: number }>;
+  speaker_label?: string;
+  words?: Array<{ start?: number; end?: number; confidence?: number; speaker?: string; text?: string }>;
   error?: string;
 };
 
@@ -31,12 +32,16 @@ const ASSEMBLYAI_MODEL = "universal-streaming-english";
 
 export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvider {
   private socket: WebSocket | null = null;
-  private readonly captionListeners = new Set<(event: CaptionEvent) => void>();
+  private readonly captionListeners = new Set<(event: TranscriptionEvent) => void>();
   private readonly statusListeners = new Set<(status: ProviderStatus) => void>();
   private intentionallyTerminated = false;
   private sessionStartedAt = Date.now();
+  private readonly connectionId: string;
+  private fallbackTurnCounter = 0;
 
-  constructor(private readonly token: string) {}
+  constructor(private readonly token: string, connectionId = createProviderConnectionId()) {
+    this.connectionId = connectionId;
+  }
 
   connect(): Promise<void> {
     this.intentionallyTerminated = false;
@@ -46,6 +51,7 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
       sample_rate: "16000",
       speech_model: ASSEMBLYAI_MODEL,
       format_turns: "true",
+      speaker_labels: "true",
     });
 
     return new Promise((resolve, reject) => {
@@ -86,7 +92,7 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
     if (socket.readyState === WebSocket.OPEN) {
       socket.send(JSON.stringify({ type: "Terminate" }));
       await new Promise<void>((resolve) => {
-        const timeout = window.setTimeout(resolve, 1_500);
+        const timeout = window.setTimeout(resolve, 5_000);
         const previousOnClose = socket.onclose;
         socket.onclose = (event) => {
           window.clearTimeout(timeout);
@@ -99,7 +105,7 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
     this.socket = null;
   }
 
-  onEvent(listener: (event: CaptionEvent) => void): () => void {
+  onEvent(listener: (event: TranscriptionEvent) => void): () => void {
     this.captionListeners.add(listener);
     return () => this.captionListeners.delete(listener);
   }
@@ -127,27 +133,115 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
       this.emitStatus({ type: "terminated" });
       return;
     }
-    if (message.type !== "Turn" || typeof message.transcript !== "string") return;
+    if (message.type !== "Turn" && message.type !== "SpeakerRevision") return;
+    if (typeof message.transcript !== "string" && !message.words?.length) return;
 
-    const firstWord = message.words?.[0];
-    const lastWord = message.words?.at(-1);
-    const startedAt = this.sessionStartedAt + (firstWord?.start ?? 0);
-    const event: CaptionEvent = {
-      id: `assemblyai:${message.turn_order ?? startedAt}`,
-      text: message.utterance?.trim() || message.transcript.trim(),
-      speakerId: null,
-      startedAt,
-      endedAt: message.end_of_turn ? this.sessionStartedAt + (lastWord?.end ?? 0) : undefined,
-      isFinal: message.end_of_turn === true,
-      confidence: message.end_of_turn_confidence,
-      sourceId: "assemblyai",
-    };
+    const sourceTurnId = this.sourceTurnId(message.turn_order);
+    const captions = normalizeTurn(message, sourceTurnId, this.connectionId, this.sessionStartedAt, message.type === "SpeakerRevision" || message.end_of_turn === true);
+    if (message.type === "SpeakerRevision") {
+      this.emitEvent({ type: "speaker_revision", sourceTurnId, captions });
+    } else if (message.end_of_turn === true) {
+      this.emitEvent({ type: "final_turn", sourceTurnId, captions });
+    } else if (captions[0]) {
+      this.emitEvent({ type: "interim", caption: captions[0] });
+    }
+  }
+
+  private sourceTurnId(turnOrder: number | undefined): string {
+    return `${this.connectionId}/turn/${turnOrder ?? `auto-${++this.fallbackTurnCounter}`}`;
+  }
+
+  private emitEvent(event: TranscriptionEvent): void {
     this.captionListeners.forEach((listener) => listener(event));
   }
 
   private emitStatus(status: ProviderStatus): void {
     this.statusListeners.forEach((listener) => listener(status));
   }
+}
+
+const UNRESOLVED_SPEAKER_LABELS = new Set(["", "UNKNOWN", "PENDING"]);
+
+export function normalizeSpeakerId(connectionId: string, label: string | undefined): string | null {
+  const normalized = label?.trim().toUpperCase() ?? "";
+  if (UNRESOLVED_SPEAKER_LABELS.has(normalized)) return null;
+  return `${connectionId}/speaker/s${stableSpeakerHash(normalized)}`;
+}
+
+function stableSpeakerHash(label: string): string {
+  let hash = 2166136261;
+  for (const character of label) {
+    hash ^= character.charCodeAt(0);
+    hash = Math.imul(hash, 16777619);
+  }
+  return (hash >>> 0).toString(36);
+}
+
+function normalizeTurn(message: AssemblyAIMessage, sourceTurnId: string, connectionId: string, sessionStartedAt: number, finalized: boolean): CaptionEvent[] {
+  const words = message.words?.filter((word) => word.text?.trim()) ?? [];
+  const turnSpeakerId = normalizeSpeakerId(connectionId, message.speaker_label);
+  const firstWord = words[0];
+  const lastWord = words.at(-1);
+  const startedAt = sessionStartedAt + (firstWord?.start ?? 0);
+  const fullText = message.utterance?.trim() || message.transcript?.trim() || words.map((word) => word.text?.trim()).join(" ") || "";
+  const hasSpeakerChange = words.length > 1 && new Set(words.map((word) => normalizeSpeakerId(connectionId, word.speaker))).size > 1;
+
+  if (!hasSpeakerChange) {
+    const speakerId = turnSpeakerId ?? normalizeSpeakerId(connectionId, firstWord?.speaker);
+    return fullText
+      ? [{
+          id: `${sourceTurnId}/segment/0`,
+          sourceTurnId,
+          text: fullText,
+          speakerId,
+          startedAt,
+          endedAt: finalized ? sessionStartedAt + (lastWord?.end ?? 0) : undefined,
+          isFinal: finalized,
+          confidence: message.end_of_turn_confidence,
+          sourceId: "assemblyai",
+        }]
+      : [];
+  }
+
+  const segments: CaptionEvent[] = [];
+  let current: { speakerId: string | null; words: NonNullable<AssemblyAIMessage["words"]> } | null = null;
+  for (const word of words) {
+    const speakerId = normalizeSpeakerId(connectionId, word.speaker);
+    if (!current || current.speakerId !== speakerId) {
+      current = { speakerId, words: [] };
+      segments.push({
+        id: `${sourceTurnId}/segment/${segments.length}`,
+        sourceTurnId,
+        text: "",
+        speakerId,
+        startedAt: sessionStartedAt + (word.start ?? 0),
+        isFinal: finalized,
+        confidence: message.end_of_turn_confidence,
+        sourceId: "assemblyai",
+      });
+    }
+    current.words.push(word);
+    const segment = segments.at(-1);
+    if (segment) {
+      segment.text = joinWords(current.words.map((item) => item.text?.trim() ?? ""));
+      segment.endedAt = finalized ? sessionStartedAt + (word.end ?? word.start ?? 0) : undefined;
+    }
+  }
+  return segments.filter((segment) => segment.text);
+}
+
+function joinWords(words: string[]): string {
+  return words.reduce((text, word) => {
+    if (!text) return word;
+    if (/^[,.;!?%:)]/.test(word)) return `${text}${word}`;
+    if (/^[’']/.test(word)) return `${text}${word}`;
+    return `${text} ${word}`;
+  }, "");
+}
+
+function createProviderConnectionId(): string {
+  const random = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  return `assemblyai/${random}`;
 }
 
 export function createAssemblyAIProvider(token: string): StreamingTranscriptionProvider {

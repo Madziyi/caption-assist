@@ -61,4 +61,104 @@ describe("captionReducer", () => {
     state = captionReducer(state, { type: "ENDED" });
     expect(state.status).toBe("ended");
   });
+
+  it("registers stable speakers in discovery order and keeps Someone out of the registry", () => {
+    let state = captionReducer(initialCaptionState, {
+      type: "TRANSCRIPTION_EVENT",
+      event: { type: "interim", caption: event({ speakerId: null }) },
+    });
+    state = captionReducer(state, {
+      type: "TRANSCRIPTION_EVENT",
+      event: {
+        type: "final_turn",
+        sourceTurnId: "turn-2",
+        captions: [event({ id: "turn-2", sourceTurnId: "turn-2", isFinal: true, speakerId: "speaker-a" })],
+      },
+    });
+    state = captionReducer(state, {
+      type: "TRANSCRIPTION_EVENT",
+      event: {
+        type: "final_turn",
+        sourceTurnId: "turn-3",
+        captions: [event({ id: "turn-3", sourceTurnId: "turn-3", isFinal: true, speakerId: "speaker-b" })],
+      },
+    });
+
+    expect(state.speakers).toMatchObject([
+      { id: "speaker-a", ordinal: 1, side: "left", accentIndex: 0 },
+      { id: "speaker-b", ordinal: 2, side: "right", accentIndex: 1 },
+    ]);
+  });
+
+  it("updates names without changing speaker placement and removes names", () => {
+    const withSpeaker = captionReducer(initialCaptionState, {
+      type: "TRANSCRIPTION_EVENT",
+      event: { type: "interim", caption: event({ speakerId: "speaker-a" }) },
+    });
+    const renamed = captionReducer(withSpeaker, { type: "RENAME_SPEAKER", speakerId: "speaker-a", name: "  Sarah  " });
+    expect(renamed.speakers[0]).toMatchObject({ displayName: "Sarah", ordinal: 1, side: "left", accentIndex: 0 });
+
+    const removed = captionReducer(renamed, { type: "REMOVE_SPEAKER_NAME", speakerId: "speaker-a" });
+    expect(removed.speakers[0]?.displayName).toBeNull();
+  });
+
+  it("reuses profiles and permits duplicate human-readable names", () => {
+    let state = captionReducer(initialCaptionState, {
+      type: "TRANSCRIPTION_EVENT",
+      event: { type: "interim", caption: event({ speakerId: "speaker-a" }) },
+    });
+    state = captionReducer(state, {
+      type: "TRANSCRIPTION_EVENT",
+      event: { type: "interim", caption: event({ id: "turn-2", speakerId: "speaker-a" }) },
+    });
+    state = captionReducer(state, {
+      type: "TRANSCRIPTION_EVENT",
+      event: { type: "interim", caption: event({ id: "turn-3", speakerId: "speaker-b" }) },
+    });
+    state = captionReducer(state, { type: "RENAME_SPEAKER", speakerId: "speaker-a", name: "Alex" });
+    state = captionReducer(state, { type: "RENAME_SPEAKER", speakerId: "speaker-b", name: "Alex" });
+
+    expect(state.speakers).toHaveLength(2);
+    expect(state.speakers.map((speaker) => speaker.displayName)).toEqual(["Alex", "Alex"]);
+  });
+
+  it("replaces finalized segments in place when a speaker revision arrives", () => {
+    const initial = captionReducer(initialCaptionState, {
+      type: "TRANSCRIPTION_EVENT",
+      event: {
+        type: "final_turn",
+        sourceTurnId: "turn-1",
+        captions: [event({ id: "turn-1/segment/0", sourceTurnId: "turn-1", isFinal: true, speakerId: "speaker-a" })],
+      },
+    });
+    const later = captionReducer(initial, {
+      type: "TRANSCRIPTION_EVENT",
+      event: {
+        type: "final_turn",
+        sourceTurnId: "turn-2",
+        captions: [event({ id: "turn-2/segment/0", sourceTurnId: "turn-2", text: "Later", isFinal: true, speakerId: "speaker-b" })],
+      },
+    });
+    const revised = captionReducer(later, {
+      type: "TRANSCRIPTION_EVENT",
+      event: {
+        type: "speaker_revision",
+        sourceTurnId: "turn-1",
+        captions: [event({ id: "turn-1/segment/0", sourceTurnId: "turn-1", text: "Hello revised", isFinal: true, speakerId: "speaker-b" })],
+      },
+    });
+
+    expect(revised.finalized.map((caption) => caption.text)).toEqual(["Hello revised", "Later"]);
+  });
+
+  it("resets speaker profiles on a new conversation while ended state retains them", () => {
+    const listening = captionReducer(initialCaptionState, {
+      type: "TRANSCRIPTION_EVENT",
+      event: { type: "interim", caption: event({ speakerId: "speaker-a" }) },
+    });
+    const ended = captionReducer(listening, { type: "ENDED" });
+    expect(ended.speakers).toHaveLength(1);
+    const newConversation = captionReducer(ended, { type: "START" });
+    expect(newConversation.speakers).toEqual([]);
+  });
 });

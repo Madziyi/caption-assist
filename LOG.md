@@ -70,3 +70,12 @@ Use this format:
 - **Live state:** No deployment or live infrastructure verification was performed; `LIVE-STATE.md` remains unchanged.
 - **Known issues:** Deeper CAPTION-001 quality validation is still outstanding despite functional progression being supported.
 - **Next action:** Planner may advance to CAPTION-002 after review while retaining the pending quality checks.
+
+### 2026-10-10 — CAPTION-002 — speaker-aware Table Mode source implementation
+- **Changed:** Added AssemblyAI streaming diarization configuration, opaque connection-scoped speaker IDs, normalized interim/final/revision events, word-level finalized segmentation, in-memory speaker profiles, newest-first grouped chat bubbles, live speaker labels, responsive speaker management, and focused provider/state/history tests.
+- **Decisions:** Preserved `universal-streaming-english`; added only `speaker_labels=true`; did not add speaker-count constraints, another provider, a secondary AI request, persistence, voiceprints, or user identity. Speaker names remain local to the current conversation and are resolved retroactively from profiles.
+- **Verification:** `npm run typecheck` passed; `npm run lint` passed with no errors; `npm test` passed with 5 files and 25 tests; `npm run build` passed with routes `/` and `/api/transcription/session`; `git diff --check` passed. Browser smoke verification observed the caption-first layout, microphone-permission status, and ended state.
+- **Quality:** No physical-speaker count, WER, accuracy percentage, formal latency, session duration, reconnect, or revision UAT values were invented. Source/browser evidence and pending real-provider checks are recorded in `QUALITY.md`.
+- **Live state:** No deployed system or live AssemblyAI configuration was verified; `LIVE-STATE.md` remains unchanged.
+- **Known issues:** Real multi-speaker provider UAT remains pending because this Builder session did not complete a usable diarization path. The known safe limitation that reconnect-created speaker identities are new profiles is documented in source context.
+- **Next action:** Planner/user performs the applicable real multi-speaker, naming, responsive, revision, and reconnect UAT before advancing beyond CAPTION-002; do not start CAPTION-003.
