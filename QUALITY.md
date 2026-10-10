@@ -4,6 +4,10 @@ This file records measured evidence about whether the product is actually usable
 
 Do not invent values. Mark unmeasured items `unverified`.
 
+## Bootstrap evidence — 2026-10-10
+
+The repository contains no application, browser surface, microphone path, speech-provider integration, or deployed environment. No product-quality measurements or UAT evidence were possible during bootstrap; all quality dimensions below remain `unverified`.
+
 ## Core quality dimensions
 
 ### 1. Caption responsiveness

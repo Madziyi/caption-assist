@@ -1,7 +1,7 @@
 # Active Initiative
 
 **Initiative:** BOOTSTRAP — establish caption-system repository baseline  
-**Status:** READY  
+**Status:** COMPLETE
 **Planner:** Planner agent  
 **Implementation / verification:** Builder agent
 
@@ -42,6 +42,14 @@ None yet.
 
 Bootstrap verifies repository/source facts only. Live infrastructure remains unverified unless directly inspected.
 
+## Verified baseline
+
+- Repository is clean and synchronized with `origin/main` on branch `main`.
+- `HEAD` and `origin/main` were both `45e42267fb4dfb38e940beaeadc072f5c2077220` at bootstrap review time.
+- The repository contains only ten tracked starter/context files.
+- No application code, package manager, declared runtime, database/auth setup, deployment configuration, CI/CD, environment-variable source configuration, third-party integration, or test/build/lint/typecheck command exists yet.
+- Existing documentation is consistent with the planned Next.js/React/TypeScript/PWA architecture and AssemblyAI-first provider abstraction; those remain plans until implemented and verified.
+
 ## Next action
 
-Builder performs the initial repository mapping, replaces only fact-dependent placeholders/unknowns with verified information, updates the context ledgers, commits, and pushes. Planner then resyncs and converts `NOW.md` to the approved `CAPTION-001` implementation plan.
+Planner resyncs and converts `NOW.md` to the approved `CAPTION-001` implementation plan. The Builder must not begin CAPTION-001 from this bootstrap handoff.

@@ -43,6 +43,21 @@ The host room microphone remains active while optional participant microphones a
 
 These are architectural intentions until verified by repository implementation and live configuration.
 
+## Verified repository baseline — 2026-10-10
+
+The repository is currently a context-only starter. Its ten tracked files are the durable project/workflow documents, `README-START-HERE.md`, and `PROMPTS.md`; there are no application source files or top-level source directories.
+
+- Application code and entry points: none found.
+- Frontend/backend boundary: not established; no frontend or backend exists yet.
+- Package manager and runtime: no package manifest, lockfile, runtime declaration, or executable scripts found.
+- Database and authentication: no schema, migration, database client, or authentication setup found.
+- Deployment and hosting: no deployment configuration found; hosting remains unverified.
+- CI/CD: no workflow or other CI/CD configuration found.
+- Environment variables: no `.env` files or source configuration declaring environment variables found. `ASSEMBLYAI_API_KEY` appears only as a planned secret name in the starter live-state ledger, not as verified configuration.
+- Third-party services: AssemblyAI, Deepgram, and Speechmatics appear only as documented provider candidates; no integration code or live connection was found.
+- Test/build/lint/typecheck commands: none are declared or runnable from the current repository contents.
+- Documentation conflicts: none found between the starter README/prompts and the durable product context.
+
 ### Frontend
 - Next.js
 - React

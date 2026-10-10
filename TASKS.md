@@ -10,7 +10,7 @@ Use these states:
 
 ## In progress
 
-- **BOOTSTRAP** `[in-progress]` — Establish verified repository context and shared Planner/Builder workflow.
+- **BOOTSTRAP** `[done]` — Establish verified repository context and shared Planner/Builder workflow.
 
 ## Ready
 

@@ -5,6 +5,10 @@ This file records only facts verified against live infrastructure.
 Do not infer live state from repository files.
 Never store secret values.
 
+## Bootstrap review note — 2026-10-10
+
+The Builder inspected repository source only; no deployed system, provider account, database, hosting environment, or live endpoint was inspected. All live-state entries below therefore remain unverified.
+
 ## Environments
 
 ### Production
@@ -39,7 +43,7 @@ Never store secret values.
 
 | Provider | Purpose | Model/config | Credential secret name | Live verified |
 |---|---|---|---|---|
-| AssemblyAI | initial streaming STT candidate | unverified | `ASSEMBLYAI_API_KEY` (planned name; verify before use) | no |
+| AssemblyAI | initial streaming STT candidate | unverified | `ASSEMBLYAI_API_KEY` (planned name only; not verified in live configuration) | no |
 | Deepgram | benchmark candidate | unverified | not established | no |
 | Speechmatics | benchmark candidate | unverified | not established | no |
 
