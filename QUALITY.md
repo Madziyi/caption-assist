@@ -117,6 +117,25 @@ Status: **unverified**
 
 ## Per-task evidence
 
+### 2026-10-11 — CAPTION-008.2 human physical trial (Planner record)
+- **Setup (human-supplied export version 2):** two participant phones, one with a wired headset and one with a Bluetooth headset. Processing reported off on both; host headset not set up. Both caption streams were `on`, and captions appeared named by phone.
+- **Wired headset:**
+  - floor −41.4, calibrated own −20.0;
+  - room check: own −25.6, bleed −30.0, separation **4.4 dB (weak)**;
+  - sensitivity Less, `openDb −26`. That is the pre-room-check threshold +4, so room-check tuning was not in effect at export time (probably recalibrated or reloaded after the check).
+- **Bluetooth headset:**
+  - floor −81.5 (silenced on-device), calibrated own **−41.6**;
+  - room check: own −26.7, bleed −33.6, separation **6.9 dB (weak)**; `openDb −30.1` (room check applied);
+  - the 15 dB gap between calibration and room check points to an estimator weakness (see 008.3).
+- **Preview over 160.4 s:** the wired phone opened 21 times for 40.8 s, the Bluetooth phone 16 times for 37.0 s; **7 co-onsets and 16.1 s of overlap**, about 40% of each phone's open time.
+- **Human-observed:**
+  - Bleed from the other speaker triggers captions, worse as people sit closer.
+  - The three-step control was not enough; the human wants a continuous slider.
+  - Latency feels about 2 s.
+  - "I'm actually happy, it's kind of working."
+- **Planner reading:** single-phone separation is weak at close seating. Relative to each wearer's own level, though, the talker leads the other phone by 4.4–6.9 dB, which is enough for cross-phone arbitration (008.3). Latency is unmeasured by stage; 008.3 adds the measurements.
+- **Result:** partial pass. Captions and attribution work, but duplicates under close seating and the ~2 s delay remain open.
+
 ### 2026-10-11 — CAPTION-008.2 joining-phone setup entry regression
 - User evidence: after `aac146a`, joining phones no longer show microphone options and remain at Using: no microphone selected. Exact device/browser not supplied.
 - Reproduced: controller now publishes `currentView` immediately on join (`not_started`, `off`, null input, no inputs), while HeadsetSetup only offered Start headset check for a null view. Three new pre-fix component tests failed for idle start, stopped restart and starting feedback. This blocks the permission tap before enumeration; it is not evidence of missing physical hardware.

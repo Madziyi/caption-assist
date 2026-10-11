@@ -14,8 +14,17 @@ Use these states:
   - **008.1** `[done]` — Headset check, calibration, room check, gate preview, results export; no audio leaves any device. Includes the additive `caption_rooms.mode` migration. Timer/input selection fixed; participant Presence quota disconnections addressed with immediate state Broadcast and throttled snapshots. Live local two-phone simulated calibration, matrix and rejoin pass; 168 tests/27 files and source gates pass. The human tried it physically and was satisfied, though possibly too sensitive (no exports yet). Planner: GO.
   - **008.2** `[done]` — Implemented Part A plausible room-check gating, 2-frame attack, host sensitivity control, calibration-preserving rejoin/drop handling, mic-drop export state, and Part B gated near-field Universal-3.6 Pro transcription, 300 ms look-ahead silence frames, bounded reconnect, sequence/deduped caption relay, identity-bound host captions, status strip and privacy/invite copy. Automated gates pass; live provider browser-path and physical headset UAT remain outstanding for 008.4.
   - **008.2 setup follow-up** `[done]` — Restored Start headset check for the non-null initialized guest view introduced in `aac146a`, permission-pending feedback and stopped-mic restart. 179 tests/29 files and source gates pass; isolated Chromium with real capture/worklet and simulated media verified input listing/selection and restart at 390/1280 px without overflow. Physical-phone confirmation remains pending.
-  - **008.3** `[planned]` — Duplicate safety net by calibrated margin, adaptive thresholds, headset/phone recovery.
-  - **008.4** `[planned]` — Physical multi-person UAT and closure.
+  - **008.2 physical trial** — The human ran it on two phones: captions work and are named by phone, but bleed opens gates when people sit close, and the delay is about 2 s. The export shows separation of 4.4 and 6.9 dB and 16 s of overlapping gates in 160 s. "Kind of working."
+  - **008.3** `[ready]` — Duplicate control:
+    - continuous per-person sensitivity slider (−15 to +6 dB);
+    - visible room-check tuning state;
+    - robust own-level estimator;
+    - leading-edge interim throttle;
+    - calibrated cross-phone arbitration of overlapping captions (relative-level evidence, clock alignment, final hold of at most 800 ms, hidden-duplicates testing view);
+    - latency measurement;
+    - export version 3.
+  - **008.4** `[planned]` — Latency improvements chosen from the 008.3 measurements, without visible accuracy loss.
+  - **008.5** `[planned]` — Remaining recovery items, physical multi-person UAT and closure.
 - **CAPTION-003** `[in-progress]` — Paused while CAPTION-008 is active. Reopened after deployed user testing revealed duplicate speech on nearby personal microphones. CAPTION-003.1 text reconciliation, CAPTION-003.2 episode continuity and CAPTION-003.3 Voice Focus all failed real acceptance, so personal-microphone work stopped. CAPTION-003.4 pivots Connected Mode to one host room microphone + AssemblyAI diarization + one-time session voice identification from QR phones that do not record audio. Closure awaits physical multi-person UAT and user acceptance.
 
 ## Ready

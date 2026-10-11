@@ -1,6 +1,6 @@
 # CAPTION-008 — Headset Mode
 
-**Status:** CAPTION-008.1 implemented by Builder and physically tried by the human on 2026-10-11 (satisfied; may need less sensitivity). Planner go/no-go: **GO**. Active slice: **CAPTION-008.2** (gate correction + gated transcription), ready for Builder. See "Planner review of 008.1" and the 008.2 specification below.
+**Status:** CAPTION-008.1 and 008.2 are implemented and physically tried by the human on 2026-10-11. Headset captions work and are named by phone; bleed still causes duplicates when people sit close, and captions lag about 2 s. Active slice: **CAPTION-008.3** (duplicate control: continuous sensitivity slider, calibrated cross-phone arbitration, latency measurement), ready for Builder. See "Planner review of 008.2" and the 008.3 specification below.
 
 ## As built (008.1)
 
@@ -51,8 +51,9 @@ Wearer's headset mic ──► phone: level meter ──► loudness gate (calib
 |---|---|---|
 | **008.1** | Headset Mode room, headset check + calibration, room check, live gate preview ("speaking" lights), results export | **No** |
 | 008.2 | Gate correction (room check tunes the gate, attack, host sensitivity control), then gated audio from each phone to its own AssemblyAI stream (Universal-3.6 Pro, Voice Focus near-field); captions relayed to host and named by phone | Yes, only while the gate is open |
-| 008.3 | Duplicate safety net by calibrated margin, adaptive thresholds, headset disconnect/fallback detection, phone lock/refresh recovery | Yes |
-| 008.4 | Physical multi-person UAT and closure | Yes |
+| 008.3 | Duplicate control: continuous per-person sensitivity slider, visible room-check tuning state, robust own-level estimator, calibrated cross-phone arbitration of overlapping captions, latency measurement | Yes |
+| 008.4 | Latency improvements chosen from the 008.3 measurements, without visible accuracy loss | Yes |
+| 008.5 | Remaining recovery items, physical multi-person UAT and closure | Yes |
 
 ---
 
@@ -536,12 +537,172 @@ Turn Headset Mode into a working caption mode. Each ready phone transcribes only
 4. If someone's captions pick up other people, set that person to **Less sensitive** and repeat a minute. If someone's soft speech is missed, try **More sensitive**. Note what you chose.
 5. **Copy results** at the end, and return the export(s) plus your notes. Optionally run a 20–30 minute session to check stability and battery.
 
-## CAPTION-008.3 outline — safety net and recovery
+## Planner review of 008.2 — 2026-10-11
 
-- **Duplicate safety net:** when two phones produce overlapping finals with matching text, keep the one with the larger calibrated gate margin. Reuse the CrossMicReconciler matching, with a margin-based leader. Margin data is added to the relay in this slice.
-- **Adaptive thresholds** from live open/closed frame statistics.
-- **Recovery:** detect headset disconnect or fallback to the built-in mic (`devicechange`, label change) and warn on the host and phone. Handle phone lock, page refresh and recalibration.
+- **Human physical result** (two phones: a wired headset and a Bluetooth headset; export version 2; 160 s preview):
+  - Captions work and are named by phone.
+  - Bleed from the other person still opens gates ("too much sensitivity to some bleed from another person speaking"). It works well at a distance but needs lower sensitivity as people sit closer.
+  - Captions feel about 2 s behind.
+  - Verdict: "I'm actually happy, it's kind of working."
+- **Export numbers:**
+  - **Wired headset:** room-check own −25.6, bleed −30.0, separation 4.4 dB (weak).
+  - **Bluetooth headset:** own −26.7, bleed −33.6, separation 6.9 dB (weak).
+  - **Gate overlap:** both gates were open together for 16.1 s with 7 co-onsets (about 40% of each phone's open time). Each overlap is a potential duplicate caption.
+- **Key observation:** comparing phones works better than either phone alone. When the Bluetooth wearer spoke, the wired phone heard it 4.4 dB below *its own wearer's* level. When the wired wearer spoke, the Bluetooth phone heard it 6.9 dB below its own wearer's level. So the person actually talking is always the one nearest their own calibrated level, even when no single-phone threshold separates cleanly. CAPTION-008.3 builds on this.
+- **Findings:**
+  - **Wired phone's threshold:** it reported `openDb −26`, which is exactly its pre-room-check threshold (−30) plus "Less sensitive" (+4). Recalibrating or reloading after a room check silently discards the room-check tuning, while the host keeps showing the old matrix as applied. The phone must report whether its tuning is current.
+  - **The three-step control is too coarse.** "Less sensitive" is +4 dB, clamped at `own − 3`, so the host could not raise the wired phone's threshold enough. The human asked for a continuous slider.
+  - **The Bluetooth phone calibrated its own voice at −41.6 dB, but the room check heard it at −26.7.** Its floor is −81.5 because the headset silences noise digitally, so "floor + 6" admits room noise as "speech" and pulls the median down. The own-level estimator needs a peak-relative floor.
+  - **Interim relay delay:** it delays the first interim of every burst by a full 200 ms (trailing-edge timer).
+  - **Gaps from 008.2:** the Builder did not add an "As built (008.2)" section, did not perform the live provider check, and did not run the live end-to-end check. The human's session shows the provider path working in real use. The 008.3 handoff must close these documentation and verification gaps.
+- **Decision:** proceed to CAPTION-008.3, duplicate control. Latency gets measured in 008.3 and optimized in 008.4 from the measurements, without trading away accuracy.
 
-## CAPTION-008.4 outline — physical UAT and closure
+## CAPTION-008.3 specification — duplicate control
 
-A sustained multi-person session measuring duplicates, missed speech, wrong attribution, latency and cost per person-hour, recorded in QUALITY.md, plus human acceptance.
+### Objective
+
+Each spoken sentence appears once, under the right name, while every person keeps their captions. Three parts:
+- the host gets a continuous per-person sensitivity slider;
+- the host chooses between overlapping captions by comparing each phone's level against its own wearer's calibrated level;
+- every stage of latency is measured so 008.4 can fix the right stage.
+
+### Part A — tuning controls and estimator fixes (land and test first)
+
+1. **Continuous sensitivity slider** (replaces the three-step control):
+   - Each person gets `sensitivityDb`, an integer from **−15 to +6**, default 0. Negative means less sensitive.
+   - `applySensitivity(base, sensitivityDb, calibration, ownRefDb)` sets `openDb = base.openDb − sensitivityDb`, clamped to `[floorDb + 6, ownRefDb + 6]`, with `closeDb = openDb − 4`. `ownRefDb = max(calibration.ownDb, applied room-check own)`.
+   - The `headset-sensitivity` control carries `levels: Record<participantId, number>`, validated as integers in range (at most 64 entries). Legacy string values map to `lower = −4`, `normal = 0`, `higher = +3`.
+   - **Host UI:** one native range input per person, including the host's own headset, labelled "Sensitivity for {name}". "Less" is on the left and "More" on the right, in 1 dB steps; arrow keys work.
+     - Visible and `aria-valuetext` text: "Normal", "Less sensitive (−6 dB)" or "More sensitive (+2 dB)".
+     - Small text shows "Opens at {openDb} dB" from that phone's presence. When `openDb > ownRefDb − 3` it also shows "Quiet speech may be missed".
+   - **Sending:** during a drag, send at most one control every 250 ms, and always send the final value. The host keeps the map in memory and rebroadcasts it as in 008.2.
+   - **Phone:** applies a new value immediately and shows "Sensitivity: Less sensitive (−6 dB), set by the host".
+2. **Tuning state is visible:**
+   - The phone reports `tuned: boolean` in presence: true once a plausible room check has been applied since its last calibration. Recalibrating, reloading or rejoining with a new instance sets it false.
+   - The host strip shows "Room check needed" for a ready person with `tuned: false` whenever at least two people are ready.
+   - Export `applied` uses the phone-reported `tuned` value, not a host recomputation.
+3. **Robust own-level estimator** (calibration voice step and room-check own slot):
+   - Speech frames are those `≥ max(floorDb + 6, p95(frames) − 15)`. Own level is their median.
+   - The existing minimums stay: 10 frames for calibration, 5 for the room check, and `own − floor ≥ 10` for calibration.
+   - **Test vector:** floor −81.5; 30 frames at −55 (room noise) and 30 frames at −27 (speech). The old rule gives a mixed median; the new rule gives −27.
+4. **Leading-edge interim throttle:** send the first interim of a stream immediately. Then send at most one per 200 ms, keeping only the latest, and flush it at the end of the window. Finals still flush and replace pending interims. The maximum rate is unchanged (≤ 5/s).
+
+### Part B — duplicate arbitration and latency measurement
+
+5. **Phone level history** (new pure `src/lib/headset/level-history.ts`):
+   - `LevelHistory(capacity = 600)` holds 60 s of 100 ms frames, filled with `push(atMs, levelDb, open)` for every captured frame. `open` is the effective gate state, so it is false during calibration and room checks.
+   - `stats(fromMs, toMs, ownRefDb) → { relDb: number | null; openRatio: number; frames: number }`:
+     - `relDb` is the median of `levelDb − ownRefDb` over open frames in the window, or over all frames in the window if none were open; null if the window has no frames.
+     - `openRatio` is the fraction of frames in the window that were open.
+6. **Audio timing on captions:**
+   - Add optional `audioEndAt` to `CaptionEvent`, set in `normalizeTurn` for interims and finals as `sessionStartedAt + lastWord.end`. Table and Connected ignore it; validators accept it as optional.
+   - Export `LOOKAHEAD_MS = 300` from `gated-audio.ts`.
+   - A caption's capture window is `[startedAt − LOOKAHEAD_MS, (endedAt ?? audioEndAt ?? now) − LOOKAHEAD_MS]`.
+7. **Evidence on the relay:**
+   - For every interim and final, the phone computes `evidence = { ...history.stats(window, ownRefDb), startAt, endAt }`, using phone wall-clock capture times.
+   - It sends the evidence in `CaptionEnvelope.evidence`.
+   - Host validation: finite numbers; `relDb` in [−100, 40] or null; `openRatio` in [0, 1]; `endAt ≥ startAt`; span ≤ 120 s.
+   - Gate signals gain `at` (phone `Date.now()`).
+   - The host's own headset computes evidence locally.
+8. **Clock alignment on the host:**
+   - For each participant, keep the minimum of `hostReceivedAt − phoneSentAt` over the last 50 caption envelopes and gate signals (`readyAt` / `at`). This minimum is the clock offset; phone time + offset gives host time.
+   - The host's own headset uses offset 0.
+   - The error equals the difference between the phones' best-case network delays, typically under 50 ms.
+9. **Arbiter** (new pure `src/lib/headset/arbiter.ts`; headset rooms only):
+   - **Placement:** sits between the relay and `dispatch` in the controller. It emits `CaptionAction`s and adds a reducer action `REMOVE_TURN { sourceTurnId }`. Reuse `comparisonTokens` and `shortSideCoverage` from `cross-mic-reconciler.ts`.
+   - **Turn records:** keep one record per (participant, sourceTurnId) for 15 s, at most 256: host-time span, `relDb`, `openRatio`, latest tokens, final or not, and status (`shown` / `hidden` / `held`).
+   - **Overlap:** two spans overlap if they intersect with 300 ms tolerance. A turn's overlap fraction is the overlapping time divided by that turn's own span.
+   - **Text duplicate:** both texts have ≥ 2 tokens and `shortSideCoverage ≥ 0.6`, or both are a single identical token.
+   - **Winner between two overlapping turns:**
+     - the higher `relDb`;
+     - if within 1 dB: the higher `openRatio`;
+     - if still tied: the earlier start.
+     - A turn with null evidence never wins against a turn with evidence, and is never suppressed on level alone.
+   - **Interim:** hide it (`CLEAR_INTERIM` for that source, no dispatch) while any overlapping turn from another participant has `relDb` at least **3 dB** higher. Otherwise dispatch it. A newly dominant interim also clears a weaker overlapping *interim*; finals are never cleared this way.
+   - **Final:** the decision depends on overlapping turns from other participants.
+     - **No overlapping turns:** dispatch immediately. No added latency.
+     - **An overlapping turn has no final yet:** hold this final for up to **800 ms**, waiting for that final. At the timeout, compare against that turn's latest interim text.
+     - **Text duplicate:** suppress the loser (clear its interim, do not dispatch it). If the loser was already shown as a final, dispatch `REMOVE_TURN` for it and show the winner; count this as `replaced`.
+     - **Level-only suppression:** if the texts are not duplicates but the turn's `relDb` is **≥ 4 dB** below the other's and its overlap fraction is ≥ 0.5, suppress it as bleed fragments.
+     - **Otherwise both people really spoke:** show both, including a final whose interim had been hidden (count it as `restored`).
+   - **Speaker revisions:** pass through for shown turns; drop them for suppressed turns.
+   - **Constants:** export all of them in one `ARBITER` object; the export includes them.
+   - **Testing aid:** a host-only checkbox "Show hidden duplicates (for testing)", off by default, shows suppressed finals dimmed and in time order, prefixed "Hidden duplicate:". They are held in memory only, at most 200.
+10. **Latency measurement only** (no tuning in this slice):
+    - **Phone:** for every provider event, `sttMs = receivedAt − audioEndAt`. Keep the last 200 interim samples and the last 200 final samples, and publish `latency: { interimP50, interimP90, finalP50, finalP90, samples }` in presence at most every 10 s.
+    - **Host:** per participant, `relayExtraMs = (hostReceivedAt − readyAt) − offset` on caption envelopes; p50 and p90 over the last 200 samples.
+    - **On-screen estimate:** "Estimated delay: ~{lookahead + interimP50 + relayExtraP50} ms" per person in the host's Participants panel.
+11. **Export version 3** adds:
+    - per participant: `sensitivityDb`, `tuned`, `latency` (phone stt plus host relay values) and `captions: { shown, suppressedText, suppressedLevel, replaced, restored }`;
+    - per pair: `duplicatesHidden`;
+    - constants: `ARBITER`, `lookaheadMs`, `interimThrottleMs`.
+    - Still no names, IDs, audio or caption text.
+
+### Non-goals for 008.3
+
+- No latency optimization beyond the leading-edge throttle: no `mode` change, no look-ahead change, no turn-detection parameters (008.4).
+- No adaptive thresholds and no automatic sensitivity.
+- No audio or transcript storage.
+- No schema or policy change.
+- No change to Table or Connected behaviour.
+
+### Verification (Builder)
+
+- `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`, `git diff --check`.
+- **Unit tests:**
+  - **Slider:** maths and clamps; old-string mapping; validation; throttled sending.
+  - **Tuning state:** `tuned` lifecycle; "Room check needed"; robust estimator vectors; leading-edge throttle.
+  - **`LevelHistory`:** windows, the open-only median and the all-frames fallback.
+  - **Evidence:** windows on interims and finals.
+  - **Clock offset:** estimation, including a phone clock 2 s fast.
+  - **Arbiter scenarios:**
+    1. **Bleed duplicate:** same text; `relDb` 0 vs −5. The weaker one is suppressed.
+    2. **Garbled bleed:** "should leaf" at −6 vs "we should leave at five" at −0.5, overlapping. Suppressed on level.
+    3. **Genuine overlap:** different text at −1 and 0. Both shown.
+    4. **Soft interjection:** "yeah" at −3 during a long turn at 0. Shown.
+    5. **Hidden interim restored:** the interim is hidden, then the final is not a duplicate and is within 4 dB. Restored.
+    6. **Final hold, partner final arrives in time:** the partner's final arrives within 800 ms. No flash of the weaker final.
+    7. **Final hold, timeout:** the timeout path compares against the partner's interim.
+    8. **Replacement:** `REMOVE_TURN` is dispatched, then the winner is shown.
+    9. **Missing evidence:** never suppressed on level.
+  - Export version 3.
+- **Live provider check (owed from 008.2):** one real AssemblyAI session through the browser path with `HEADSET_ASSEMBLYAI_OPTIONS`, observing Begin, Turn and Termination. Record it in LIVE-STATE.md.
+- **Live local end-to-end** (host + two fake-media phones, live Supabase + AssemblyAI):
+  - Each phone's WAV is its wearer at normal level plus the other wearer **about 5 dB quieter**, overlapping in time, to match the weak separation in the physical export.
+  - Run it once with arbitration and once with a test-only bypass.
+  - Report shown, suppressed and duplicate counts, missed lines, and the latency metrics.
+  - Synthetic audio proves the pipeline, not real acoustics; say so.
+- 390 px and 1280 px render checks; keyboard operation of the sliders and the checkbox.
+- Keep sign-ins few, end every test room, and commit no audio or storage states.
+- Add the missing "As built (008.2)" summary alongside "As built (008.3)".
+
+### Acceptance criteria (008.3)
+
+1. The host can tune each person continuously from −15 to +6 dB. The phone applies it immediately and the host shows the resulting threshold. Lost room-check tuning is visible as "Room check needed".
+2. Own levels are robust to headsets that silence noise digitally.
+3. In the synthetic end-to-end run, every duplicated sentence from simulated bleed appears once under the right name, with no real speech hidden. The test-only bypass shows the duplicates the arbiter removed.
+4. Interims from a clearly weaker phone are hidden. Finals are held only while another phone has an overlapping open turn, for at most 800 ms.
+5. Latency is measured per stage and shown on the host. All gates, the live checks and the docs are done, the work is pushed and the Vercel status is recorded.
+
+### Physical test script (human, after 008.3 deploys)
+
+1. Reload every page. Set up both headsets and run the room check. Confirm no "Room check needed" appears.
+2. Sit at your usual distance and talk for 3 minutes. When someone's name shows on another person's words, drag *that* person's slider toward **Less** until it stops. Note the final values.
+3. Talk naturally for 5 minutes, including quick back-and-forth, overlap and soft replies. Count duplicates, missed speech and wrong names. Note the host's "Estimated delay" for each person.
+4. Optionally turn on "Show hidden duplicates (for testing)" for a minute and check that the hidden lines really were duplicates.
+5. Move to about 50 cm apart, retune, and repeat step 3 briefly.
+6. **Copy results** and return the export and your notes.
+
+## CAPTION-008.4 outline — latency (evidence-driven)
+
+Uses the 008.3 latency measurements. Candidate levers, each evaluated for both accuracy and latency before adoption:
+- `mode=min_latency`;
+- a shorter look-ahead (for example 200 ms) now that the gate needs 2 attack frames;
+- AssemblyAI turn-detection parameters;
+- relay path optimizations.
+
+Adopt a lever only if accuracy is not visibly worse.
+
+## CAPTION-008.5 outline — physical UAT and closure
+
+Absorbs the remaining recovery items: headset fallback to the built-in microphone, phone lock and page refresh. Then a sustained multi-person session measuring duplicates, missed speech, wrong attribution, latency and cost per person-hour, recorded in QUALITY.md, plus human acceptance.

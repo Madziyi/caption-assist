@@ -109,10 +109,14 @@ These are planned contracts, not repository facts, until the Builder implements 
 - Headset signalling uses the existing private topics: immediate participant `headset-presence` broadcasts carry validated `{ sessionId, seq, presence }` setup/visibility/input status. A deduplicated, coalesced Presence snapshot (at most one every 12 s) keeps `identify` and `headset` together for late host subscribers without exceeding the connection's five Presence writes per 30 s. Session/sequence guards prevent older snapshots from replacing newer broadcast state. Participant broadcast `headset` carries gate transitions and room-check results; host control carries `headset-check` / `headset-check-cancel`. No payload carries audio or conversation text; temporary transport versions are not retained or exported.
 - The gate decision is phone-local, uses calibrated thresholds with hysteresis and hold, and leans toward open.
 - 008.2 provider: one AssemblyAI v3 stream per phone, `universal-3-6-pro`, `speaker_labels=false`, `voice_focus=near-field`, `mode=balanced`, `format_turns=true`, with no silent fallback. Caption identity comes from the sending participant's channel.
-- 008.2 (planned):
+- 008.2 (implemented):
   - Room-check bleed sets each phone's gate thresholds, adjusted by a host-set per-person sensitivity (memory-only, clamped).
   - A phone streams gated audio only after setup is ready: a 300 ms look-ahead, with silence frames while the gate is closed and throughout calibration and room checks.
   - Phones relay sequence-numbered caption events on their own participant topic. The host validates them, binds identity and dispatches them. There are no relay-acks, and interims are coalesced to at most 5 per second per phone.
+- 008.3 (planned):
+  - Sensitivity becomes a continuous per-person integer offset (−15 to +6 dB).
+  - Each caption envelope may carry memory-only evidence (level relative to the wearer's calibrated own level, open ratio, capture span). This is loudness statistics, not audio and not a voiceprint.
+  - In headset rooms the host arbitrates overlapping captions between phones and may hide a weaker duplicate. Hidden duplicates are memory-only and visible to the host only through a testing toggle.
 
 ## Verified repository baseline — 2026-10-10
 

@@ -381,3 +381,20 @@ Use this format:
 ### 2026-10-11 — CAPTION-008.2 phone setup fix publication
 - Source `df89148` pushed to main; GitHub combined status reported Vercel success: https://vercel.com/madziyis-projects/caption-assist/HB68pZaVw5LLj1toww39zMweRqEA.
 - No live infrastructure change. Reload/rejoin physical phones and confirm the setup tap and browser-exposed inputs; full provider/browser-path and physical headset UAT remain outstanding.
+
+### 2026-10-11 — Planner: 008.2 physical review, CAPTION-008.3 planned
+- **Workspace incident:** at 14:42 the local working tree had 15 files rewritten to commit `663b57f` content while `HEAD` was `93929c1`, consistent with an editor checkpoint restore. The Planner verified they matched `663b57f` exactly and restored them to `HEAD`. Committed and deployed state was never affected.
+- **Human physical result** (wired and Bluetooth headsets):
+  - Captions work and are named by phone.
+  - Bleed triggers captions when people sit close; a continuous slider is wanted.
+  - The delay is about 2 s.
+- **Export:**
+  - Separation 4.4 and 6.9 dB (weak); 16.1 s of overlapping gates and 7 co-onsets in 160 s.
+  - The wired phone's `openDb` showed its room-check tuning had been discarded (recalibrated or reloaded after the check).
+  - The Bluetooth calibration own level of −41.6 vs a room-check −26.7 exposes an estimator weakness with on-device noise silencing.
+- **Review gaps from 008.2:** no "As built (008.2)" section, no live provider check, no live end-to-end run, and the 200 ms trailing-edge interim delay. These are carried into the 008.3 verification.
+- **Decision:** 008.3 is duplicate control.
+  - **Part A:** continuous per-person slider (−15 to +6 dB, clamped to `[floor + 6, ownRef + 6]`), phone-reported `tuned` with "Room check needed", a peak-relative own-level estimator, and a leading-edge interim throttle.
+  - **Part B:** per-caption relative-level evidence from a phone level history aligned to word timing, host clock alignment by minimum delay, and an arbiter. The arbiter hides weaker interims, holds finals up to 800 ms only when overlapping, suppresses text duplicates by level winner and suppresses weak bleed fragments. Also latency measurement per stage and export version 3.
+- **Re-sequenced:** 008.4 is latency (evidence-driven, no visible accuracy loss); 008.5 is recovery plus UAT and closure.
+- **Next action:** Builder implements 008.3.
