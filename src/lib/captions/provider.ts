@@ -208,6 +208,7 @@ function normalizeTurn(message: AssemblyAIMessage, sourceTurnId: string, connect
           endedAt: finalized ? sessionStartedAt + (lastWord?.end ?? 0) : undefined,
           isFinal: finalized,
           confidence: message.end_of_turn_confidence,
+          recognitionConfidence: meanWordConfidence(words),
           sourceId: "assemblyai",
         }]
       : [];
@@ -234,6 +235,7 @@ function normalizeTurn(message: AssemblyAIMessage, sourceTurnId: string, connect
     const segment = segments.at(-1);
     if (segment) {
       segment.text = joinWords(current.words.map((item) => item.text?.trim() ?? ""));
+      segment.recognitionConfidence = meanWordConfidence(current.words);
       segment.endedAt = finalized ? sessionStartedAt + (word.end ?? word.start ?? 0) : undefined;
     }
   }
@@ -247,6 +249,12 @@ function joinWords(words: string[]): string {
     if (/^[’']/.test(word)) return `${text}${word}`;
     return `${text} ${word}`;
   }, "");
+}
+
+function meanWordConfidence(words: NonNullable<AssemblyAIMessage["words"]>): number | undefined {
+  const values = words.map((word) => word.confidence).filter((value): value is number =>
+    typeof value === "number" && Number.isFinite(value) && value >= 0 && value <= 1);
+  return values.length ? values.reduce((sum, value) => sum + value, 0) / values.length : undefined;
 }
 
 function createProviderConnectionId(): string {

@@ -273,3 +273,10 @@ Append concise entries:
 - Audio path: User reports deployed Connected Mode working perfectly.
 - Accessibility/UI: User made/accepted additional UI refinements.
 - Result: User-observed product acceptance recorded. CAPTION-003 accepted for progression.
+
+### 2026-10-11 - CAPTION-003.1 cross-microphone correction
+- User evidence: Deployed Connected Mode testing revealed duplicate physical speech when nearby personal microphones heard the same person. This supersedes earlier general product acceptance. Device/browser matrix, mic count and quantitative duplicate counts were not reported.
+- Source: Synchronous host-memory reconciliation only; 4+ tokens >=0.85 ordered Dice within 1800 ms; 3-token exact within 600 ms; 1-2 tokens preserved. No deliberate buffering or comparison network call. Word recognition confidence preserved separately; >=0.15 interim leader margin, stable final label.
+- Verification: 93 tests / 13 files passed; typecheck/lint and production build passed. Synthetic tests cover matching/divergent/short/repeated/simultaneous speech, three-source clusters, confidence, interim cleanup, removal, expiry and Connected re-entry. Existing UI/Table tests passed; current header/layout source untouched.
+- Real-device UAT: Not performed by Builder. Before/after duplicate count, false/missed suppression, interim label switching, perceived caption latency, physical devices and number of open mics remain unmeasured for the fix. Text matching does not prove the human speaker. No accuracy percentages inferred.
+- Next measurement: Deployed two/three phones naturally placed, each owner's speech, unrelated simultaneous sentences and simultaneous Yes. Record the above observations before accepting CAPTION-003; CAPTION-004 deferred.

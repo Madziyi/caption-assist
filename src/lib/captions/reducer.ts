@@ -93,6 +93,11 @@ function applyTranscriptionEvent(state: CaptionState, event: TranscriptionEvent)
     if (caption.sourceId && activeInterims[caption.sourceId]?.sourceTurnId === sourceTurnId) delete activeInterims[caption.sourceId];
   }
   if (existingIndex >= 0) {
+    // Connected revisions retain the selected cross-mic speaker even after the
+    // short-lived reconciler cache expires. Table diarized revisions still work.
+    if (captions.every((caption) => caption.sourceId?.startsWith("participant:"))) {
+      for (const caption of captions) caption.speakerId = finalized[existingIndex].speakerId;
+    }
     let removeCount = 0;
     while (finalized[existingIndex + removeCount]?.sourceTurnId === sourceTurnId || finalized[existingIndex + removeCount]?.id === sourceTurnId) removeCount += 1;
     finalized.splice(existingIndex, removeCount, ...captions);

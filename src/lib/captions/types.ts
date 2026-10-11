@@ -6,6 +6,7 @@ export type CaptionEvent = {
   endedAt?: number;
   isFinal: boolean;
   confidence?: number;
+  recognitionConfidence?: number;
   sourceId?: string;
   sourceTurnId?: string;
   ingestOrder?: number;

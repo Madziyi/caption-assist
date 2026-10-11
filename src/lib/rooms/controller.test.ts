@@ -3,6 +3,7 @@ import { ConnectedRoom, type RoomView } from "./controller";
 import type { Participant, RoomSnapshot } from "./types";
 import type { CaptionAction } from "../captions/reducer";
 import { captionReducer, initialCaptionState } from "../captions/reducer";
+import { exactIdentity } from "./types";
 const mocks = vi.hoisted(() => ({ request: vi.fn(), callbacks: null as unknown, transports: [] as unknown[], mics: [] as unknown[] }));
 vi.mock("./browser", () => ({ roomRequest: mocks.request, roomClient: () => ({ realtime: { setAuth: async () => undefined } }), technicalSession: async () => ({ access_token: "test" }) }));
 vi.mock("./transport", () => ({ SupabaseRoomTransport: class {
@@ -71,5 +72,19 @@ describe("Connected room lifecycle", () => {
     const f = fixture(); mocks.request.mockResolvedValue(snapshot(guest)); await f.room.join("token", "Alex"); await f.room.toggleMicrophone(); await f.room.leave();
     expect(f.view.phase).toBe("idle"); expect(f.view.microphone).toBe("Muted");
     expect((mocks.transports[0] as { disconnect: ReturnType<typeof vi.fn> }).disconnect).toHaveBeenCalled();
+  });
+  it("reconciles authorized guest and You captions before the reducer and resets on re-entry", async () => {
+    const f = fixture(); mocks.request.mockResolvedValue(snapshot()); await f.room.create();
+    const turn = { ...caption("shared"), captions: [{ ...caption("shared").captions[0], text: "We should leave around seven." }] };
+    callbacks().caption("guest", exactIdentity(turn, "guest"));
+    callbacks().caption("host", exactIdentity(turn, "host"));
+    expect(f.state.finalized).toHaveLength(1); expect(f.state.finalized[0].speakerId).toBe("guest");
+    const oldCallbacks = callbacks();
+    await f.room.rejoin();
+    oldCallbacks.caption("guest", exactIdentity({ ...turn, sourceTurnId: "stale", captions: [{ ...turn.captions[0], sourceTurnId: "stale", id: "stale" }] }, "guest"));
+    expect(f.state.finalized).toHaveLength(1);
+    callbacks().caption("host", exactIdentity({ ...turn, sourceTurnId: "new", captions: [{ ...turn.captions[0], sourceTurnId: "new", id: "new" }] }, "host"));
+    expect(f.state.finalized).toHaveLength(2);
+    await f.room.dispose();
   });
 });

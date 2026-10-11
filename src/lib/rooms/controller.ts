@@ -1,5 +1,6 @@
 import type { CaptionAction } from "../captions/reducer";
 import type { TranscriptionEvent } from "../captions/types";
+import { CrossMicReconciler } from "../captions/cross-mic-reconciler";
 import { roomClient, roomRequest, technicalSession } from "./browser";
 import { PersonalMicrophone, type PersonalMicrophoneState } from "./personal-microphone";
 import { SupabaseRoomTransport, type RoomTransport } from "./transport";
@@ -26,6 +27,7 @@ export class ConnectedRoom {
   private refreshing = false;
   private refreshPending = false;
   private disposed = false;
+  private readonly reconciler = new CrossMicReconciler();
 
   constructor(private readonly onView: (view: RoomView) => void, private readonly dispatch?: (action: CaptionAction) => void) {}
   private update(values: Partial<RoomView>) { this.view = { ...this.view, ...values }; this.onView(this.view); }
@@ -75,7 +77,7 @@ export class ConnectedRoom {
     if (generation !== this.generation) return;
     await supabase.realtime.setAuth(session.access_token);
     const transport = new SupabaseRoomTransport(supabase, snapshot.roomId, snapshot.self, {
-      caption: (id, event) => this.caption(id, event),
+      caption: (id, event) => { if (generation === this.generation) this.caption(id, event); },
       state: (id, status) => {
         if (generation !== this.generation) return;
         this.update({ statuses: { ...this.view.statuses, [id]: status } });
@@ -112,10 +114,15 @@ export class ConnectedRoom {
   }
   private caption(id: string, event: TranscriptionEvent) {
     if (!this.accepting || this.view.phase !== "joined" || !this.view.snapshot?.participants.some((p) => p.id === id && !p.removed)) return;
-    // Final order is monotonic host ingest; device wall clocks never reorder visible text.
-    const ingestOrder = ++this.ingest;
-    const actionEvent = event.type === "interim" ? event : { ...event, captions: event.captions.map((caption) => ({ ...caption, ingestOrder })) };
-    this.dispatch?.({ type: "TRANSCRIPTION_EVENT", event: actionEvent });
+    // Authorized transport already bound microphone identity. Reconcile only here,
+    // on the Connected host path; Table events never pass through this class.
+    for (const action of this.reconciler.process(`participant:${id}`, event)) {
+      if (action.type !== "TRANSCRIPTION_EVENT" || action.event.type === "interim") this.dispatch?.(action);
+      else {
+        const ingestOrder = ++this.ingest;
+        this.dispatch?.({ ...action, event: { ...action.event, captions: action.event.captions.map((caption) => ({ ...caption, ingestOrder })) } });
+      }
+    }
   }
   async toggleMicrophone() {
     if (this.view.phase !== "joined") return;
@@ -142,6 +149,7 @@ export class ConnectedRoom {
     // Mark removed before any further transport message can be accepted.
     this.update({ snapshot: { ...snapshot, joinUrl: this.view.snapshot.joinUrl }, statuses: { ...this.view.statuses, [participantId]: "Removed" } });
     this.dispatch?.({ type: "CLEAR_INTERIM", sourceId: `participant:${participantId}` });
+    this.reconciler.discardSource(`participant:${participantId}`);
     await this.transport?.sendControl({ type: "participant-removed", participantId });
     await this.transport?.updateParticipants(snapshot.participants);
   }
@@ -157,6 +165,7 @@ export class ConnectedRoom {
   async dispose() { this.disposed = true; await this.release(); }
 
   private async refresh() {
+    this.reconciler.prune();
     if (this.view.phase !== "joined" || !this.view.snapshot) return;
     if (this.refreshing) { this.refreshPending = true; return; }
     this.refreshing = true;
@@ -167,6 +176,7 @@ export class ConnectedRoom {
       if (snapshot.status !== "open") { await this.finish("ended"); return; }
       if (snapshot.self.removed) { await this.finish("removed"); return; }
       this.update({ snapshot: { ...snapshot, joinUrl: this.view.snapshot?.joinUrl } });
+      for (const participant of snapshot.participants) if (participant.removed) this.reconciler.discardSource(`participant:${participant.id}`);
       this.dispatch?.({ type: "CONNECTED_SPEAKERS", speakers: participantProfiles(snapshot.participants) });
       await this.transport?.updateParticipants(snapshot.participants);
     } catch { if (generation === this.generation) await this.lostConnection(); }
@@ -190,6 +200,7 @@ export class ConnectedRoom {
   }
   private async release() {
     ++this.generation; this.accepting = false;
+    this.reconciler.reset();
     if (this.timer) clearInterval(this.timer);
     this.timer = null;
     const mic = this.mic; const transport = this.transport;

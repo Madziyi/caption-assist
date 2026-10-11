@@ -215,3 +215,10 @@ Use this format:
 - Live state: No new Builder inspection of deployed infrastructure performed; existing verified facts remain in LIVE-STATE.md.
 - Known issues: Detailed physical-device/audio-path, background, simultaneous-speech, latency, accuracy, and provider metrics remain unreported/unverified.
 - Next action: Planner may begin CAPTION-004 architecture planning; implementation has not started.
+
+### 2026-10-11 - CAPTION-003 reopened for CAPTION-003.1
+- Trigger: User's deployed co-located microphone testing found cross-mic duplicate speech, superseding earlier closure. Participant identity authorizes the microphone/source, not a mathematical human-speaker guarantee.
+- Changed: Application-owned synchronous CrossMicReconciler between authorized Connected delivery and reducer; short bounded clusters, conservative token/time matching, active-turn-safe interim cleanup, stable final attribution and separate per-segment recognition confidence. Current UI, Table path/model, Supabase authorization and provider strategy preserved. No comparison network call, buffering, persistence or caption text logging.
+- Decisions: 4+ tokens ordered Dice >=0.85 / 1800 ms; 3 tokens exact / 600 ms; 1-2 tokens never cross-suppressed; negation/numeric conflicts protected; >=0.15 confidence margin before final only. First final commits immediately; source provenance retained even when displayed label comes from another cluster leader.
+- Verification: 93 tests / 13 files, typecheck/lint and production build passed. No physical-device/audio tests or real duplicate/latency measurements inferred. Baseline main had a successful Vercel Git deployment status; new commit deployment to be checked after push.
+- Next action: Publish then perform specified deployed two/three-phone scenarios and collect user acceptance. CAPTION-003 stays active; CAPTION-004 deferred.

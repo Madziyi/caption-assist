@@ -29,6 +29,28 @@ class FakeWebSocket {
 }
 
 describe("AssemblyAIStreamingProvider", () => {
+  it("preserves separate mean recognition confidence per segment, excluding invalid values", async () => {
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    const provider = new AssemblyAIStreamingProvider("temporary-token", "confidence");
+    const events: TranscriptionEvent[] = []; provider.onEvent(event => events.push(event)); await provider.connect();
+    FakeWebSocket.lastSocket?.onmessage?.({ data: JSON.stringify({ type: "Turn", turn_order: 1, end_of_turn: true, end_of_turn_confidence: .99,
+      words: [{ text: "Hello", speaker: "A", confidence: .6 }, { text: "there", speaker: "A", confidence: .8 },
+        { text: "How", speaker: "B", confidence: .9 }, { text: "are", speaker: "B" }, { text: "you", speaker: "B", confidence: 2 }] }) });
+    const result = events[0]; if (result.type === "interim") throw new Error("Expected final");
+    expect(result.captions[0].recognitionConfidence).toBeCloseTo(.7);
+    expect(result.captions[1].recognitionConfidence).toBe(.9);
+    expect(result.captions.map(c => c.confidence)).toEqual([.99, .99]);
+  });
+  it("averages interim and single-speaker final recognition confidence and tolerates missing values", async () => {
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    const provider = new AssemblyAIStreamingProvider("temporary-token", "confidence", false);
+    const events: TranscriptionEvent[] = []; provider.onEvent(event => events.push(event)); await provider.connect();
+    for (const end_of_turn of [false, true]) FakeWebSocket.lastSocket?.onmessage?.({ data: JSON.stringify({ type: "Turn", turn_order: 1, end_of_turn,
+      words: [{ text: "Sounds", confidence: .7 }, { text: "good", confidence: .9 }, { text: "today" }] }) });
+    for (const event of events) expect((event.type === "interim" ? event.caption : event.captions[0]).recognitionConfidence).toBeCloseTo(.8);
+    FakeWebSocket.lastSocket?.onmessage?.({ data: JSON.stringify({ type: "Turn", turn_order: 2, end_of_turn: true, words: [{ text: "Okay", confidence: -1 }] }) });
+    const last = events.at(-1)!; expect((last.type === "interim" ? last.caption : last.captions[0]).recognitionConfidence).toBeUndefined();
+  });
   it("disables diarization for a personal Connected stream", async () => {
     vi.stubGlobal("WebSocket", FakeWebSocket);
     await new AssemblyAIStreamingProvider("temporary-token", "personal-stream", false).connect();
