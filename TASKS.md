@@ -10,7 +10,12 @@ Use these states:
 
 ## In progress
 
-- **CAPTION-003** `[in-progress]` - Reopened after deployed user testing revealed duplicate speech on nearby personal microphones. CAPTION-003.1 text reconciliation, CAPTION-003.2 episode continuity and CAPTION-003.3 Voice Focus all failed real acceptance, so personal-microphone work stopped. CAPTION-003.4 pivots Connected Mode to one host room microphone + AssemblyAI diarization + one-time session voice identification from QR phones that do not record audio. Closure awaits physical multi-person UAT and user acceptance.
+- **CAPTION-008** `[in-progress]` — Headset Mode, a separate mode: every speaker wears AirPods/a headset on their own phone, no room microphone; each phone gates its wearer's speech by calibrated loudness. Spec: `CAPTION-008-HEADSET-MODE.md`.
+  - **008.1** `[ready]` — Headset check, calibration, room check, gate preview, results export; no audio leaves any device. Includes the additive `caption_rooms.mode` migration.
+  - **008.2** `[planned]` — Gated per-phone transcription with Universal-3.6 Pro + Voice Focus `near-field`; captions named by phone. Starts only after the 008.1 go/no-go.
+  - **008.3** `[planned]` — Duplicate safety net by calibrated margin, adaptive thresholds, headset/phone recovery.
+  - **008.4** `[planned]` — Physical multi-person UAT and closure.
+- **CAPTION-003** `[in-progress]` — Paused while CAPTION-008 is active. Reopened after deployed user testing revealed duplicate speech on nearby personal microphones. CAPTION-003.1 text reconciliation, CAPTION-003.2 episode continuity and CAPTION-003.3 Voice Focus all failed real acceptance, so personal-microphone work stopped. CAPTION-003.4 pivots Connected Mode to one host room microphone + AssemblyAI diarization + one-time session voice identification from QR phones that do not record audio. Closure awaits physical multi-person UAT and user acceptance.
 
 ## Ready
 

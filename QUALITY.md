@@ -95,6 +95,18 @@ Record measured provider billing/configuration or carefully calculated cost from
 |---|---|---|---:|---|---|
 | — | unverified | — | — | — | — |
 
+### 8. Headset Mode separation and gating (CAPTION-008)
+
+Track per person, recorded from the anonymized results export plus observation:
+- headset type and sanitized mic label; input class; the processing (auto gain, noise suppression, echo cancellation) the browser actually applied;
+- quiet floor, own-voice level and room-check separation in dB, by seating distance (about 1 m and 50 cm), with the band (clear ≥ 15, usable ≥ 8, weak < 8; provisional);
+- gate preview during natural talk: speaking lights for the wrong person, missed lights for the talker, co-onsets and overlap per pair;
+- comparison runs: a phone's built-in mic and, if available, a boom-mic headset.
+
+From 008.2 onward also: missed speech, duplicate captions, wrong attribution, latency, and cost per person-hour (one Universal-3.6 Pro stream per speaking person).
+
+Status: **unverified**
+
 ## Per-task evidence
 
 ### 2026-10-10 — CAPTION-001 source and browser verification

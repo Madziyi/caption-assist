@@ -36,10 +36,13 @@ One host laptop/tablet/phone captures the room and produces live captions. Speak
 ### Connected Mode
 One host room microphone with live diarization captions everyone (CAPTION-003.4). The host joins as `You` with the reserved navy identity, and the room microphone starts with the conversation. Participants scan a QR/link and enter a display name; their phones are identity/control devices only and never record audio. Each person taps **Identify my voice** once and speaks normally; the host binds the next stable diarized speaker to that participant for this conversation only, so captions show their name. The host can also identify itself, identify anyone from Participants, or name unidentified voices directly.
 
+### Headset Mode
+CAPTION-008, planned and in progress; not yet implemented. A separate, opt-in mode for groups where every speaker wears AirPods or a headset connected to their own phone. There is no room microphone. Each phone calibrates its wearer's level and the bleed from neighbours (room check), and gates its wearer's speech locally by loudness. Captions are attributed by whose phone produced them, without diarization or voice identification. People without a headset are not captioned in this mode, and the UI says so. CAPTION-008.1 measures headset separation and gate behaviour with no audio leaving any device. Transcription (008.2) uses one AssemblyAI Universal-3.6 Pro stream per phone with Voice Focus `near-field`. Specification: `CAPTION-008-HEADSET-MODE.md`.
+
 ### Hybrid Mode
 Future CAPTION-004 only; not implemented. The host room microphone would remain active alongside headsets/personal microphones in acoustically isolated settings, reusing the dormant CAPTION-003.1–003.3 personal-microphone and reconciliation modules.
 
-Table Mode uses the host as a room microphone with diarization ON. Mode selection is locked for the active conversation; end before selecting another mode.
+Table Mode uses the host as a room microphone with diarization ON. Mode selection is locked for the active conversation; end before selecting another mode. Table and Connected Mode remain the one-device options. Headset Mode deliberately requires a headset per speaker and is never the default.
 
 ## CAPTION-003 source contracts — 2026-10-11
 
@@ -96,6 +99,16 @@ Supersedes the personal-microphone parts of the CAPTION-003 source contracts (pa
 - Signalling: a phone publishes its request as presence state `{ online: true, identify: <request id> | null }` on its own private participant channel. The host applies each request ID once per participant (surviving transport reconnects) and treats a withdrawn request as cancel. Host-only control broadcasts `voice-identification` with `phases` and `requests` (the request ID each phase answers), validated on receipt. The phone stops requesting only when a phase naming its own request reports an outcome, which makes stale or reordered broadcasts harmless; after 10 s without acknowledgement it withdraws and shows a notice. No migration was needed: the CAPTION-003 private-topic policies already scope participant topics to the owner (publisher) and host (receiver), and control publication to the host.
 - Privacy: no voiceprints, embeddings, audio or biometric templates are created or stored by the application; the mapping is ordinary in-memory association between provider labels and participants for one conversation and is discarded when the room ends, changes or the host refreshes. Caption text remains memory-only and is not sent to Supabase.
 - Limitations: diarization can merge similar voices, short replies can be mislabelled before revisions, overlapping speech gets one label, and people speaking during someone else's window can mis-bind it (re-identification replaces it).
+
+## CAPTION-008 Headset Mode contract (planned)
+
+These are planned contracts, not repository facts, until the Builder implements and verifies each slice. `CAPTION-008-HEADSET-MODE.md` holds the exact specification.
+
+- Rooms persist `mode` (`connected` | `headset`) through an additive migration and a `create_headset` operation, with no function-signature or policy change. Every snapshot and `check` returns the mode; clients treat a missing mode as `connected`.
+- Headset rooms never start the host room microphone or voice identification. Phones open the headset microphone on a user gesture, with automatic gain control, noise suppression and echo cancellation requested off, and report what the browser actually applied.
+- Headset signalling uses the existing private topics: participant presence carries `headset` status; participant broadcast `headset` carries gate transitions and room-check results; host control carries `headset-check` / `headset-check-cancel`. Every payload is validated; none carries audio or text.
+- The gate decision is phone-local, uses calibrated thresholds with hysteresis and hold, and leans toward open.
+- 008.2 provider: one AssemblyAI v3 stream per phone, `universal-3-6-pro`, `speaker_labels=false`, `voice_focus=near-field`, `mode=balanced`, `format_turns=true`, with no silent fallback. Caption identity comes from the sending participant's channel.
 
 ## Verified repository baseline — 2026-10-10
 
@@ -224,6 +237,7 @@ Provider connections receive unique namespaces. A provider label from a later re
 - Record secret/environment-variable **names only** in `LIVE-STATE.md`, never values.
 - Treat conversation text as sensitive user content.
 - Connected voice identification is session-local association only: no voiceprints or biometric storage.
+- Headset Mode calibration and room-check levels are plain loudness numbers held in memory for one conversation; they are not voiceprints and are never stored. CAPTION-008.1 sends no audio. From 008.2, a phone sends audio for transcription only while its wearer's gate is open. Exported diagnostics contain no names, IDs, audio or caption text.
 
 ## Accessibility requirements
 
@@ -265,6 +279,7 @@ Provider connections receive unique namespaces. A provider label from a later re
 - `CAPTION-005` — Accessibility and optional sound-event layer
 - `CAPTION-006` — Production hardening
 - `CAPTION-007` — Provider/accuracy/cost benchmark and field validation
+- `CAPTION-008` — Headset Mode (per-speaker headsets, loudness-gated personal transcription, no room microphone)
 
 ## Definition of done
 

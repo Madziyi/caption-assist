@@ -1,27 +1,31 @@
 # Active Initiative
 
-**Initiative:** CAPTION-003 - Connected Mode / QR Participant Rooms
-**Active correction:** CAPTION-003.4 - One room microphone + live diarization + session voice identification
-**Status:** Personal-microphone Connected work stopped. CAPTION-003.1 text reconciliation, CAPTION-003.2 episode continuity and CAPTION-003.3 Voice Focus all failed real co-located-phone acceptance, so Connected Mode no longer opens a microphone on any phone. The host device is the single room microphone (AssemblyAI diarization), and each QR participant taps **Identify my voice** once so the host binds the next stable diarized speaker to that name for this conversation only. Source, automated gates, a live AssemblyAI check and local live end-to-end browser runs are complete; physical multi-person UAT is pending. CAPTION-004 remains deferred.
-**Owner:** Builder until verified commit/push; then Planner/human for physical UAT review.
+**Initiative:** CAPTION-008 - Headset Mode (separate mode: every speaker wears AirPods/a headset on their own phone; no room microphone)
+**Active slice:** CAPTION-008.1 - Headset check, calibration, room check and gate preview (no audio leaves any device)
+**Status:** Planned by Planner with the human on 2026-10-11; ready for Builder. Full specification, exact migration SQL, message contracts, constants, file map, tests, acceptance criteria and physical test script: `CAPTION-008-HEADSET-MODE.md`.
+**Owner:** Builder for CAPTION-008.1 until its verified commit/push; then the human runs the physical test script and returns exports to the Planner.
 
-## Contracts
+## Why
 
-- Exactly one audio stream in Connected Mode: host room microphone → AssemblyAI `universal-streaming-english`, `speaker_labels=true`, `format_turns=true`, `speaker_labels_revision_interval_ms=120000`. Participant phones never call `getUserMedia`; they show "Your phone is not recording audio."
-- `VoiceIdentityRegistry` (memory only) handles one identification window at a time (queue for others). A window lasts 20 s, ignores speech that started more than 1.5 s before the request, ignores interims and unresolved (`PENDING`) labels, and binds the speaker with the most words once it reaches 5 words. It never takes a speaker already bound to another participant; that attempt ends "Not identified — try again". Re-identifying replaces the person's binding; a later identification wins a contested speaker.
-- Bindings are anchored to the evidence turns heard during identification, not to a provider letter. When `SpeakerRevision` relabels those turns, the name follows the corrected speaker. A new provider connection (reconnect, session limit, host refresh) has new speaker labels: earlier names stay on history, and everyone shows "Needs to identify again".
-- Requests are participant-owned presence state `{ online, identify: requestId | null }` on the participant's private channel, so a host that subscribes after the tap still receives them. The host applies each request ID once and broadcasts phases plus the request ID each phase answers. The phone keeps its request until a phase naming that request reports an outcome; 10 s without acknowledgement shows a notice.
-- The host can identify itself (`You`) or anyone from Participants, and can name unidentified voices (e.g. someone without a phone) from the speaker panel.
-- Room-network loss does not stop the room microphone; captions continue locally while the room reconnects.
-- Personal-microphone modules (`personal-microphone`, `cross-mic-reconciler`, reconciliation diagnostics/debug panel, microphone check, Voice Focus option builder) remain in the repository unwired, for a future Hybrid Mode. `?captionDebug=1` no longer shows anything.
+CAPTION-003.1-003.3 failed because phone microphones on a table hear neighbours almost as loudly as their owners. A headset microphone sits a few centimetres from its wearer's mouth, so each phone should be able to tell its wearer from bleed by loudness, calibrated per person and per room. CAPTION-008.1 measures that on real hardware before any transcription is built.
+
+## Contracts for 008.1 (summary; the specification governs)
+
+- New persisted room mode `connected | headset` (additive migration; `create_headset` operation; mode returned by every snapshot and by `check`). Apply live to `cqnyvevhuxwfzhqpmccn` and pass the rollback-only SQL test **before** pushing dependent source; stop and hand the SQL to the human if access is unavailable.
+- Headset Mode: no room microphone, no voice identification, no AssemblyAI token or socket, no audio over any network. The host opens a microphone only via the optional "Set up my headset".
+- Phones capture with automatic gain control, noise suppression and echo cancellation requested off, and report what the browser actually applied, plus the sanitized mic label and input class.
+- Calibration (quiet floor, own voice), host-orchestrated room check (each person reads in turn while every phone measures), per-phone gate with hysteresis and hold, speaking lights on phone and host, anonymized results export. All constants are provisional.
+- New signals are small JSON on existing private topics (participant presence/broadcast, host control); no policy change.
+- Table Mode and Connected Mode (CAPTION-003.4) behaviour unchanged.
+
+## Decided for 008.2 (not built in 008.1)
+
+Each phone transcribes its own gated audio with AssemblyAI **Universal-3.6 Pro + Voice Focus `near-field`**, `speaker_labels=false`, `mode=balanced`, `format_turns=true`, with no silent fallback on rejection. Captions are named by the sending phone's channel identity.
 
 ## Next action
 
-Physical UAT on the deployed build: one host laptop/phone placed as a room microphone, two or three people each with a phone. Record per person: identification success and time, wrong-name events (especially similar voices), short-reply misattribution, interim behaviour, perceived latency, behaviour after ~2 minutes of audio (first mid-session revision), and recovery after host refresh or network loss. If diarization proves insufficient in real rooms, bring the evidence to the Planner before evaluating pyannote or other providers.
+Builder implements CAPTION-008.1 exactly as specified in `CAPTION-008-HEADSET-MODE.md`, verifies (automated gates, live migration + SQL test, local live protocol run), updates durable context, commits and pushes, and returns the handoff. Do not start 008.2.
 
-## Known limitations
+## Paused
 
-- Identification quality is bounded by diarization. Two synthetic female voices were merged into one speaker in local testing; the second person could not be identified and her speech appeared under the first person's name.
-- Short replies (about 1–4 words) are sometimes attributed to the wrong speaker live; end-of-session and mid-session (after ~2 minutes) revisions corrected some in testing.
-- Overlapping speech receives a single label. Other people talking during someone's 20-second window can mis-bind it; the banner asks others to pause and re-identifying replaces the binding.
-- Supabase anonymous sign-ins failed ("Could not connect anonymously") after roughly 20 sign-ins in about 35 minutes from one IP during testing. The configured Auth rate limit was not inspected; larger events on shared Wi-Fi could hit it.
+CAPTION-003 (Connected Mode, CAPTION-003.4 room microphone + voice identification) is complete in source and deployed; its physical multi-person UAT is still outstanding and paused while CAPTION-008 is active. See `CAPTION-003-HANDOFF.md`.

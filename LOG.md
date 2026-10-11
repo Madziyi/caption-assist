@@ -271,3 +271,14 @@ Use this format:
 ### 2026-10-11 — CAPTION-003.4 publication verification
 - Implementation `9770a18` pushed to main. GitHub Vercel status reported success: https://vercel.com/madziyis-projects/caption-assist/49hgxyRQ1BLbPFK5a4DVc22N6j6S
 - Final gates: 140 tests / 16 files, typecheck, lint, production build and diff check passed. Final-code local live two-phone run passed (both identified, 13/15 named live, 15/15 after end-of-session revision, phones never opened a microphone). No physical-device UAT performed by Builder; CAPTION-003 remains open.
+
+### 2026-10-11 — CAPTION-008 Headset Mode planned (Planner + human)
+- Trigger: The human asked for a completely separate mode in which every speaker wears AirPods or a headset on their own phone, with the room microphone off, and explicitly reprioritized it ahead of the outstanding CAPTION-003.4 physical UAT (paused, not cancelled).
+- Decisions:
+  - Each phone decides locally, from calibrated loudness, whether it hears its wearer or bleed. Calibration: quiet floor, then own voice. A host-run room check, in which each person reads in turn while all phones measure, gives the real per-seat bleed.
+  - The gate leans toward open. A missed sentence is the worse failure for a Deaf user; a duplicate is visible.
+  - 008.2 provider is Universal-3.6 Pro with Voice Focus `near-field` per phone (human decision), with no silent fallback.
+  - Rooms persist their mode via an additive migration with no signature or policy change. No voiceprints; levels are memory-only numbers.
+- Failure-budget note: personal-microphone approaches failed three times (CAPTION-003.1–003.3) with phones on a table. This initiative changes the hardware (close headset mics) and the mechanism (acoustic gating). Its first slice therefore measures separation and gate behaviour on real devices, with no audio leaving any device, before any transcription is built. An explicit go/no-go follows.
+- Changed: `CAPTION-008-HEADSET-MODE.md` (spec, exact SQL, contracts, constants, file map, tests, acceptance, physical script); NOW.md (active initiative), TASKS.md, PROJECT.md (mode, planned contracts, privacy, roadmap), QUALITY.md (Headset Mode criteria). No source change.
+- Next action: Builder implements CAPTION-008.1 only.
