@@ -1,4 +1,4 @@
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { HeadsetMicrophone, type HeadsetCaptureFactory } from "./headset-microphone";
 
 function track() {
@@ -36,5 +36,18 @@ describe("HeadsetMicrophone", () => {
     expect(events).toEqual(["start-1", "stop-1", "start-2"]);
     releasePrevious?.();
     await secondStart;
+  });
+
+  it("requests the chosen ID and reports the actual track ID independently of its label", async () => {
+    const start = vi.fn(async () => undefined);
+    const selectedTrack = {
+      label: "Default - AirPods Pro", onended: null,
+      getSettings: () => ({ deviceId: "actual-device", autoGainControl: false, noiseSuppression: false, echoCancellation: false }),
+    } as unknown as MediaStreamTrack;
+    const microphone = new HeadsetMicrophone(() => undefined, () => undefined, () => ({ start, stop: async () => undefined, getTrack: () => selectedTrack }));
+    await microphone.start("default-route");
+    expect(start).toHaveBeenCalledWith({ constraints: { audio: { channelCount: 1, echoCancellation: false, noiseSuppression: false, autoGainControl: false, deviceId: { exact: "default-route" } } } });
+    expect(microphone.info()).toMatchObject({ deviceId: "actual-device", sanitizedLabel: "AirPods Pro" });
+    await microphone.stop();
   });
 });

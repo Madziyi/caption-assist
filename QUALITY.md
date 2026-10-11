@@ -128,6 +128,14 @@ Status: **unverified**
 - Source commit `a1611bf` pushed to `main`; GitHub combined status reported Vercel `success`: [deployment status](https://vercel.com/madziyis-projects/caption-assist/Boy7cRU2xgifEySh1N8sqFEscWRa).
 - Deployment evidence only; physical phone/headset behavior remains unverified.
 
+### 2026-10-11 — CAPTION-008.1 reproduced calibration timer failure and input selection
+- User evidence: Default, generic Headset microphone and a newly connected Bluetooth headset still reported `Illegal invocation`; Speakerphone did not initially. A generic headset route was listed even without connected hardware. Exact phone/browser not supplied.
+- Reproduction: actual `HeadsetParticipant` source in installed headless Chromium 1208, with native browser timers and injected microphone metadata. Default/Headset/Bluetooth failed on entering calibration. Speakerphone paused at the built-in-input warning, then threw the same error on Use this microphone anyway. The receiver of the stored native `setTimeout` was the participant object. This reproduces the pattern without microphone hardware or provider access.
+- Fix: bind stored `setTimeout`/`clearTimeout` to the global; all four routes now start/stop calibration without errors. Track device IDs, not sanitized labels, determine the picker selection; missing ID shows an explicit browser-selected placeholder. IDs remain local, absent from presence/export. Generic Headset microphone labels are unknown and route-list limitations are explained.
+- Audio verification: actual capture/PCM AudioWorklet with Chromium's fake microphone on a temporary loopback server delivered level frames; calibration advanced quiet → voice, chosen-ID capture restarted and stop kept its timer cancelled. This proves browser execution/lifecycle only; no physical Bluetooth/acoustic result or live multi-room protocol is claimed.
+- Automated: 161 tests / 27 files passed; typecheck, lint and production build passed. Added receiver-enforcing timer, device-ID selection, duplicate-label, missing-ID and generic-route tests. Diff check passed.
+- Correction: earlier claims that an awaited cleanup caused a confirmed mobile permission-window failure were unsupported and did not resolve the user's report. The native timer reproduction supersedes that diagnosis. Phone confirmation remains pending.
+
 ### 2026-10-10 — CAPTION-001 source and browser verification
 - Environment/device: Codex in-app browser on the local Next.js development server; desktop viewport. Node.js `v22.15.0` for source gates.
 - Audio path: Builder-observed real microphone/provider path was not completed during that verification session; the browser remained at the microphone-permission state without a usable local provider credential. A later user-observed real UAT report is recorded below; no raw audio was stored.

@@ -307,3 +307,10 @@ Use this format:
 ### 2026-10-11 — CAPTION-008.1 mobile fix publication
 - Source commit `a1611bf` pushed to `main`; GitHub combined status reported Vercel `success`: https://vercel.com/madziyis-projects/caption-assist/Boy7cRU2xgifEySh1N8sqFEscWRa.
 - Next action: Human retries Start headset check on the phones; if it still fails, return device/browser/action details and the visible error.
+
+### 2026-10-11 — CAPTION-008.1 timer root cause reproduced after input-route evidence
+- Evidence: human reports Default/generic headset/connected Bluetooth fail, while Speakerphone initially does not. Both earlier speculative compatibility patches failed to resolve the report. Work resumed from this new branch-specific evidence and required a native-browser reproduction before further changes.
+- Reproduction: actual HeadsetParticipant in native Chromium throws Illegal invocation when a stored timer is called with the participant receiver. Speakerphone bypasses calibration until Use this microphone anyway, which then throws too. The earlier claimed permission-activation root cause was unproven; this entry corrects it without rewriting history.
+- Changed: bind setTimeout/clearTimeout to the global; use actual track device IDs in the picker; classify generic headset routes as unknown and explain that listed routes need not indicate connected hardware. IDs remain local only.
+- Verification: browser reproduction fails before the timer fix and passes after for all four routes. Browser-simulated microphone through actual capture/worklet delivers level frames, advances calibration, restarts selected input and cancels on stop. 161 tests / 27 files, typecheck, lint, production build and diff check passed. Physical phones/Bluetooth remain unverified.
+- Next action: publish and retry Default/connected Bluetooth on the human's phones, then continue the 008.1 physical script.

@@ -6,7 +6,13 @@ export function HeadsetSetup({ view, start, useAnyway, retry, choose }: { view: 
   return <section className="headset-setup" aria-live="polite">
     <p><strong>Using:</strong> {info?.label ?? "No microphone selected"}</p>
     {info && <p>{info.inputClass === "headset" ? "✓ Headset microphone" : info.inputClass === "built-in" ? "⚠ This looks like your phone's own microphone. Connect your AirPods or headset, then tap Check again." : "Make sure this is your headset microphone."}</p>}
-    {view.inputs.length > 1 && <label>Choose input <select value={view.inputs.find((input) => input.label === info?.label)?.deviceId ?? ""} onChange={(e) => choose(e.target.value)}>{view.inputs.map((input) => <option key={input.deviceId} value={input.deviceId}>{input.label}</option>)}</select></label>}
+    {view.inputs.length > 1 && <>
+      <label>Choose input <select value={info?.deviceId && view.inputs.some((input) => input.deviceId === info.deviceId) ? info.deviceId : ""} onChange={(e) => choose(e.target.value)}>
+        <option value="" disabled>Current input (selected by browser)</option>
+        {view.inputs.map((input) => <option key={input.deviceId} value={input.deviceId}>{input.label}</option>)}
+      </select></label>
+      <p>Input names come from your browser. A headset route may appear even when no headset is connected; check that your headset is connected to this phone.</p>
+    </>}
     {view.setup === "input" && <div className="notice notice-warning"><p>Connect your headset before continuing.</p><div className="notice-actions"><button type="button" className="button button-secondary" onClick={retry}>Check again</button><button type="button" className="button button-quiet" onClick={useAnyway}>Use this microphone anyway</button></div></div>}
     {view.setup === "quiet" && <p>Stay quiet for 3 seconds…</p>}
     {view.setup === "voice" && <p>Now read this out loud at your normal volume: “I&apos;m checking my headset so the captions know when I&apos;m talking.”</p>}

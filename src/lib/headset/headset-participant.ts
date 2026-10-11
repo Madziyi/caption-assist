@@ -6,7 +6,7 @@ import { checkDurationMs, RoomCheckRecorder, slotAt, type RoomCheckPlan } from "
 
 export type HeadsetParticipantView = {
   setup: HeadsetPresence["setup"]; mic: HeadsetPresence["mic"];
-  input: { label: string; inputClass: "headset" | "built-in" | "unknown"; processing: NonNullable<HeadsetPresence["processing"]> } | null;
+  input: { deviceId: string | null; label: string; inputClass: "headset" | "built-in" | "unknown"; processing: NonNullable<HeadsetPresence["processing"]> } | null;
   inputs: Array<{ deviceId: string; label: string }>;
   calibration: HeadsetCalibration | null; thresholds: GateThresholds | null;
   levelDb: number; speaking: boolean;
@@ -32,7 +32,10 @@ export class HeadsetParticipant {
   private roomCheck: { plan: RoomCheckPlan; recorder: RoomCheckRecorder; startedAt: number; checkId: string } | null = null;
   private preserveCalibration = false;
   constructor(private readonly selfId: string, private readonly io: { setPresence(p: HeadsetPresence): Promise<void>; sendSignal(s: HeadsetSignal): Promise<void> }, private readonly onView: (view: HeadsetParticipantView) => void, deps: Deps = {}) {
-    this.now = deps.now ?? Date.now; this.setTimer = deps.setTimeout ?? globalThis.setTimeout; this.clearTimer = deps.clearTimeout ?? globalThis.clearTimeout;
+    this.now = deps.now ?? Date.now;
+    // Browser timers require the Window receiver when stored on a class.
+    this.setTimer = (deps.setTimeout ?? globalThis.setTimeout).bind(globalThis);
+    this.clearTimer = (deps.clearTimeout ?? globalThis.clearTimeout).bind(globalThis);
     this.microphone = deps.microphone ?? new HeadsetMicrophone((level) => this.level(level), (error) => this.fail(error));
     this.view = { setup: "not_started", mic: "off", input: null, inputs: [], calibration: null, thresholds: null, levelDb: -100, speaking: false, check: null, result: null, notice: null };
   }
@@ -44,8 +47,8 @@ export class HeadsetParticipant {
       await this.microphone.start(deviceId); const info = this.microphone.info();
       if (!info) throw new Error("The microphone could not be started.");
       const inputs = await this.microphone.inputs();
-      if (this.preserveCalibration && this.calibration && info.inputClass !== "built-in") { this.preserveCalibration = false; const thresholds = gateThresholds(this.calibration, null); this.gate = new HeadsetGate(thresholds); this.update({ mic: "on", input: { label: info.sanitizedLabel, inputClass: info.inputClass, processing: info.processing }, inputs, setup: "ready", calibration: this.calibration, thresholds }); this.presence({ mic: "on", setup: "ready" }); return; }
-      this.preserveCalibration = false; this.update({ mic: "on", input: { label: info.sanitizedLabel, inputClass: info.inputClass, processing: info.processing }, inputs, setup: info.inputClass === "built-in" ? "input" : "quiet" });
+      if (this.preserveCalibration && this.calibration && info.inputClass !== "built-in") { this.preserveCalibration = false; const thresholds = gateThresholds(this.calibration, null); this.gate = new HeadsetGate(thresholds); this.update({ mic: "on", input: { deviceId: info.deviceId, label: info.sanitizedLabel, inputClass: info.inputClass, processing: info.processing }, inputs, setup: "ready", calibration: this.calibration, thresholds }); this.presence({ mic: "on", setup: "ready" }); return; }
+      this.preserveCalibration = false; this.update({ mic: "on", input: { deviceId: info.deviceId, label: info.sanitizedLabel, inputClass: info.inputClass, processing: info.processing }, inputs, setup: info.inputClass === "built-in" ? "input" : "quiet" });
       this.presence({ mic: "on", setup: info.inputClass === "built-in" ? "input" : "quiet" });
       if (info.inputClass === "built-in") return;
       this.runCalibration();

@@ -3,7 +3,7 @@ import { frameLevelDb } from "./levels";
 import { classifyInput, sanitizeInputLabel, type InputClass } from "./input-label";
 
 export type HeadsetInput = { deviceId: string; label: string };
-export type HeadsetTrackInfo = { label: string; sanitizedLabel: string; inputClass: InputClass; processing: { autoGainControl: boolean | null; noiseSuppression: boolean | null; echoCancellation: boolean | null } };
+export type HeadsetTrackInfo = { deviceId: string | null; label: string; sanitizedLabel: string; inputClass: InputClass; processing: { autoGainControl: boolean | null; noiseSuppression: boolean | null; echoCancellation: boolean | null } };
 export type HeadsetMicrophoneLike = { start(deviceId?: string): Promise<void>; stop(): Promise<void>; inputs(): Promise<HeadsetInput[]>; info(): HeadsetTrackInfo | null };
 type CaptureLike = { start(options?: { constraints?: MediaStreamConstraints }): Promise<void>; stop(): Promise<void>; getTrack(): MediaStreamTrack | null };
 export type HeadsetCaptureFactory = (onAudio: (chunk: ArrayBuffer) => void, onFailure: () => void) => CaptureLike;
@@ -20,9 +20,7 @@ export class HeadsetMicrophone implements HeadsetMicrophoneLike {
     return (await mediaDevices.enumerateDevices.call(mediaDevices)).filter((device) => device.kind === "audioinput").map((device) => ({ deviceId: device.deviceId, label: sanitizeInputLabel(device.label || "Default") }));
   }
   async start(deviceId?: string) {
-    // Do not await cleanup before requesting permission. On mobile browsers,
-    // that extra microtask can end the tap's user-activation window and make
-    // the headset-only getUserMedia call fail with "Illegal invocation".
+    // Initiate cleanup without delaying the new microphone request.
     const previous = this.detach();
     void previous?.stop().catch(() => undefined);
     const mediaDevices = navigator.mediaDevices;
@@ -35,7 +33,7 @@ export class HeadsetMicrophone implements HeadsetMicrophoneLike {
       if (!this.track) throw new Error("The microphone track was unavailable.");
       const settings = this.track.getSettings();
       const label = this.track.label || "Default";
-      this.trackInfo = { label, sanitizedLabel: sanitizeInputLabel(label), inputClass: classifyInput(label), processing: { autoGainControl: booleanOrNull(settings.autoGainControl), noiseSuppression: booleanOrNull(settings.noiseSuppression), echoCancellation: booleanOrNull(settings.echoCancellation) } };
+      this.trackInfo = { deviceId: settings.deviceId || null, label, sanitizedLabel: sanitizeInputLabel(label), inputClass: classifyInput(label), processing: { autoGainControl: booleanOrNull(settings.autoGainControl), noiseSuppression: booleanOrNull(settings.noiseSuppression), echoCancellation: booleanOrNull(settings.echoCancellation) } };
       this.track.onended = () => this.onFailure();
       this.deviceChange = () => this.onFailure(new Error("Microphone changed — check again."));
       if (typeof mediaDevices.addEventListener === "function") mediaDevices.addEventListener.call(mediaDevices, "devicechange", this.deviceChange);
