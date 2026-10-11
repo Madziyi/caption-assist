@@ -20,7 +20,11 @@ export class HeadsetMicrophone implements HeadsetMicrophoneLike {
     return (await mediaDevices.enumerateDevices.call(mediaDevices)).filter((device) => device.kind === "audioinput").map((device) => ({ deviceId: device.deviceId, label: sanitizeInputLabel(device.label || "Default") }));
   }
   async start(deviceId?: string) {
-    await this.stop();
+    // Do not await cleanup before requesting permission. On mobile browsers,
+    // that extra microtask can end the tap's user-activation window and make
+    // the headset-only getUserMedia call fail with "Illegal invocation".
+    const previous = this.detach();
+    void previous?.stop().catch(() => undefined);
     const mediaDevices = navigator.mediaDevices;
     if (!mediaDevices || typeof mediaDevices.getUserMedia !== "function") throw new Error("This browser does not provide microphone access.");
     const capture = this.factory((chunk) => this.onLevel(frameLevelDb(new Int16Array(chunk))), () => this.onFailure());
@@ -38,6 +42,10 @@ export class HeadsetMicrophone implements HeadsetMicrophoneLike {
     } catch (error) { await this.stop(); this.onFailure(error); throw error; }
   }
   async stop() {
+    const capture = this.detach();
+    await capture?.stop();
+  }
+  private detach() {
     const mediaDevices = navigator.mediaDevices;
     if (this.deviceChange && mediaDevices && typeof mediaDevices.removeEventListener === "function") mediaDevices.removeEventListener.call(mediaDevices, "devicechange", this.deviceChange);
     this.deviceChange = null;
@@ -46,7 +54,7 @@ export class HeadsetMicrophone implements HeadsetMicrophoneLike {
     this.trackInfo = null;
     const capture = this.capture;
     this.capture = null;
-    await capture?.stop();
+    return capture;
   }
   info() { return this.trackInfo; }
 }

@@ -2,7 +2,7 @@
 
 **Initiative:** CAPTION-008 - Headset Mode (separate mode: every speaker wears AirPods/a headset on their own phone; no room microphone)
 **Active slice:** CAPTION-008.1 - Headset check, calibration, room check and gate preview (no audio leaves any device)
-**Status:** 008.1 source implementation and live additive migration completed by Builder on 2026-10-11; a mobile Web API invocation hardening fix is included, automated gates and rollback-only SQL pass. Physical headset/acoustic validation is still unverified. Full specification, exact migration SQL, message contracts, constants, file map, tests, acceptance criteria and physical test script: `CAPTION-008-HEADSET-MODE.md`.
+**Status:** 008.1 source implementation and live additive migration completed by Builder on 2026-10-11; mobile Web API receiver and user-activation hardening fixes are included, automated gates and rollback-only SQL pass. Physical headset/acoustic validation is still unverified. Full specification, exact migration SQL, message contracts, constants, file map, tests, acceptance criteria and physical test script: `CAPTION-008-HEADSET-MODE.md`.
 **Owner:** Human runs the physical test script and returns exports to the Planner after the mobile fix is deployed.
 
 ## Why

@@ -298,3 +298,8 @@ Use this format:
 - Changed: Preserved owning receivers for Wake Lock, microphone, media-device listener and clipboard Web API methods; caught clipboard permission failures and exposed a status message.
 - Verification: typecheck, lint, 152 tests / 24 files, production build and diff check passed. No physical mobile reproduction was available.
 - Decision: Keep scope limited to CAPTION-008.1 compatibility; do not start 008.2–008.4. Ask for exact device/browser/action only if the deployed patch still fails.
+
+### 2026-10-11 — CAPTION-008.1 headset permission activation correction
+- Root cause: `HeadsetMicrophone.start()` awaited `stop()` before reaching `getUserMedia()`. That headset-only microtask gap can end a mobile tap's user-activation window; Table/Connected microphone paths did not have this initial await.
+- Changed: Detach and stop any previous headset capture without awaiting its asynchronous cleanup before the new permission request. Added a regression test for the ordering.
+- Verification: typecheck, lint, 153 tests / 25 files, production build and diff check passed. No physical mobile reproduction was available.

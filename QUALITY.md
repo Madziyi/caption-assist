@@ -118,10 +118,10 @@ Status: **unverified**
 - Deployment: Commit `48c500e` reached Vercel `success`; [deployment status](https://vercel.com/madziyis-projects/caption-assist/HB2d5DWWUejGoiP34iW1naeiiKTy). This is deployment evidence only, not physical audio/UAT evidence.
 - Result: Source and live migration gates pass. Human must run the physical test script before any 008.2 decision.
 
-### 2026-10-11 — CAPTION-008.1 mobile invocation hardening
+### 2026-10-11 — CAPTION-008.1 mobile invocation and user-activation hardening
 - Trigger: User reported `Illegal invocation` on mobile phones while using the deployed Headset Mode slice; exact phone, browser and action were not supplied.
-- Changed: Wake Lock request/release and sentinel listeners, `mediaDevices` enumeration/getUserMedia/device-change listeners, and clipboard export preserve Web API receivers. Clipboard failures now remain in the UI with a retry/manual-copy message.
-- Verification: typecheck, lint, 152 tests / 24 files, production build and diff check passed. No physical phone or mobile browser reproduction was available in the Builder environment.
+- Changed: Wake Lock request/release and sentinel listeners, `mediaDevices` enumeration/getUserMedia/device-change listeners, and clipboard export preserve Web API receivers. The headset capture path no longer awaits prior asynchronous cleanup before `getUserMedia`, preserving the tap's mobile user-activation window. Clipboard failures now remain in the UI with a retry/manual-copy message.
+- Verification: typecheck, lint, 153 tests / 25 files, production build and diff check passed. A focused regression test covers starting a new headset capture before prior cleanup resolves. No physical phone or mobile browser reproduction was available in the Builder environment.
 - Result: Targeted mobile compatibility patch ready for deployment; if the error persists, collect exact phone model, browser/version, action and visible stack/message before further scope changes.
 
 ### 2026-10-10 — CAPTION-001 source and browser verification
