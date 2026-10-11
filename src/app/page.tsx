@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { useEffect, useMemo, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import { ConversationSession } from "@/lib/captions/session";
 import { groupNewestFirst, newestFirst } from "@/lib/captions/history";
 import { captionReducer, initialCaptionState } from "@/lib/captions/reducer";
 import type { CaptionEvent, SessionStatus, SpeakerProfile } from "@/lib/captions/types";
 import { ConnectedRoom, idleRoomView } from "@/lib/rooms/controller";
 import { InvitePanel, ParticipantsPanel } from "@/components/room-panels";
+import { ReconciliationDebugPanel } from "@/components/reconciliation-debug-panel";
+
+const subscribeDebugUrl = () => () => undefined;
+const debugUrlSnapshot = () => new URLSearchParams(window.location.search).get("captionDebug") === "1";
+const serverDebugSnapshot = () => false;
 
 const statusCopy: Record<SessionStatus, string> = {
   idle: "Ready to caption",
@@ -32,6 +37,7 @@ export default function HomePage() {
   const [participantsOpen, setParticipantsOpen] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
   const [roomBusy, setRoomBusy] = useState(false);
+  const captionDebug = useSyncExternalStore(subscribeDebugUrl, debugUrlSnapshot, serverDebugSnapshot);
   const [micBusy, setMicBusy] = useState(false);
   const [restoring, setRestoring] = useState(Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL));
   const roomRef = useRef<ConnectedRoom | null>(null);
@@ -48,6 +54,8 @@ export default function HomePage() {
 
   useEffect(() => {
     const room = new ConnectedRoom(setRoomView, dispatch);
+    const debugEnabled = new URLSearchParams(window.location.search).get("captionDebug") === "1";
+    room.setDiagnosticsEnabled(debugEnabled);
     roomRef.current = room;
     let current = true;
     if (process.env.NEXT_PUBLIC_SUPABASE_URL) void room.restore().then((restored) => {
@@ -237,6 +245,8 @@ export default function HomePage() {
           </div>
         </div>
       </header>
+
+      {captionDebug && mode === "connected" && roomRef.current && <ReconciliationDebugPanel room={roomRef.current} participants={roomView.snapshot?.participants ?? []} />}
 
       {inviteOpen && connectedActive && <InvitePanel view={roomView} close={() => setInviteOpen(false)} />}
       {participantsOpen && connectedActive && roomRef.current && <ParticipantsPanel view={roomView} room={roomRef.current} close={() => setParticipantsOpen(false)} invite={() => void openInvite()} />}

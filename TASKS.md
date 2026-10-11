@@ -10,7 +10,7 @@ Use these states:
 
 ## In progress
 
-- **CAPTION-003** `[in-progress]` - Reopened for CAPTION-003.1 cross-microphone duplicate suppression after deployed user testing revealed duplicate speech on nearby personal microphones. Current UI refinements remain accepted; closure awaits user acceptance of suppression.
+- **CAPTION-003** `[in-progress]` - Reopened for CAPTION-003.1 cross-microphone duplicate suppression after deployed user testing revealed duplicate speech on nearby personal microphones. Suppression failed subsequent physical-device acceptance. Temporary observation-only host diagnostics implemented; next step is diagnostic evidence from two/three co-located devices before tuning. Current UI refinements remain accepted; closure awaits user acceptance of suppression.
 
 ## Ready
 

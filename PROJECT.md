@@ -252,3 +252,9 @@ A meaningful feature is done only when:
 - required quality evidence is recorded;
 - context files are updated;
 - changes are committed and pushed to `main`.
+
+## Temporary cross-microphone diagnostic contract
+
+After CAPTION-003.1 failed user real-device acceptance, add observation only before any threshold changes. The host URL ?captionDebug=1 opts in to an in-memory ledger and Connected-only panel; ordinary use leaves collection disabled. Keep the latest 30 scalar comparison records, with opaque participant/source IDs, event kinds, conservative word counts, host-local receive deltas, ordered token similarity, length-bound containment score, configured gates and decision/reason. Display names resolve locally in the host UI; copied JSON contains constants and opaque-source metrics only. No caption text, tokens, turn IDs, access credentials, invitation URLs, persistence, diagnostic network traffic or logging.
+
+The existing performance.now samples and caption action order are unchanged. Supplemental similarity for skipped gates is computed after caption reducer dispatch; the panel refreshes independently every 500 ms. Length/containment is the existing 2*min(token lengths)/sum(token lengths) upper-bound gate, not semantic overlap. Existing-cluster checks may bypass timing; structural skips (both finals already committed or source overlap) are exposed without changing them. Expired-final hints retain only bounded source/time/word-count metadata and cannot establish that the new speech duplicated old speech. Clearing the ledger does not reset reconciliation; room release discards working metadata while metrics remain available to copy until clear/reload. Table Mode, provider configuration and Supabase traffic are unchanged. CAPTION-003 stays open; CAPTION-004 remains deferred.

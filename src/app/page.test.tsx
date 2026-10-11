@@ -1,11 +1,12 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import HomePage from "./page";
-const mocks = vi.hoisted(() => ({ tableStart: vi.fn(), connectedCreate: vi.fn() }));
+const mocks = vi.hoisted(() => ({ tableStart: vi.fn(), connectedCreate: vi.fn(), debug: vi.fn() }));
 vi.mock("@/lib/captions/session", () => ({ ConversationSession: class { start = mocks.tableStart; stop = vi.fn(); } }));
 vi.mock("@/lib/rooms/controller", async (original) => {
   const actual = await original<typeof import("@/lib/rooms/controller")>();
   return { ...actual, ConnectedRoom: class {
+    setDiagnosticsEnabled = mocks.debug; diagnosticRecords = []; clearDiagnostics = vi.fn();
     constructor(private onView: (view: unknown) => void, private dispatch: (action: unknown) => void) {}
     async create() {
       mocks.connectedCreate();
@@ -18,7 +19,22 @@ vi.mock("@/lib/rooms/controller", async (original) => {
   } };
 });
 describe("host Connected UX", () => {
-  afterEach(() => { cleanup(); vi.clearAllMocks(); });
+  afterEach(() => { cleanup(); vi.clearAllMocks(); window.history.replaceState({}, "", "/"); });
+  it("keeps diagnostics disabled and hidden without the query opt-in", () => {
+    render(<HomePage />); expect(mocks.debug).toHaveBeenCalledWith(false);
+    fireEvent.change(screen.getByLabelText("Conversation mode"), { target: { value: "connected" } });
+    expect(screen.queryByRole("heading", { name: "Cross-mic diagnostics" })).not.toBeInTheDocument();
+  });
+  it("shows the panel only for Connected Mode with captionDebug=1, leaving Table unchanged", () => {
+    window.history.replaceState({}, "", "/?captionDebug=1"); render(<HomePage />);
+    expect(mocks.debug).toHaveBeenCalledWith(true);
+    expect(screen.queryByRole("heading", { name: "Cross-mic diagnostics" })).not.toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Conversation mode"), { target: { value: "connected" } });
+    expect(screen.getByRole("heading", { name: "Cross-mic diagnostics" })).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Conversation mode"), { target: { value: "table" } });
+    expect(screen.queryByRole("heading", { name: "Cross-mic diagnostics" })).not.toBeInTheDocument();
+    expect(mocks.tableStart).not.toHaveBeenCalled();
+  });
   it("starts a Connected room without Table capture, locks mode and opens the local QR invite", async () => {
     Object.defineProperty(HTMLDialogElement.prototype, "showModal", { configurable: true, value: function (this: HTMLDialogElement) { this.open = true; } });
     Object.defineProperty(HTMLDialogElement.prototype, "close", { configurable: true, value: function (this: HTMLDialogElement) { this.open = false; } });

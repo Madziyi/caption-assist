@@ -31,6 +31,9 @@ export class ConnectedRoom {
 
   constructor(private readonly onView: (view: RoomView) => void, private readonly dispatch?: (action: CaptionAction) => void) {}
   private update(values: Partial<RoomView>) { this.view = { ...this.view, ...values }; this.onView(this.view); }
+  setDiagnosticsEnabled(enabled: boolean) { this.reconciler.setDiagnosticsEnabled(enabled); }
+  get diagnosticRecords() { return this.reconciler.diagnosticRecords; }
+  clearDiagnostics() { this.reconciler.clearDiagnostics(); }
 
   async create() {
     this.dispatch?.({ type: "CONNECTED_START" });
@@ -123,6 +126,9 @@ export class ConnectedRoom {
         this.dispatch?.({ ...action, event: { ...action.event, captions: action.event.captions.map((caption) => ({ ...caption, ingestOrder })) } });
       }
     }
+    // Optional diagnostics are completed after caption actions, without another
+    // clock read, state dispatch, network call or caption buffering.
+    this.reconciler.flushDiagnostics();
   }
   async toggleMicrophone() {
     if (this.view.phase !== "joined") return;

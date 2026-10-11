@@ -1,5 +1,6 @@
 import type { CaptionAction } from "./reducer";
 import type { CaptionEvent, TranscriptionEvent } from "./types";
+import { ReconciliationDiagnostics, type ReconciliationDiagnostic } from "./reconciliation-diagnostics";
 
 // Host receive times only. Comparison never schedules work or waits for other mics.
 export const CROSS_MIC = {
@@ -50,9 +51,11 @@ export class CrossMicReconciler {
   private clusters: Cluster[] = [];
   private active = new Map<string, string>();
   private order = 0;
+  private readonly debug = new ReconciliationDiagnostics();
+  private diagnosticAt = 0;
   constructor(private readonly now = () => performance.now()) {}
 
-  reset() { this.clusters = []; this.active.clear(); this.order = 0; }
+  reset() { this.clusters = []; this.active.clear(); this.order = 0; this.debug.clearWorking(); }
   discardSource(source: string) {
     this.active.delete(source);
     for (const cluster of this.clusters) {
@@ -63,9 +66,14 @@ export class CrossMicReconciler {
   }
   prune() { this.expire(this.now()); }
   get diagnostics() { return { clusters: this.clusters.length, turns: this.clusters.reduce((sum, cluster) => sum + cluster.turns.size, 0) }; }
+  setDiagnosticsEnabled(enabled: boolean) { this.debug.setEnabled(enabled); }
+  get diagnosticRecords() { return this.debug.records; }
+  clearDiagnostics() { this.debug.clear(); }
+  flushDiagnostics() { this.debug.flush(tokenSimilarity); }
 
   process(source: string, event: TranscriptionEvent): CaptionAction[] {
     const received = this.now();
+    this.diagnosticAt = received;
     this.expire(received);
     const captions = event.type === "interim" ? [event.caption] : event.captions;
     const turnId = event.type === "interim" ? event.caption.sourceTurnId ?? event.caption.id : event.sourceTurnId;
@@ -77,6 +85,12 @@ export class CrossMicReconciler {
     const wordCount = Math.min(tokens.length, (text.normalize("NFKC").match(/[\p{L}\p{N}]+(?:['’‘][\p{L}]+)*/gu) ?? []).length);
     // Oversize comparison is deliberately skipped, rather than comparing truncated prefixes.
     if (!tokens.length || tokens.length > CROSS_MIC.maxTokens) {
+      if (this.debug.isEnabled) for (const cluster of this.clusters) {
+        const other = this.firstTurn(cluster);
+        this.debug.observe({ at: received, sourceA: source, sourceB: other.source, eventA: event.type === "interim" ? "interim" : "final",
+          eventB: other.event.type === "interim" ? "interim" : "final", wordCountA: wordCount, wordCountB: other.wordCount,
+          receiveDeltaMs: Math.abs(received - other.received), matched: false, decision: "kept", reason: tokens.length ? "oversized" : "other" });
+      }
       this.active.delete(source);
       for (const item of this.clusters) {
         item.turns.delete(key);
@@ -90,6 +104,7 @@ export class CrossMicReconciler {
     const confidences = captions.map((caption) => caption.recognitionConfidence).filter(validConfidence);
     const turn: Turn = { key, source, received, first: previous?.first ?? received, order: previous?.order ?? ++this.order,
       tokens, wordCount, event, confidence: confidences.length ? confidences.reduce((sum, value) => sum + value, 0) / confidences.length : undefined };
+    this.debug.expiredHints(received, source, event.type === "interim" ? "interim" : "final", wordCount);
     if (event.type === "interim") this.active.set(source, key);
 
     // A matching prefix can later diverge. Preserve that speech instead of irrevocably
@@ -110,9 +125,14 @@ export class CrossMicReconciler {
     // Merge all compatible groups, not just a pair. A source may contribute only
     // one turn to a cluster, preserving its own repetitions even inside the window.
     for (const other of [...this.clusters]) {
-      if (other === cluster || (cluster.committed && other.committed)) continue;
+      if (other === cluster) continue;
+      if (cluster.committed && other.committed) {
+        this.observeSkipped(turn, other, "both_finals_committed"); continue;
+      }
       const sources = new Set([...cluster.turns.values()].map((item) => item.source));
-      if ([...other.turns.values()].some((item) => sources.has(item.source))) continue;
+      if ([...other.turns.values()].some((item) => sources.has(item.source))) {
+        this.observeSkipped(turn, other, "source_overlap"); continue;
+      }
       if (![...other.turns.values()].some((item) => this.matches(turn, item, other)
         && (!cluster!.committed || this.matches(item, turn, cluster!)))) continue;
       if (other.committed) { cluster.committed = other.committed; cluster.leader = other.leader; }
@@ -152,20 +172,48 @@ export class CrossMicReconciler {
     return actions;
   }
 
+  private observeSkipped(a: Turn, cluster: Cluster, skippedGate: NonNullable<ReconciliationDiagnostic["skippedGate"]>) {
+    if (!this.debug.isEnabled) return;
+    for (const b of cluster.turns.values()) if (a.source !== b.source) {
+      const minimum = Math.min(a.wordCount, b.wordCount);
+      this.debug.observe({ at: this.diagnosticAt, sourceA: a.source, sourceB: b.source,
+        eventA: a.event.type === "interim" ? "interim" : "final", eventB: b.event.type === "interim" ? "interim" : "final",
+        wordCountA: a.wordCount, wordCountB: b.wordCount, receiveDeltaMs: Math.abs(a.received - (cluster.committed?.at ?? b.received)),
+        tokensA: a.tokens, tokensB: b.tokens, matched: false, decision: "kept", reason: "other", skippedGate,
+        windowMs: minimum === 3 ? CROSS_MIC.threeWordWindowMs : CROSS_MIC.windowMs,
+        similarityThreshold: minimum === 3 ? 1 : CROSS_MIC.similarity, windowApplied: false,
+        timeBasis: cluster.committed ? "committed_final" : "last_receive" });
+    }
+  }
   private matches(a: Turn, b: Turn, cluster: Cluster, checkWindow = true): boolean {
-    if (a.source === b.source) return false;
+    const observe = (matched: boolean, reason: ReconciliationDiagnostic["reason"], usedSimilarity?: number) => {
+      if (this.debug.isEnabled) this.debug.observe({ at: this.diagnosticAt, sourceA: a.source, sourceB: b.source,
+        eventA: a.event.type === "interim" ? "interim" : "final", eventB: b.event.type === "interim" ? "interim" : "final",
+        wordCountA: a.wordCount, wordCountB: b.wordCount, receiveDeltaMs: Math.abs(a.received - (cluster.committed?.at ?? b.received)),
+        tokensA: a.tokens, tokensB: b.tokens, usedSimilarity, matched, decision: matched ? cluster.committed ? "suppressed" : "clustered" : "kept", reason,
+        windowMs: Math.min(a.wordCount, b.wordCount) === 3 ? CROSS_MIC.threeWordWindowMs : CROSS_MIC.windowMs,
+        similarityThreshold: Math.min(a.wordCount, b.wordCount) === 3 ? 1 : CROSS_MIC.similarity,
+        windowApplied: checkWindow, timeBasis: cluster.committed ? "committed_final" : "last_receive" });
+      return matched;
+    };
+    if (a.source === b.source) return observe(false, "same_source");
     // High overlap alone can hide opposite intent or different times/quantities.
     const negations = (tokens: string[]) => tokens.filter((token) => ["not", "no", "never", "cannot"].includes(token)).sort().join(" ");
-    if (negations(a.tokens) !== negations(b.tokens)) return false;
+    if (negations(a.tokens) !== negations(b.tokens)) return observe(false, "negation_conflict");
     const numerals = (tokens: string[]) => tokens.filter((token) => /^\d+$/.test(token)).join(" ");
-    if (numerals(a.tokens) && numerals(b.tokens) && numerals(a.tokens) !== numerals(b.tokens)) return false;
+    if (numerals(a.tokens) && numerals(b.tokens) && numerals(a.tokens) !== numerals(b.tokens)) return observe(false, "numeral_conflict");
     const delta = Math.abs(a.received - (cluster.committed?.at ?? b.received));
     const minimum = Math.min(a.wordCount, b.wordCount);
-    if (minimum <= 2) return false;
-    if (minimum === 3) return (!checkWindow || delta <= CROSS_MIC.threeWordWindowMs) && a.tokens.join(" ") === b.tokens.join(" ");
-    return (!checkWindow || delta <= CROSS_MIC.windowMs)
-      && 2 * Math.min(a.tokens.length, b.tokens.length) / (a.tokens.length + b.tokens.length) >= CROSS_MIC.similarity
-      && tokenSimilarity(a.tokens, b.tokens) >= CROSS_MIC.similarity;
+    if (minimum <= 2) return observe(false, "short_utterance");
+    if (minimum === 3) {
+      const inWindow = !checkWindow || delta <= CROSS_MIC.threeWordWindowMs;
+      const matched = inWindow && a.tokens.join(" ") === b.tokens.join(" ");
+      return observe(matched, matched ? "matched" : !inWindow ? "outside_time_window" : "similarity_below_threshold");
+    }
+    if (checkWindow && delta > CROSS_MIC.windowMs) return observe(false, "outside_time_window");
+    if (2 * Math.min(a.tokens.length, b.tokens.length) / (a.tokens.length + b.tokens.length) < CROSS_MIC.similarity) return observe(false, "similarity_below_threshold");
+    const similarity = tokenSimilarity(a.tokens, b.tokens);
+    return observe(similarity >= CROSS_MIC.similarity, similarity >= CROSS_MIC.similarity ? "matched" : "similarity_below_threshold", similarity);
   }
   private firstTurn(cluster: Cluster) { return [...cluster.turns.values()].reduce((a, b) => a.order < b.order ? a : b); }
   private clearMembers(cluster: Cluster, actions: CaptionAction[], keep?: string) {
@@ -176,6 +224,10 @@ export class CrossMicReconciler {
     }
   }
   private expire(now: number) {
+    if (this.debug.isEnabled) for (const cluster of this.clusters) if (cluster.committed
+      && (now - cluster.touched > CROSS_MIC.inactiveMs || now - cluster.created > CROSS_MIC.maxLifetimeMs)) {
+      for (const turn of cluster.turns.values()) this.debug.rememberExpired(now, turn.source, cluster.committed.at, turn.wordCount);
+    }
     this.clusters = this.clusters.filter((cluster) => now - cluster.touched <= CROSS_MIC.inactiveMs && now - cluster.created <= CROSS_MIC.maxLifetimeMs);
     while (this.clusters.reduce((count, cluster) => count + cluster.turns.size, 0) >= CROSS_MIC.maxTurns) this.clusters.shift();
     const keys = new Set(this.clusters.flatMap((cluster) => [...cluster.turns.keys()]));

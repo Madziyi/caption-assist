@@ -227,3 +227,10 @@ Use this format:
 - Implementation `c8c95166dadd281801764d0154ae2c60b936d391` pushed to main; Vercel check moved from pending to success. Recorded the observed deployment status in LIVE-STATE.md and handoff.
 - Required checks passed: typecheck, lint, 93 tests / 13 files, production build and diff check. No UI/layout/provider model/room authorization migration.
 - Next action remains deployed two/three-phone user acceptance; no physical-device UAT inferred from deployment success. CAPTION-003 remains open, CAPTION-004 deferred.
+
+### 2026-10-11 - CAPTION-003.1 observation-only diagnostics
+- Trigger: User reports real-device suppression acceptance failed; co-located microphones still produce duplicates. Do not tune thresholds blindly.
+- Changed: Bounded opt-in host-memory comparison metrics and temporary ?captionDebug=1 Connected panel with names, constants, Clear and metrics-only Copy. Exposes actual host delta/time anchor, token similarity, length gate, exact-three-word result, short policy, reasons and existing structural merge skips. Expired-final hints are metadata only, not duplicate proof.
+- Contracts: No caption text/tokens in retained/copied records, logging, persistence, external diagnostics, new clock sampling, deliberate buffering, threshold/suppression/provider/Table/transport change. Supplemental metrics computed after caption dispatch; debug UI refresh independent.
+- Verification: 109 tests / 15 files, typecheck, lint and production build passed. Local IAB showed opt-in panel, default hiding and no overflow at 1280/391 CSS pixels. No real speech/device UAT performed by Builder. Diff and publication checked before handoff.
+- Next action: Publish through existing Vercel Git integration, then physical two/three-mic diagnostic test; collect metrics promptly and observed device/mic/switching/latency context before targeted changes. CAPTION-003 stays open, CAPTION-004 deferred.
