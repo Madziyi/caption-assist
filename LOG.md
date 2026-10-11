@@ -124,3 +124,12 @@ Use this format:
 - **Live state:** Unchanged; no live system was inspected.
 - **Known issues:** The provider-backed multi-turn transcript and responsive side-label layout still require user review.
 - **Next action:** Planner/user reviews the continuous transcript behavior; do not start CAPTION-003.
+
+### 2026-10-10 — CAPTION-002 — continuous transcript layout tuning
+- **Changed:** Set the live caption box to a fixed 65vh height without a minimum, centered the live speaker indicator, and preserved internal scrolling so lines leave the live viewport as it fills while remaining in caption history.
+- **Decisions:** The centered speaker name is an indicator for the live caption area; side-positioned speaker names remain specific to the chat-style history. No transcript retention or provider behavior changed.
+- **Verification:** Source validation and browser idle-state smoke verification completed after the CSS update; no audio/provider behavior changed.
+- **Quality:** No new latency, accuracy, audio, session, reconnect, or device/browser evidence was produced. Provider-backed multi-turn scroll behavior and narrow/mobile layout remain pending.
+- **Live state:** Unchanged; no live system was inspected.
+- **Known issues:** User review is still needed for the final live multi-turn appearance.
+- **Next action:** Planner/user reviews the tuned continuous transcript; do not start CAPTION-003.

@@ -162,6 +162,11 @@ Record measured provider billing/configuration or carefully calculated cost from
 - Accessibility observations: Expanded the main caption stage to 70vh, kept finalized turns visible in chronological order, appended the current interim turn at the bottom, auto-scrolled within the stage, reduced live caption text by 15%, reduced history text by 30%, and placed history speaker labels beside their left/right bubbles.
 - Result: User-requested presentation refinement implemented. Provider behavior, caption event normalization, speaker identity, privacy, and separate newest-first history behavior remain unchanged. Live multi-turn scrolling and narrow/mobile side-label layout still require user/provider-backed verification.
 
+### 2026-10-10 — CAPTION-002 — continuous transcript layout tuning
+- Environment/device: Source-level verification; no new provider session performed.
+- Accessibility observations: Set the live caption box to a fixed 65vh height with no minimum height, kept its internal scroll behavior, and centered the live speaker indicator above each live caption line. Older lines scroll out of the live box as it fills while remaining available in caption history.
+- Result: User-requested layout tuning implemented; no caption event, speaker identity, history retention, or provider behavior changed.
+
 Append concise entries:
 
 ```text

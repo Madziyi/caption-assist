@@ -1,7 +1,7 @@
 # Active Initiative
 
 **Initiative:** CAPTION-002 — Speaker-aware Table Mode (closure)
-**Status:** COMPLETE FOR PROGRESSION — user-observed product/UAT acceptance recorded; continuous-transcript presentation refinement implemented; deeper quality checks remain pending
+**Status:** COMPLETE FOR PROGRESSION — user-observed product/UAT acceptance recorded; continuous-transcript presentation refinement implemented and tuned; deeper quality checks remain pending
 **Planner:** Planner agent  
 **Implementation / verification:** Builder agent
 
@@ -58,4 +58,4 @@ Extend the working one-device captioning path with AssemblyAI streaming diarizat
 
 ## Next action
 
-Planner reviews the CAPTION-002 closure and this continuous-transcript presentation refinement, then decides whether to activate CAPTION-003; do not begin CAPTION-003 during this task.
+Planner reviews the CAPTION-002 closure and the tuned continuous-transcript presentation, then decides whether to activate CAPTION-003; do not begin CAPTION-003 during this task.
