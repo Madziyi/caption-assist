@@ -267,3 +267,9 @@ Append concise entries:
 - User-requested CSS refinement expands the shell to available width, keeps desktop title/controls/status on one row, and uses compact readable control spacing/type. Narrow screens retain wrapping.
 - Local IAB: Table idle and Connected active/ended checked at measured 1280 CSS pixels; active buttons shared the same top coordinate, status centered, document width did not exceed viewport. Ended Start New Conversation fit on the same row. Measured 391 CSS pixel view wrapped without horizontal overflow. Created verification room ended; no microphone/audio session started.
 - Typecheck, lint and production build passed. No new provider, speech, latency, background or physical-device evidence.
+
+### 2026-10-11 — CAPTION-003 user acceptance
+- Environment/device: Published application; exact device/browser matrix not reported.
+- Audio path: User reports deployed Connected Mode working perfectly.
+- Accessibility/UI: User made/accepted additional UI refinements.
+- Result: User-observed product acceptance recorded. CAPTION-003 accepted for progression.

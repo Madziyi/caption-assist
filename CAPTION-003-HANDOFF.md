@@ -1,6 +1,8 @@
 # CAPTION-003 — Connected Mode / QR Participant Rooms
 
-**Status:** Partial for progression. Source implemented; full device/audio acceptance awaits UAT. CAPTION-004 has not started.
+**Status:** COMPLETE FOR PROGRESSION — user-observed deployed product acceptance recorded
+
+The source implementation and Supabase infrastructure/security verification are complete. The user used the published application, reports Connected Mode working perfectly, and accepted the latest UI refinements. CAPTION-004 is ready for Planner architecture planning; implementation has not started. The evidence distinctions and limitations below remain in force; the user's report did not specify an exact device/browser matrix or separate background, simultaneous-speech, latency, accuracy, or provider-metric results.
 
 ## Changed and architecture
 
@@ -57,10 +59,10 @@ The relay transport also measures sender-clock round-trip acknowledgements in me
 
 Dependency audit reports five high findings in the existing development-only ESLint→fast-glob→micromatch→braces chain. No runtime Supabase/QR advisory was reported. The suggested automated fix downgrades eslint-config-next across major versions, so it was not applied as unrelated tooling migration. Review separately.
 
-## Remaining acceptance / next action
+## Retained limitations / progression
 
-Run the configured host computer plus one guest phone, preferably two. Verify QR/auth/name/permission/meter/muted entry, explicit Unmute and exact live captions, host You speech, Mute, rename/history, late join, duplicate names, stable colors, room disconnect/muted rejoin, host refresh, removal, room end and old-link rejection. Verify captions remain continuous/readable, independent simultaneous interims coexist, history/Full Screen work, and Table Mode still captions real audio.
+The user-observed deployed product acceptance closes CAPTION-003 for progression. Previously unperformed checks remain unverified: physical-device QR scan/join, detailed real microphone/provider session behavior, simultaneous speech, sustained session, background app-switch and Wake Lock behavior. No quantitative latency, accuracy, cost, or provider metrics were reported. These are retained evidence limitations and do not change the recorded acceptance decision.
 
-Test desktop tab switches, Android Chrome/PWA Gallery or Photos for 30–60 seconds, and iPhone Safari/Home Screen variants where available; record actual capture/relay/re-entry and Wake Lock behavior. Measure relay separately from STT, with device/browser and participant count. Do not mark CAPTION-003 complete until Planner/user accepts that evidence. Do not start CAPTION-004.
+Planner may begin CAPTION-004 architecture planning. CAPTION-004 implementation has not started.
 
 Opt-in infrastructure replay is provided by `scripts/verify-connected-realtime.mjs`. It takes URL/publishable key on stdin, keeps access tokens in memory, prints opaque fixture IDs/hash, then expects room/host/guest membership IDs after authorized synthetic metadata creation. It is not part of `npm test`. Run only on a chosen development project and clean up exactly its printed disposable users/rooms afterward. The companion SQL test is transaction/rollback-only.

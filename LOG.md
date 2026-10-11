@@ -206,4 +206,12 @@ Use this format:
 ### 2026-10-11 - CAPTION-003 one-row desktop header refinement
 - Changed: CSS uses available screen width and keeps desktop title, mode, actions and status on one row with compact controls. Narrow screens wrap for readability.
 - Verification: Local IAB Table idle/Connected active/ended at measured 1280 CSS pixels fit one row without horizontal overflow; 391 CSS pixel view wrapped without overflow. Ended temporary UI verification room. Typecheck, lint and production build passed; 51 tests across 12 files and git diff --check passed. No mic/audio session started.
-- Next action: CAPTION-003 remains active pending host + guest-phone audio UAT; CAPTION-004 not started.
+
+### 2026-10-11 — CAPTION-003 closure after user acceptance
+- Changed: Closed CAPTION-003 after the user reported using the published application and Connected Mode working perfectly; the user also accepted the latest UI refinements. Marked CAPTION-003 done and set CAPTION-004 ready for Planner architecture planning.
+- Decisions: Record the user-observed deployed product acceptance without inferring unreported device/browser, background, simultaneous-speech, latency, accuracy, or provider-metric results. Retain distinctions between prior source, infrastructure, browser, and audio verification evidence.
+- Verification: Documentation-only change. `git diff --check` run for this closure.
+- Quality: Added the user-observed acceptance entry to QUALITY.md; exact device/browser matrix not reported.
+- Live state: No new Builder inspection of deployed infrastructure performed; existing verified facts remain in LIVE-STATE.md.
+- Known issues: Detailed physical-device/audio-path, background, simultaneous-speech, latency, accuracy, and provider metrics remain unreported/unverified.
+- Next action: Planner may begin CAPTION-004 architecture planning; implementation has not started.
