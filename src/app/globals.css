@@ -43,19 +43,19 @@ h1, h2, h3 { font-family: Inter, system-ui, sans-serif; letter-spacing: -0.02em;
 
 .conversation-header {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: 1rem;
   border-bottom: 1px solid var(--line);
-  padding-bottom: 1.25rem;
+  padding: 0.65rem 0;
 }
 
-.header-actions { display: flex; align-items: center; gap: 1rem; }
+.header-actions { display: flex; align-items: center; gap: 0.75rem; }
 
-.eyebrow { margin: 0; color: var(--muted); font-size: 0.95rem; font-weight: 700; letter-spacing: 0.04em; }
+.eyebrow { margin: 0; color: var(--muted); font-size: 0.9rem; font-weight: 700; letter-spacing: 0.03em; }
 h1 { margin: 0.1rem 0 0; font-size: clamp(2rem, 4vw, 3.25rem); }
 
-.status { display: flex; align-items: center; gap: 0.55rem; min-height: 2.5rem; font-weight: 700; white-space: nowrap; }
+.status { display: flex; align-items: center; gap: 0.55rem; min-height: 2rem; font-size: 0.95rem; font-weight: 700; white-space: nowrap; }
 .status-dot { width: 0.85rem; height: 0.85rem; border-radius: 999px; background: var(--muted); box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--muted) 15%, transparent); }
 .status-listening .status-dot { background: var(--success); box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--success) 18%, transparent); }
 .status-reconnecting .status-dot, .status-connecting .status-dot, .status-requesting_permission .status-dot { background: var(--warning); box-shadow: 0 0 0 0.2rem color-mix(in srgb, var(--warning) 18%, transparent); }
@@ -144,8 +144,8 @@ h1 { margin: 0.1rem 0 0; font-size: clamp(2rem, 4vw, 3.25rem); }
 
 @media (max-width: 600px) {
   body { font-size: 1.08rem; }
-  .conversation-header { flex-direction: column; }
-  .header-actions { width: 100%; justify-content: space-between; }
+  .conversation-header { gap: 0.65rem; flex-wrap: wrap; }
+  .header-actions { margin-left: auto; justify-content: flex-end; }
   .status { white-space: normal; }
   .conversation-controls, .button { width: 100%; }
   .button { min-height: 3.5rem; }

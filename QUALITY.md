@@ -135,6 +135,11 @@ Record measured provider billing/configuration or carefully calculated cost from
 - Accessibility observations: Replaced the duplicate large `Conversation` heading with `Captions`. Browser smoke verification showed the updated heading and enlarged caption stage. The latest finalized caption now remains visible in the large caption stage for a 2-second visual dwell while the history state updates immediately, so live caption latency and history ordering are not intentionally delayed.
 - Result: User-requested readability adjustment implemented; the dwell duration is a product-tuning value and has not been measured against field preference.
 
+### 2026-10-10 — CAPTION-002 — compact header refinement
+- Environment/device: Local Next.js development server; no new audio measurement performed.
+- Accessibility observations: Reduced the header to a compact menu-like brand/status row while retaining the visible status notification and its live-region behavior. The status remains available for connection and error feedback.
+- Result: User-requested header density adjustment implemented; no provider, audio, or live-system behavior changed.
+
 Append concise entries:
 
 ```text

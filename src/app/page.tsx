@@ -136,7 +136,6 @@ export default function HomePage() {
       <header className="conversation-header">
         <div>
           <p className="eyebrow">Accessible Conversation Captions</p>
-          <h1>Captions</h1>
         </div>
         <div className="header-actions">
           {state.speakers.length > 0 && (

@@ -88,3 +88,12 @@ Use this format:
 - **Live state:** Unchanged; no live system was inspected.
 - **Known issues:** The 2-second dwell is an initial tuning value and may need user feedback after real sessions.
 - **Next action:** Planner/user validates the transition feel during the next real captioning session; do not start CAPTION-003.
+
+### 2026-10-10 — CAPTION-002 — compact header refinement
+- **Changed:** Reduced the header padding, type scale, status height, and spacing so the brand and status read as a compact menu-like row. Preserved the existing visible status notification.
+- **Decisions:** Keep status text visible for accessibility and connection/error feedback; do not hide it or replace it with a status dot alone.
+- **Verification:** Source validation and local browser smoke verification completed after the CSS update; no audio/provider behavior changed.
+- **Quality:** This is a user-requested visual-density adjustment. No new latency, accuracy, audio, or live-provider evidence was produced.
+- **Live state:** Unchanged; no live system was inspected.
+- **Known issues:** The compact row may wrap status text at very narrow widths, by design, to preserve the notification.
+- **Next action:** Planner/user validates the compact header during the next browser review; do not start CAPTION-003.
