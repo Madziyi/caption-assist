@@ -115,6 +115,7 @@ Status: **unverified**
 - Live SQL: Target ref `cqnyvevhuxwfzhqpmccn` confirmed; migration `20261011140359_headset_mode` applied; rollback-only `connected_rooms.sql` passed with mode persistence assertions.
 - Browser/accessibility: Headset Mode selector, mode-specific invite copy, no room-microphone control, speaking board with text `Not set up`, disabled room-check hint, optional host setup and end lifecycle were observed. No three-browser fake-media protocol run, 390px/1280px measured viewport check, keyboard traversal, network instrumentation, or Copy-results validation was completed in this environment.
 - Audio/provider: Headset Mode source path does not construct a transcription session or provider socket; no microphone was opened in the smoke room because optional host setup was not used. Synthetic protocol/acoustic numbers and physical separation are unverified.
+- Deployment: Commit `48c500e` reached Vercel `success`; [deployment status](https://vercel.com/madziyis-projects/caption-assist/HB2d5DWWUejGoiP34iW1naeiiKTy). This is deployment evidence only, not physical audio/UAT evidence.
 - Result: Source and live migration gates pass. Human must run the physical test script before any 008.2 decision.
 
 ### 2026-10-10 — CAPTION-001 source and browser verification

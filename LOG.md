@@ -286,5 +286,9 @@ Use this format:
 - Changed: Added persisted `connected | headset` room mode, exact additive live migration `20261011140359_headset_mode`, headset transport presence/signals/controls, local calibration/gate/room-check/export modules, injectable headset microphone, host/phone orchestrators, wake-lock hook and accessible host/phone UI. Table and Connected paths retain their existing room microphone/identity contracts.
 - Decisions: Headset Mode opens no room microphone or transcription provider; host microphone remains opt-in through Set up my headset. Processing-off constraints are requested and actual track settings are reported. Calibration/levels/audio remain in memory only; export uses anonymous roster refs.
 - Verification: Live ref `cqnyvevhuxwfzhqpmccn` confirmed; rollback-only SQL test passed. `npm test` passed with 152 tests / 24 files; typecheck, lint, production build and diff check passed. Local browser smoke created and ended one Headset Mode host room and observed invite copy, speaking board and disabled room-check hint. No physical devices or three-Chromium fake-media protocol run were available.
-- Known issues: Vercel status and deployed protocol run remain pending until publication; physical acoustic separation, 390px/1280px measured layout and keyboard/network instrumentation remain unverified. Do not start 008.2.
-- Next action: Publish the verified Builder commit, record Vercel status, then the human runs the physical test script and returns anonymized results to the Planner.
+- Known issues: Deployed three-browser protocol run remains unverified; physical acoustic separation, 390px/1280px measured layout and keyboard/network instrumentation remain unverified. Do not start 008.2.
+- Next action: Human runs the physical test script and returns anonymized results to the Planner.
+
+### 2026-10-11 — CAPTION-008.1 publication verification
+- Verification: Commit `48c500e` pushed to `main`; GitHub combined status reported Vercel `success`: https://vercel.com/madziyis-projects/caption-assist/HB2d5DWWUejGoiP34iW1naeiiKTy. Deployment status does not establish physical audio behavior.
+- Next action: Human runs the physical test script; Planner decides the 008.2 go/no-go from the returned exports and observations.

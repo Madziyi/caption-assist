@@ -60,7 +60,7 @@ None expected initially. None verified.
 - Confirmed target before applying: Supabase project `caption-assist`, ref `cqnyvevhuxwfzhqpmccn`, region `ca-central-1`, status `ACTIVE_HEALTHY`.
 - Applied exactly one additive migration: `20261011140359_headset_mode`, adding `caption_rooms.mode` and the specified backward-compatible `caption_room_action` update. No other live schema or policy change was made.
 - Extended `supabase/tests/connected_rooms.sql` passed rollback-only against the same ref, including connected/headset create, check, join, snapshot, restore and separate-owner mode assertions plus the existing authorization/RLS checks. Synthetic identities/rooms were rolled back.
-- Application deployment for the Builder commit is not yet verified; no Vercel status is claimed in this entry until after publication.
+- Commit `48c500e` was pushed to `main`; GitHub combined status reported Vercel `success`. [Deployment status](https://vercel.com/madziyis-projects/caption-assist/HB2d5DWWUejGoiP34iW1naeiiKTy). Existing Vercel Git integration was used; no hosting configuration changed.
 
 ## Security observations
 
