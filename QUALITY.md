@@ -109,6 +109,12 @@ Status: **unverified**
 
 ## Per-task evidence
 
+### 2026-10-11 — CAPTION-008.1 human physical trial (Planner record)
+- **Human-observed, on real phones with headsets after the Presence fix deployed:** "I am satisfied with the results, might need to calibrate for less sensitivity, but this could actually work."
+- **Not supplied:** device, browser and headset models; results exports; separation numbers; seating distances; counts of wrong or missed lights. Acoustic separation therefore remains unquantified.
+- **Planner review:** a defect in the as-built source means room-check bleed never updates any phone's gate thresholds (they stay at the provisional `ownDb − 10`). This plausibly contributes to the over-sensitivity. It will be fixed in 008.2 Part A.
+- **Result:** qualitative pass; GO for 008.2. Exports are required from the 008.2 physical run.
+
 ### 2026-10-11 — CAPTION-008.1 participant Presence quota disconnection
 - User evidence: host completes input selection/calibration; joining phones display levels briefly then report room-connection interruption. Calibration tuning is deferred. Exact physical phone/browser not supplied.
 - Diagnosis: confirmed project ref `cqnyvevhuxwfzhqpmccn`; read-only unified Realtime log aggregation at 17:12 UTC found 14 ClientPresenceRateLimitReached errors over the default prior-24-hour window. Current Supabase documentation specifies five track/untrack updates per connection per 30 s and channel closure when exceeded. Source sent two initial Presence tracks, initial headset visibility, starting, input/quiet, duplicate quiet and subsequent calibration transitions.

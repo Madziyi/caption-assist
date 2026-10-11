@@ -330,3 +330,26 @@ Use this format:
 - Source commit `d839f09` pushed to `main`; GitHub combined status reported Vercel `success`: https://vercel.com/madziyis-projects/caption-assist/FHhwJXAXyz9DUgNtT4Z1TRqLzB1H.
 - Local verification server stopped. No live infrastructure change; physical-phone retest remains pending.
 - Next action: reload host/phone pages, rejoin and retry headset setup and room check before acoustic acceptance.
+
+### 2026-10-11 — Planner: CAPTION-008.1 review, GO, CAPTION-008.2 planned
+- **Human physical result** (after the Presence fix): "satisfied with the results, might need to calibrate for less sensitivity, but this could actually work." No exports, devices or numbers were supplied.
+- **Review:**
+  - Accepted the Broadcast + 12 s Presence-snapshot deviation as a contract amendment.
+  - Found that room-check bleed never reaches `gate.setThresholds`, so gates stay at the provisional `ownDb − 10` (a plausible cause of over-sensitivity).
+  - Found that a new guest `HeadsetParticipant` per room entry loses calibration on rejoin.
+  - Found several required 008.1 tests missing.
+- **Decision:** GO for 008.2.
+- **Part A (first):**
+  - The room check tunes the gate.
+  - 2-frame attack.
+  - Host per-person sensitivity: Less / Normal / More = +4 / 0 / −3 dB, clamped to [floor + 6, own − 3], via a validated `headset-sensitivity` control.
+  - Calibration survives rejoin.
+  - Missing tests added.
+- **Part B:**
+  - Each ready phone streams to its own Universal-3.6 Pro + Voice Focus `near-field` session (human decision), with no fallback.
+  - 300 ms look-ahead gating, with silence frames otherwise; no non-silent audio during calibration or a room check.
+  - Restored sequence-numbered caption relay without relay-acks; interims coalesced to ≤ 5/s; host binds identity.
+  - Host caption stage with a per-person status strip.
+  - New privacy and invite copy.
+- **Deferred to 008.3:** the duplicate safety net with margin data, adaptive thresholds and recovery.
+- **Next action:** Builder implements 008.2 per `CAPTION-008-HEADSET-MODE.md`.

@@ -1,30 +1,39 @@
 # Active Initiative
 
 **Initiative:** CAPTION-008 - Headset Mode (separate mode: every speaker wears AirPods/a headset on their own phone; no room microphone)
-**Active slice:** CAPTION-008.1 - Headset check, calibration, room check and gate preview (no audio leaves any device)
-**Status:** 008.1 source/live migration implemented. Human confirms host input selection/calibration now works, but joining phones were disconnected during setup. Verified Realtime logs show ClientPresenceRateLimitReached; setup exceeded five Presence writes per 30 s. Immediate headset state now uses Broadcast with throttled Presence snapshots. Live local host + two simulated phones completed calibration, room-check matrix and refresh/rejoin without disconnects. 168 tests/27 files and source gates pass. Physical phone/Bluetooth confirmation remains pending. Full specification: `CAPTION-008-HEADSET-MODE.md`.
-**Owner:** Human runs the physical test script and returns exports to the Planner after the mobile fix is deployed.
+**Active slice:** CAPTION-008.2 - Gate correction (room check tunes the gate, 2-frame attack, host sensitivity control, calibration survives rejoin), then gated per-phone transcription with Universal-3.6 Pro + Voice Focus `near-field`, captions relayed to the host and named by phone
+**Status:** Ready for Builder. 008.1 is deployed and the human tried it on real phones and headsets: "satisfied with the results, might need to calibrate for less sensitivity, but this could actually work". No exports or device models were returned. Planner go/no-go: **GO**. Planner review found that the room check never applies the measured bleed to the gate, so every gate keeps the provisional `ownDb - 10` threshold (a likely cause of over-sensitivity), and that calibration is lost on rejoin. Full specification: `CAPTION-008-HEADSET-MODE.md` ("Planner review of 008.1" and "CAPTION-008.2 specification").
+**Owner:** Builder implements 008.2 Part A, then Part B, verifies, updates durable context and pushes. The human then runs the 008.2 physical test script and returns exports and notes to the Planner.
 
 ## Why
 
-CAPTION-003.1-003.3 failed because phone microphones on a table hear neighbours almost as loudly as their owners. A headset microphone sits a few centimetres from its wearer's mouth, so each phone should be able to tell its wearer from bleed by loudness, calibrated per person and per room. CAPTION-008.1 measures that on real hardware before any transcription is built.
+CAPTION-003.1-003.3 failed because phone microphones on a table hear neighbours almost as loudly as their owners. A headset microphone sits a few centimetres from its wearer's mouth, so each phone can tell its wearer from bleed by loudness, calibrated per person and per room. 008.1 showed on real hardware that this looks workable; 008.2 turns the gate into captions.
 
-## Contracts for 008.1 (summary; the specification governs)
+## Contracts for 008.2 (summary; the specification governs)
 
-- New persisted room mode `connected | headset` (additive migration; `create_headset` operation; mode returned by every snapshot and by `check`). Apply live to `cqnyvevhuxwfzhqpmccn` and pass the rollback-only SQL test **before** pushing dependent source; stop and hand the SQL to the human if access is unavailable.
-- Headset Mode: no room microphone, no voice identification, no AssemblyAI token or socket, no audio over any network. The host opens a microphone only via the optional "Set up my headset".
-- Phones capture with automatic gain control, noise suppression and echo cancellation requested off, and report what the browser actually applied, plus the sanitized mic label and input class.
-- Calibration (quiet floor, own voice), host-orchestrated room check (each person reads in turn while every phone measures), per-phone gate with hysteresis and hold, speaking lights on phone and host, anonymized results export. All constants are provisional.
-- New signals are small JSON on existing private topics (participant presence/broadcast, host control); no policy change.
-- Table Mode and Connected Mode (CAPTION-003.4) behaviour unchanged.
-
-## Decided for 008.2 (not built in 008.1)
-
-Each phone transcribes its own gated audio with AssemblyAI **Universal-3.6 Pro + Voice Focus `near-field`**, `speaker_labels=false`, `mode=balanced`, `format_turns=true`, with no silent fallback on rejection. Captions are named by the sending phone's channel identity.
+- Part A first:
+  - Room-check bleed sets each phone's thresholds.
+  - The gate opens after 2 consecutive frames above `openDb`.
+  - The host sets sensitivity per person (Less / Normal / More: `+4 / 0 / -3 dB`, clamped to `[floor + 6, own - 3]`) through a new validated `headset-sensitivity` control.
+  - The guest's `HeadsetParticipant` is reused across rejoins of the same room.
+  - New Part A tests close the 008.1 gaps.
+- Each ready phone streams to its own AssemblyAI session:
+  - Uses `HEADSET_ASSEMBLYAI_OPTIONS = connectedAssemblyAIOptions("near-field")`: `universal-3-6-pro`, `voice_focus=near-field`, `speaker_labels=false`, `mode=balanced`, `format_turns=true`, 16 kHz.
+  - No fallback on rejection; failure states are visible with Retry; reconnect is bounded.
+- Audio sent is gated through a 3-frame (300 ms) look-ahead, so speech goes out with its first syllable and silence frames are sent otherwise. Nothing non-silent is sent during calibration or a room check.
+- Captions are relayed on the phone's own participant topic:
+  - Uses the pre-pivot `CaptionEnvelope` with sequence numbers.
+  - The host validates, dedupes and binds identity with `exactIdentity`.
+  - No relay-acks; interims are coalesced to at most 5 per second per phone.
+  - Headset rooms only.
+- The host's main stage shows named captions, with a compact per-person status strip (speaking + caption state).
+- New privacy and invite copy as written in the specification.
+- No storage, no schema or policy change. Table and Connected behaviour is unchanged.
+- The Builder records Supabase Realtime quotas and AssemblyAI Universal-3.6 Pro / Voice Focus pricing and the concurrency limit, dated, in QUALITY.md.
 
 ## Next action
 
-Human reloads the deployed host/phone pages, rejoins and completes participant headset setup and a host room check; then returns anonymized exports/observations from the physical script to the Planner for the 008.2 go/no-go. Do not start 008.2.
+Builder: sync `main`, read `CAPTION-008-HEADSET-MODE.md` (008.1 as built, Planner review, 008.2 specification) and implement 008.2.
 
 ## Paused
 

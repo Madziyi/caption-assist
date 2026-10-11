@@ -1,6 +1,6 @@
 # CAPTION-008 — Headset Mode
 
-**Status:** CAPTION-008.1 implemented by Builder on 2026-10-11; mobile Web API invocation hardening was added after a reported phone error. Physical test script and go/no-go remain with the human/Planner. Later slices are not started.
+**Status:** CAPTION-008.1 implemented by Builder and physically tried by the human on 2026-10-11 (satisfied; may need less sensitivity). Planner go/no-go: **GO**. Active slice: **CAPTION-008.2** (gate correction + gated transcription), ready for Builder. See "Planner review of 008.1" and the 008.2 specification below.
 
 ## As built (008.1)
 
@@ -45,7 +45,7 @@ Wearer's headset mic ──► phone: level meter ──► loudness gate (calib
 | Slice | Delivers | Audio leaves a phone? |
 |---|---|---|
 | **008.1** | Headset Mode room, headset check + calibration, room check, live gate preview ("speaking" lights), results export | **No** |
-| 008.2 | Gated audio from each phone to its own AssemblyAI stream (Universal-3.6 Pro, Voice Focus near-field); captions relayed to host and named by phone | Yes, only while the gate is open |
+| 008.2 | Gate correction (room check tunes the gate, attack, host sensitivity control), then gated audio from each phone to its own AssemblyAI stream (Universal-3.6 Pro, Voice Focus near-field); captions relayed to host and named by phone | Yes, only while the gate is open |
 | 008.3 | Duplicate safety net by calibrated margin, adaptive thresholds, headset disconnect/fallback detection, phone lock/refresh recovery | Yes |
 | 008.4 | Physical multi-person UAT and closure | Yes |
 
@@ -406,18 +406,120 @@ Keep files focused. `controller.ts` must not absorb headset logic beyond wiring.
 
 ---
 
-## CAPTION-008.2 outline — gated transcription (refined after 008.1)
+## Planner review of 008.1 — 2026-10-11
 
-- **Provider (decided by human 2026-10-11):** each phone runs its own AssemblyAI v3 stream with **Universal-3.6 Pro and Voice Focus on**, using profile **`near-field`** (headset mics are near-field): `speech_model=universal-3-6-pro`, `speaker_labels=false`, `voice_focus=near-field`, `mode=balanced`, `format_turns=true`, `sample_rate=16000`. Reuse `connectedAssemblyAIOptions("near-field")` as a named `HEADSET_ASSEMBLYAI_OPTIONS`; it is not controlled by the Connected env var. As in CAPTION-003.3, a configuration rejection surfaces a visible error, with no silent fallback to Universal Streaming. Voice Focus activation must be verified by a real session, not by a socket opening.
-- **Gating:** 300 ms look-ahead (three frames). When the gate opens, the buffered frames are sent first. While closed, silence frames are sent so the provider's audio clock tracks wall time. Short fades avoid clicks.
-- **Captions:** phones relay normalized events to the host on their own participant topic, using the pre-pivot envelope with sequence numbers (`git show 41e9641:src/lib/rooms/transport.ts`, `CaptionEnvelope`, `validEnvelope`, `exactIdentity`). The host names captions by channel identity. Each final carries the turn's gate margin (dB above `openDb`) for 008.3.
-- **Cost:** one Pro stream per speaking person for the whole session. Check current AssemblyAI pricing and the account's concurrent-stream limit before UAT, and record them in QUALITY.md.
-- **Possible A/B (decide after 008.1):** a gate-off control to measure Voice Focus alone versus the gate plus Voice Focus.
-- **Privacy copy (to confirm with human):** "Your headset microphone captions your voice. Audio is sent for transcription only while you're speaking, and nothing is recorded or stored."
+- **Physical result (human-observed):** the human tested the deployed build on real phones and headsets and reported: "I am satisfied with the results, might need to calibrate for less sensitivity, but this could actually work." No results export, device/headset models or separation numbers were returned yet. **Decision: GO for 008.2**, with the gate corrections below. Exports from the next physical run must be returned so that numbers, not impressions, tune the constants.
+- **Accepted deviation:** immediate headset state travels as validated `headset-presence` Broadcast, with coalesced Presence snapshots at most every 12 s. This is required by Supabase's five-per-30-second Presence limit. It amends the 008.1 presence contract.
+- **Defect found in review:** when a room check finishes, the phone shows its separation but never applies the measured bleed to its gate (`HeadsetParticipant.finishCheck` does not call `gateThresholds(…, bleedDb)` / `setThresholds`). Every gate keeps the provisional pre-check threshold (`ownDb − 10`), which plausibly explains the reported over-sensitivity.
+- **Deviation found in review:** the guest controller creates a new `HeadsetParticipant` on every room entry, so calibration is lost on rejoin, contrary to the 008.1 spec.
+- **Test gap:** several required 008.1 tests are missing: gate edge cases; threshold paths that use bleed; participant gate signals and their 2 s repeat; check-result content; thresholds from the participant's own row; host result collection, timeout and missing rows. Part A of 008.2 closes the gaps that matter for transcription.
+
+## CAPTION-008.2 specification — gate correction and gated transcription
+
+### Objective
+
+Turn Headset Mode into a working caption mode. Each ready phone transcribes only its wearer's gated speech with AssemblyAI Universal-3.6 Pro + Voice Focus `near-field`, and the host shows those captions named by whose phone sent them. First fix the gate so the room check actually tunes it, and give the host a per-person sensitivity control for field tuning.
+
+### Part A — gate correction (land and test first; may be its own commit)
+
+1. **Room check feeds the gate.** On check completion the phone computes `bleedDb = bleedFromRow(selfId, row)` and `own = row[selfId] ?? calibration.ownDb`. It then sets `thresholds = applySensitivity(gateThresholds({ floorDb, ownDb: own }, bleedDb), sensitivity, { floorDb, ownDb: own })` and calls `gate.setThresholds(thresholds)`, updating `view.thresholds`. A cancelled or incomplete check leaves thresholds unchanged. The phone keeps the latest applied bleed until recalibration.
+2. **Attack:** the gate opens only after **2 consecutive frames** (200 ms) at or above `openDb` (`ATTACK_FRAMES = 2`). Close and hold are unchanged (`closeDb = openDb − 4`, 600 ms). The 300 ms look-ahead in Part B means the first syllable is still sent.
+3. **Sensitivity (host-controlled, memory-only):** `type Sensitivity = "lower" | "normal" | "higher"`, default `normal`. Add pure `applySensitivity(base: GateThresholds, sensitivity: Sensitivity, calibration: HeadsetCalibration): GateThresholds` to `calibration.ts`. It shifts `openDb` by `lower +4 dB`, `normal 0`, `higher −3 dB`, then clamps it to `[floorDb + 6, ownDb − 3]`; `closeDb = openDb − 4`. Apply it every time thresholds are computed: after calibration, after a room check, and when the sensitivity changes. The host sets it per person, including its own headset, in the Participants panel: a radio group labelled "Sensitivity" with options "Less sensitive", "Normal", "More sensitive". New host control: `{ type: "headset-sensitivity"; levels: Record<participantId, Sensitivity> }`, validated (at most 64 entries, ids under 100 characters, values in the enum). The host broadcasts the full map on every change, whenever a participant's status becomes Connected, and after the host (re)enters. Each phone applies its own entry; a missing entry means `normal`. The phone shows "Sensitivity: Less sensitive (set by the host)" and so on.
+4. **Calibration survives rejoin:** reuse the guest's `HeadsetParticipant` for the same room ID, discarding it only in `resetRoom`, and route its `io` through the current transport (`this.transport`) instead of a captured one. The microphone still stops on release, and "Turn microphone back on" keeps calibration.
+5. **Presence/export additions** (optional fields in validators, so stale pages are tolerated):
+   - `HeadsetPresence` gains `sensitivity?: Sensitivity`, `openDb?: number | null` and `stt?: "off" | "connecting" | "on" | "reconnecting" | "failed"`.
+   - The export becomes `version: 2` and adds `sensitivity`, `openDb` and `stt` per participant.
+6. **Tests:**
+   - gate: attack (one frame does not open, two do); hysteresis; hold reset on re-crossing; `setThresholds`.
+   - `gateThresholds`: candidate path, midpoint path, floor minimum.
+   - `applySensitivity`: offsets and both clamps.
+   - participant: room-check completion applies bleed thresholds and cancel leaves them unchanged; check-result content; gate signals on transitions plus the 2 s repeat; a sensitivity control changes thresholds; calibration persists across controller rejoin.
+   - host: results collection, timeout with missing rows, sensitivity map broadcast on change and on participant Connected.
+   - validators for the new control and fields.
+
+### Part B — gated transcription
+
+1. **Provider options:** export `HEADSET_ASSEMBLYAI_OPTIONS = connectedAssemblyAIOptions("near-field")` from `provider.ts`. The resulting query must contain `speech_model=universal-3-6-pro`, `speaker_labels=false`, `voice_focus=near-field`, `mode=balanced`, `format_turns=true`, `sample_rate=16000`. A rejection surfaces "Captioning couldn't start on this phone. The speech service rejected its settings." with **Retry captions**, and never falls back to another model. Table and Connected options are unchanged.
+2. **Frames:** `HeadsetMicrophone` passes each PCM frame along with its level: `onFrame(levelDb: number, frame: ArrayBuffer)`.
+3. **Look-ahead delay line** (new pure `src/lib/headset/gated-audio.ts`): `class GatedAudio { constructor(preRollFrames = 3); push(frame: ArrayBuffer, gateOpen: boolean): ArrayBuffer | null; reset(): void }`.
+   - Each push enqueues `{ frame, send: gateOpen }`. If `gateOpen`, all queued frames are marked `send`.
+   - Once the queue exceeds `preRollFrames`, the oldest entry is returned: its frame if `send`, otherwise a same-length zero (silence) frame.
+   - Exactly one output frame per input after the first three, so captions run a constant 300 ms behind and the provider's audio clock stays continuous.
+4. **Transcriber** (new `src/lib/headset/headset-transcriber.ts`): `class HeadsetTranscriber { constructor(roomId, publish: (event: TranscriptionEvent) => void, onState: (state: SttState) => void, deps?: { providerFactory?, fetch?, session? }); start(): Promise<void>; sendFrame(frame: ArrayBuffer): void; stop(): Promise<void> }`, with `type SttState = "off" | "connecting" | "on" | "reconnecting" | "failed"`.
+   - Port the token request (`POST /api/transcription/session?roomId=…` with the Supabase bearer), turn-ID mapping (`<streamId>/turn/<n>`, `sourceId: "personal"`, `speakerId: null`) and bounded reconnect (500/1000/2000 ms, then `failed`) from the dormant `src/lib/rooms/personal-microphone.ts`. Leave that dormant file untouched.
+   - Each provider connection gets a fresh `streamId`.
+5. **When audio flows:**
+   - The transcriber starts automatically the first time setup reaches `ready` and runs until the microphone stops (leave, end, removal, disconnect, unload, failure).
+   - Every captured frame then goes through `GatedAudio` into `sendFrame`. During re-calibration (setup not `ready`) and during a room check, `gateOpen` is forced false, so only silence is sent.
+   - "Turn microphone back on" restarts capture and the transcriber; "Retry captions" restarts only the transcriber.
+6. **Caption relay** (restore and adapt from `git show 41e9641:src/lib/rooms/transport.ts`):
+   - Guest `sendCaption(event)` broadcasts event `caption` on its own participant topic with `CaptionEnvelope { event, sequence, readyAt, streamId }`.
+   - The host validates with `validEnvelope` and drops non-increasing sequences per participant+stream (bounded at 512 keys). It binds identity with `exactIdentity(event, participantId)` and calls a new `caption(participantId, event)` callback, in headset rooms only.
+   - **No relay-ack messages.**
+   - **Coalesce interims to at most one per 200 ms per stream**, latest wins. Finals and speaker revisions are sent immediately; a final drops any pending interim from its stream.
+   - The host's own headset dispatches locally with `exactIdentity(event, selfId)`.
+7. **Host captions:**
+   - In headset rooms the controller dispatches `TRANSCRIPTION_EVENT` for each identity-bound event into the existing reducer. Speaker profiles already come from `participantProfiles`, so captions, live interims and history show participant names.
+   - The main stage shows the existing caption transcript. The speaking board becomes a compact strip above it: one text item per person with `Speaking`/`Quiet`/`Not set up`/`Setting up`/`Microphone off`/`Screen off`, plus caption state `Captioning`/`Connecting captions…`/`Captions reconnecting…`/`Captions stopped`.
+   - Empty-stage copy: "Captions appear here when someone with a ready headset speaks. Only people wearing a set-up headset are captioned."
+8. **Copy changes:**
+   - Phone setup line: "Your headset microphone captions your voice. Audio is sent for transcription only while you're speaking, and nothing is recorded or stored."
+   - Phone status line: "Captioning your voice" / "Connecting captions…" / "Captions reconnecting…" / "Captions stopped." + **Retry captions**.
+   - Invite: "Everyone who will speak wears AirPods or a headset connected to their phone, scans this code and sets up their headset. Each person's captions show their name. People without a set-up headset are not captioned."
+   - The mode label stays "Headset Mode (test)" until 008.4.
+9. **Limits and cost:**
+   - Check Supabase's Realtime quotas (broadcast messages per second and payload size for this project's plan) and AssemblyAI's Universal-3.6 Pro streaming price, any Voice Focus surcharge and the concurrent-stream limit.
+   - Record them, dated, as documentation facts in QUALITY.md (cost table and notes). Record them in LIVE-STATE.md only if read from the live account or project.
+   - Cost basis: one Pro stream per ready person for the whole conversation.
+
+### Non-goals for 008.2
+
+- No duplicate safety net, adaptive thresholds or automatic recovery from a headset swap (008.3).
+- No product toggle that disables the gate.
+- No transcript or audio persistence.
+- No change to Table/Connected behaviour or provider options, Supabase policies or schema.
+
+### Verification (Builder)
+
+- `npm test`, `npm run typecheck`, `npm run lint`, `npm run build`, `git diff --check`. Unit tests must cover:
+  - **`GatedAudio`:** one output per input after warm-up; three pre-roll frames sent before an opening; silence while closed; hold tail.
+  - **Transcriber:** options and query; token path; bounded reconnect to `failed`; turn-ID normalization; stop terminates.
+  - **Relay:** validation, sequence dedupe, identity binding, headset-only acceptance, interim coalescing, final flushing.
+  - **Controller:** headset captions dispatched with participant identity; connected rooms ignore `caption` broadcasts.
+  - **UI:** caption and STT states.
+- **Live provider check:** one real AssemblyAI session through the actual browser path with `HEADSET_ASSEMBLYAI_OPTIONS` and a synthetic voice WAV. Observe Begin, Turn and Termination with no Error, and record the model/config names (never secrets) in LIVE-STATE.md. A socket opening alone does not prove Voice Focus works.
+- **Local live end-to-end** (host + two fake-media phones, live Supabase + AssemblyAI):
+  - Give each phone its own WAV: its "wearer" speaking at normal level, plus the other wearer's sentences about 20 dB quieter (simulated bleed), alternating.
+  - Calibrate, run a room check, then play the conversation.
+  - Report per phone: lines captioned under the correct name, duplicates (the same sentence under both names), missed lines, and the count of non-silent versus silent frames sent.
+  - Synthetic audio proves the pipeline, not real acoustics; say so.
+  - Optional and valuable: using a test harness only, run phone A's WAV with the gate forced open to observe Voice Focus alone on the simulated bleed, and record the result.
+- 390 px and 1280 px render checks; keyboard reaches host controls, including the sensitivity radio group.
+- Keep sign-ins few (anonymous rate limit), end every test room, and commit no audio or storage states.
+
+### Acceptance criteria (008.2)
+
+1. Room-check bleed tunes each phone's gate. The 2-frame attack and host sensitivity control work within their clamps. Calibration survives rejoin.
+2. Each ready phone sends only gated audio (300 ms look-ahead, silence otherwise, nothing during calibration or room check) to its own Universal-3.6 Pro + Voice Focus `near-field` session. There is no fallback, failure states are visible, and reconnect is bounded.
+3. The host shows live interims and finals named by the sending phone's identity, in the transcript and history. Table and Connected behaviour is unchanged.
+4. Interims are coalesced to at most 5 per second per phone; there are no relay-acks. Nothing is stored.
+5. All automated gates, the live provider check and the local end-to-end run (with counts) are recorded. Docs are updated, the work is pushed and the Vercel status is recorded.
+
+### Physical test script (human, after 008.2 deploys)
+
+1. Reload every page. Two or three people with AirPods/headsets. The host starts **Headset Mode (test)**; everyone joins, sets up, and the host runs **Start room check**.
+2. Talk naturally for five minutes. Include turn-taking, a quick back-and-forth with short replies ("yeah", "no"), a moment where two people talk at once, laughter, and one person speaking softly.
+3. On the host screen note:
+   - **duplicates:** the same words under two names;
+   - **missed speech:** someone spoke and nothing appeared;
+   - **wrong names;**
+   - **delay:** how long captions take to appear.
+4. If someone's captions pick up other people, set that person to **Less sensitive** and repeat a minute. If someone's soft speech is missed, try **More sensitive**. Note what you chose.
+5. **Copy results** at the end, and return the export(s) plus your notes. Optionally run a 20–30 minute session to check stability and battery.
 
 ## CAPTION-008.3 outline — safety net and recovery
 
-- **Duplicate safety net:** when two phones produce overlapping finals with matching text, keep the one with the larger calibrated gate margin. Reuse the CrossMicReconciler matching, with a margin-based leader.
+- **Duplicate safety net:** when two phones produce overlapping finals with matching text, keep the one with the larger calibrated gate margin. Reuse the CrossMicReconciler matching, with a margin-based leader. Margin data is added to the relay in this slice.
 - **Adaptive thresholds** from live open/closed frame statistics.
 - **Recovery:** detect headset disconnect or fallback to the built-in mic (`devicechange`, label change) and warn on the host and phone. Handle phone lock, page refresh and recalibration.
 
