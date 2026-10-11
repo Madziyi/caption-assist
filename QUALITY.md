@@ -140,6 +140,11 @@ Record measured provider billing/configuration or carefully calculated cost from
 - Accessibility observations: Reduced the header to a compact menu-like brand/status row while retaining the visible status notification and its live-region behavior. The status remains available for connection and error feedback.
 - Result: User-requested header density adjustment implemented; no provider, audio, or live-system behavior changed.
 
+### 2026-10-10 — CAPTION-002 — caption stage space refinement
+- Environment/device: Codex in-app browser on the local Next.js development server; desktop viewport.
+- Accessibility observations: Reduced the shell's top padding by approximately 90%, moved the live speaker label to the top of the caption stage, and allowed the live caption region to use the remaining stage height instead of limiting it to 22vh.
+- Result: User-requested layout refinement implemented; no provider, audio, or caption timing behavior changed.
+
 Append concise entries:
 
 ```text

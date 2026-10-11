@@ -97,3 +97,12 @@ Use this format:
 - **Live state:** Unchanged; no live system was inspected.
 - **Known issues:** The compact row may wrap status text at very narrow widths, by design, to preserve the notification.
 - **Next action:** Planner/user validates the compact header during the next browser review; do not start CAPTION-003.
+
+### 2026-10-10 — CAPTION-002 — caption stage space refinement
+- **Changed:** Reduced the shell's top padding by approximately 90%, top-aligned the live speaker label, and removed the live caption region's 22vh height cap so it can use the remaining 50vh caption stage.
+- **Decisions:** Keep caption text centered within the available live region; change layout density only, without changing caption ordering, dwell timing, provider events, or privacy behavior.
+- **Verification:** Source validation and local browser smoke verification completed after the CSS update; no audio/provider behavior changed.
+- **Quality:** This is a user-requested caption readability/layout adjustment. No new latency, accuracy, audio, or live-provider evidence was produced.
+- **Live state:** Unchanged; no live system was inspected.
+- **Known issues:** Narrow/mobile layout still requires focused visual review after this desktop-oriented spacing adjustment.
+- **Next action:** Planner/user validates speaker placement and caption use of the stage during the next browser review; do not start CAPTION-003.
