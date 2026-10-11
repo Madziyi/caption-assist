@@ -178,3 +178,12 @@ Use this format:
 - **Live state:** Unchanged; no live system was inspected.
 - **Known issues:** Live provider-backed speaker labels were not exercised in this check.
 - **Next action:** Run normal repository checks and browser smoke verification, then push the Builder handoff; do not start CAPTION-003.
+
+### 2026-10-10 — CAPTION-002 — user-observed live speaker label confirmation
+- **Changed:** Recorded the user's confirmation that the lighter gray live speaker label change worked well.
+- **Decisions:** Treat this as user-observed visual/product confirmation, not Builder-observed provider or audio benchmarking.
+- **Verification:** No new code or live infrastructure verification was performed.
+- **Quality:** No latency, accuracy, session, reconnect, speaker-count, or device/browser details were inferred.
+- **Live state:** Unchanged; no live system was inspected.
+- **Known issues:** Broader live speaker and responsive quality checks remain pending.
+- **Next action:** Planner/user may continue review; do not start CAPTION-003.

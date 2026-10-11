@@ -220,6 +220,18 @@ Record measured provider billing/configuration or carefully calculated cost from
 - Cost evidence: Not measured.
 - Result: User-requested live label readability refinement implemented; provider, audio, caption event, history retention, and speaker identity behavior are unchanged. Browser/provider-backed live speaker review remains pending.
 
+### 2026-10-10 — CAPTION-002 — user-observed live speaker label confirmation
+- Environment/device: Not reported by the user.
+- Audio path: The user confirmed that the live speaker label color change worked well; no new provider or microphone details were reported.
+- Session length: Not reported.
+- Latency observations/measurements: Not measured.
+- Accuracy observations/measurements: Not measured.
+- Speaker observations: No physical speaker count or attribution result was reported.
+- Failure/recovery tests: Not reported.
+- Accessibility observations: User confirmed the lighter gray live speaker label change.
+- Cost evidence: Not measured.
+- Result: User-observed visual/product confirmation recorded. No broader provider, audio, latency, accuracy, or device/browser claims are inferred.
+
 Append concise entries:
 
 ```text
