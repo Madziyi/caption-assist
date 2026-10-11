@@ -70,3 +70,8 @@ None expected initially. None verified.
 - This does not establish a deployed application, configured local Supabase environment, real AssemblyAI audio session, multi-device UAT, or production/private-access dashboard configuration. Hosting and prior provider ledger entries remain unverified.
 
 - Configured local app follow-up: user-supplied environment names verified nonempty privately; localhost host room creation authenticated successfully, subscribed, opened QR as muted You, and ended successfully. The ended invitation was rejected. Production build passed. This establishes local room configuration, not deployed hosting, AssemblyAI speech, guest-device audio or background behavior.
+
+## CAPTION-003.1 deployment status - 2026-10-11
+
+- GitHub combined commit status for `c8c95166dadd281801764d0154ae2c60b936d391` reported Vercel success after push to main. [Deployment status](https://vercel.com/madziyis-projects/caption-assist/3P9W5V6gqpR91WYzB6toEAmjv8MV). Existing Vercel Git integration was used; no hosting/provider configuration changed.
+- This is deployment-status evidence only. Builder did not perform physical-device/audio duplicate-suppression UAT or inspect deployed runtime credentials. No new Supabase schema/authorization changes.

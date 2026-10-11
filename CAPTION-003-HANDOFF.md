@@ -90,3 +90,7 @@ After the pushed Vercel Git deployment, run two phones naturally positioned: A s
 Known limits: matching cannot determine the true human speaker or the closest mic; higher STT confidence is not proof of ownership. Identical longer speech by different people in the window can falsely merge. Delayed/short/differently recognized/oversized duplicates can remain. Already accepted distinct finals are not retroactively removed. Provider turn segmentation differences can miss duplicates. Thresholds may need evidence-based tuning.
 
 Opt-in infrastructure replay is provided by `scripts/verify-connected-realtime.mjs`. It takes URL/publishable key on stdin, keeps access tokens in memory, prints opaque fixture IDs/hash, then expects room/host/guest membership IDs after authorized synthetic metadata creation. It is not part of `npm test`. Run only on a chosen development project and clean up exactly its printed disposable users/rooms afterward. The companion SQL test is transaction/rollback-only.
+
+## CAPTION-003.1 publication
+
+Implementation commit `c8c95166dadd281801764d0154ae2c60b936d391` is pushed to main. GitHub reported the configured Vercel deployment check successful: [Vercel deployment](https://vercel.com/madziyis-projects/caption-assist/3P9W5V6gqpR91WYzB6toEAmjv8MV). This verifies deployment status, not physical-device caption/audio behavior. All 93 tests / 13 files, typecheck, lint, build and diff checks passed. Real-device acceptance remains pending.

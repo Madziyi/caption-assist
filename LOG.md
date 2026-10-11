@@ -222,3 +222,8 @@ Use this format:
 - Decisions: 4+ tokens ordered Dice >=0.85 / 1800 ms; 3 tokens exact / 600 ms; 1-2 tokens never cross-suppressed; negation/numeric conflicts protected; >=0.15 confidence margin before final only. First final commits immediately; source provenance retained even when displayed label comes from another cluster leader.
 - Verification: 93 tests / 13 files, typecheck/lint and production build passed. No physical-device/audio tests or real duplicate/latency measurements inferred. Baseline main had a successful Vercel Git deployment status; new commit deployment to be checked after push.
 - Next action: Publish then perform specified deployed two/three-phone scenarios and collect user acceptance. CAPTION-003 stays active; CAPTION-004 deferred.
+
+### 2026-10-11 - CAPTION-003.1 publication verification
+- Implementation `c8c95166dadd281801764d0154ae2c60b936d391` pushed to main; Vercel check moved from pending to success. Recorded the observed deployment status in LIVE-STATE.md and handoff.
+- Required checks passed: typecheck, lint, 93 tests / 13 files, production build and diff check. No UI/layout/provider model/room authorization migration.
+- Next action remains deployed two/three-phone user acceptance; no physical-device UAT inferred from deployment success. CAPTION-003 remains open, CAPTION-004 deferred.

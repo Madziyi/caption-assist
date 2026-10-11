@@ -2,7 +2,7 @@
 
 **Initiative:** CAPTION-003 - Connected Mode / QR Participant Rooms
 **Active correction:** CAPTION-003.1 - Cross-Microphone Duplicate Suppression
-**Status:** Reopened after user-reported duplicates during deployed, co-located multi-microphone use. Source implemented; 93 tests / 13 files, typecheck, lint and production build passed. Diff check passed; publishing through existing Vercel Git workflow. Physical-device acceptance pending.
+**Status:** Reopened after user-reported duplicates during deployed, co-located multi-microphone use. Source implemented; 93 tests / 13 files, typecheck, lint and production build passed. Diff check passed; implementation c8c95166dadd281801764d0154ae2c60b936d391 pushed to main. GitHub Vercel deployment status reported success. Physical-device acceptance pending.
 **Owner:** Builder until verified commit/push. CAPTION-004 planning/implementation is deferred by the current user instruction.
 
 ## Objective and contracts
@@ -26,4 +26,4 @@ No provider/model/Voice Focus migration, room authorization change, transcript p
 
 ## Next action
 
-Finish verification and publish CAPTION-003.1, then perform the specified deployed physical-device acceptance scenarios.
+Perform the specified deployed two/three-phone acceptance scenarios and record duplicate/false-suppression observations.
