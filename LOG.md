@@ -79,3 +79,12 @@ Use this format:
 - **Live state:** No deployed system or live AssemblyAI configuration was verified; `LIVE-STATE.md` remains unchanged.
 - **Known issues:** Real multi-speaker provider UAT remains pending because this Builder session did not complete a usable diarization path. The known safe limitation that reconnect-created speaker identities are new profiles is documented in source context.
 - **Next action:** Planner/user performs the applicable real multi-speaker, naming, responsive, revision, and reconnect UAT before advancing beyond CAPTION-002; do not start CAPTION-003.
+
+### 2026-10-10 — CAPTION-002 — caption transition readability adjustment
+- **Changed:** Replaced the duplicate large `Conversation` heading with `Captions` and added a 2-second visual dwell for the latest finalized caption in the main caption stage.
+- **Decisions:** Finalized captions still enter newest-first history immediately; only the visual departure from the large stage is delayed. Interim caption rendering and provider timing remain unchanged.
+- **Verification:** Focused source inspection, local browser smoke verification of the updated `Captions` heading and enlarged stage, `npm run typecheck`, `npm run lint`, `npm test`, `npm run build`, and `git diff --check` passed.
+- **Quality:** This is a user-requested readability adjustment. Browser smoke evidence was limited to the updated heading and enlarged stage; no new audio, latency, accuracy, or live-provider evidence was produced.
+- **Live state:** Unchanged; no live system was inspected.
+- **Known issues:** The 2-second dwell is an initial tuning value and may need user feedback after real sessions.
+- **Next action:** Planner/user validates the transition feel during the next real captioning session; do not start CAPTION-003.

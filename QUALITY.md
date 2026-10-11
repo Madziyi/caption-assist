@@ -130,6 +130,11 @@ Record measured provider billing/configuration or carefully calculated cost from
 - Cost evidence: Not measured.
 - Result: CAPTION-002 source implementation and browser/source verification are complete. Real multi-speaker diarization, naming during speech, revision, reconnect, and responsive provider-backed UAT remain pending and are not being represented as Builder-observed results.
 
+### 2026-10-10 — CAPTION-002 — caption transition readability adjustment
+- Environment/device: Codex in-app browser on the local Next.js development server; no new audio measurement performed.
+- Accessibility observations: Replaced the duplicate large `Conversation` heading with `Captions`. Browser smoke verification showed the updated heading and enlarged caption stage. The latest finalized caption now remains visible in the large caption stage for a 2-second visual dwell while the history state updates immediately, so live caption latency and history ordering are not intentionally delayed.
+- Result: User-requested readability adjustment implemented; the dwell duration is a product-tuning value and has not been measured against field preference.
+
 Append concise entries:
 
 ```text

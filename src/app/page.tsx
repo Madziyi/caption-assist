@@ -6,6 +6,8 @@ import { groupNewestFirst, newestFirst } from "@/lib/captions/history";
 import { captionReducer, initialCaptionState } from "@/lib/captions/reducer";
 import type { SessionStatus, SpeakerProfile } from "@/lib/captions/types";
 
+const FINAL_CAPTION_DWELL_MS = 2_000;
+
 const statusCopy: Record<SessionStatus, string> = {
   idle: "Ready to caption",
   requesting_permission: "Microphone permission needed",
@@ -22,13 +24,21 @@ export default function HomePage() {
   const [speakerPanelOpen, setSpeakerPanelOpen] = useState(false);
   const [editingSpeakerId, setEditingSpeakerId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
+  const [clock, setClock] = useState(() => Date.now());
   const sessionRef = useRef<ConversationSession | null>(null);
   const liveCaptionRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const dwellStartRef = useRef<{ id: string; startedAt: number } | null>(null);
+  const dwellRefreshTimeoutRef = useRef<number | null>(null);
+  const dwellExpiryTimeoutRef = useRef<number | null>(null);
 
   const speakerMap = useMemo(() => new Map(state.speakers.map((speaker) => [speaker.id, speaker])), [state.speakers]);
   const historyGroups = useMemo(() => groupNewestFirst(newestFirst(state.finalized)), [state.finalized]);
   const interimText = state.interim?.text;
+  const newestFinalCaption = state.finalized.at(-1);
+  const recentFinalCaption = dwellStartRef.current?.id === newestFinalCaption?.id && clock - (dwellStartRef.current?.startedAt ?? 0) < FINAL_CAPTION_DWELL_MS
+    ? newestFinalCaption
+    : null;
 
   useEffect(() => () => void sessionRef.current?.stop(), []);
 
@@ -38,6 +48,28 @@ export default function HomePage() {
       if (liveCaption) liveCaption.scrollTop = liveCaption.scrollHeight;
     }
   }, [interimText]);
+
+  useEffect(() => {
+    const newestFinalCaption = state.finalized.at(-1);
+    if (!newestFinalCaption) {
+      dwellStartRef.current = null;
+      if (dwellRefreshTimeoutRef.current !== null) window.clearTimeout(dwellRefreshTimeoutRef.current);
+      if (dwellExpiryTimeoutRef.current !== null) window.clearTimeout(dwellExpiryTimeoutRef.current);
+      return;
+    }
+    if (newestFinalCaption.id === dwellStartRef.current?.id) return;
+
+    dwellStartRef.current = { id: newestFinalCaption.id, startedAt: Date.now() };
+    if (dwellRefreshTimeoutRef.current !== null) window.clearTimeout(dwellRefreshTimeoutRef.current);
+    if (dwellExpiryTimeoutRef.current !== null) window.clearTimeout(dwellExpiryTimeoutRef.current);
+    dwellRefreshTimeoutRef.current = window.setTimeout(() => setClock(Date.now()), 0);
+    dwellExpiryTimeoutRef.current = window.setTimeout(() => setClock(Date.now()), FINAL_CAPTION_DWELL_MS);
+  }, [state.finalized]);
+
+  useEffect(() => () => {
+    if (dwellRefreshTimeoutRef.current !== null) window.clearTimeout(dwellRefreshTimeoutRef.current);
+    if (dwellExpiryTimeoutRef.current !== null) window.clearTimeout(dwellExpiryTimeoutRef.current);
+  }, []);
 
   useEffect(() => {
     if (!speakerPanelOpen) return;
@@ -104,7 +136,7 @@ export default function HomePage() {
       <header className="conversation-header">
         <div>
           <p className="eyebrow">Accessible Conversation Captions</p>
-          <h1>Conversation</h1>
+          <h1>Captions</h1>
         </div>
         <div className="header-actions">
           {state.speakers.length > 0 && (
@@ -168,11 +200,13 @@ export default function HomePage() {
       )}
 
       <section className="caption-stage" aria-label="Current caption">
-        {state.interim ? (
+        {state.interim || recentFinalCaption ? (
           <>
-            <SpeakerIdentity speakerId={state.interim.speakerId} speakerMap={speakerMap} onActivate={openSpeakerPanel} live />
+            <SpeakerIdentity speakerId={(state.interim ?? recentFinalCaption)?.speakerId ?? null} speakerMap={speakerMap} onActivate={openSpeakerPanel} live />
             <div className="live-caption-scroll" ref={liveCaptionRef}>
-              <p className="current-caption interim-caption" aria-live="polite" aria-atomic="true">{state.interim.text}</p>
+              <p className={`current-caption ${state.interim ? "interim-caption" : "final-caption"}`} aria-live="polite" aria-atomic="true">
+                {(state.interim ?? recentFinalCaption)?.text}
+              </p>
             </div>
           </>
         ) : state.finalized.length === 0 ? (
