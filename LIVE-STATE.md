@@ -55,6 +55,12 @@ None expected initially. None verified.
 
 - None recorded.
 
+## CAPTION-008.1 mobile fix deployment — 2026-10-11
+
+- Source commit `a1611bf` (preserve mobile microphone permission activation) was pushed to `main`.
+- GitHub combined status reported Vercel `success`: [deployment status](https://vercel.com/madziyis-projects/caption-assist/Boy7cRU2xgifEySh1N8sqFEscWRa).
+- This confirms the source deployment completed; it does not establish physical mobile microphone or headset behavior.
+
 ## CAPTION-008.1 live migration and SQL verification — 2026-10-11
 
 - Confirmed target before applying: Supabase project `caption-assist`, ref `cqnyvevhuxwfzhqpmccn`, region `ca-central-1`, status `ACTIVE_HEALTHY`.

@@ -124,6 +124,10 @@ Status: **unverified**
 - Verification: typecheck, lint, 153 tests / 25 files, production build and diff check passed. A focused regression test covers starting a new headset capture before prior cleanup resolves. No physical phone or mobile browser reproduction was available in the Builder environment.
 - Result: Targeted mobile compatibility patch ready for deployment; if the error persists, collect exact phone model, browser/version, action and visible stack/message before further scope changes.
 
+### 2026-10-11 — CAPTION-008.1 mobile fix publication
+- Source commit `a1611bf` pushed to `main`; GitHub combined status reported Vercel `success`: [deployment status](https://vercel.com/madziyis-projects/caption-assist/Boy7cRU2xgifEySh1N8sqFEscWRa).
+- Deployment evidence only; physical phone/headset behavior remains unverified.
+
 ### 2026-10-10 — CAPTION-001 source and browser verification
 - Environment/device: Codex in-app browser on the local Next.js development server; desktop viewport. Node.js `v22.15.0` for source gates.
 - Audio path: Builder-observed real microphone/provider path was not completed during that verification session; the browser remained at the microphone-permission state without a usable local provider credential. A later user-observed real UAT report is recorded below; no raw audio was stored.

@@ -303,3 +303,7 @@ Use this format:
 - Root cause: `HeadsetMicrophone.start()` awaited `stop()` before reaching `getUserMedia()`. That headset-only microtask gap can end a mobile tap's user-activation window; Table/Connected microphone paths did not have this initial await.
 - Changed: Detach and stop any previous headset capture without awaiting its asynchronous cleanup before the new permission request. Added a regression test for the ordering.
 - Verification: typecheck, lint, 153 tests / 25 files, production build and diff check passed. No physical mobile reproduction was available.
+
+### 2026-10-11 — CAPTION-008.1 mobile fix publication
+- Source commit `a1611bf` pushed to `main`; GitHub combined status reported Vercel `success`: https://vercel.com/madziyis-projects/caption-assist/Boy7cRU2xgifEySh1N8sqFEscWRa.
+- Next action: Human retries Start headset check on the phones; if it still fails, return device/browser/action details and the visible error.
