@@ -55,4 +55,16 @@ describe("headset calibration browser timers", () => {
     await vi.advanceTimersByTimeAsync(9000);
     expect(getView()).toMatchObject({ mic: "stopped", setup: "quiet" });
   });
+
+  it("reports a rejected state update without an unhandled promise or misclassifying a working microphone", async () => {
+    const state = setup("AirPods Pro");
+    let view: HeadsetParticipantView | undefined;
+    const participant = new HeadsetParticipant("test-person", {
+      setPresence: async () => { throw new Error("Broadcast failed"); }, sendSignal: async () => undefined,
+    }, (next) => { view = next; }, { microphone: state.microphone });
+    await participant.startSetup();
+    await vi.advanceTimersByTimeAsync(0);
+    expect(view).toMatchObject({ setup: "quiet", mic: "on", notice: expect.stringContaining("could not reach the host") });
+    await participant.stopMicrophone();
+  });
 });

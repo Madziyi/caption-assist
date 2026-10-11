@@ -17,6 +17,7 @@ export function HeadsetSetup({ view, start, useAnyway, retry, choose }: { view: 
     {view.setup === "quiet" && <p>Stay quiet for 3 seconds…</p>}
     {view.setup === "voice" && <p>Now read this out loud at your normal volume: “I&apos;m checking my headset so the captions know when I&apos;m talking.”</p>}
     {view.setup === "ready" && <p>✓ Headset ready. Keep this page open with the screen on. <strong>{view.speaking ? "Speaking" : "Quiet"}</strong></p>}
+    {view.notice && view.setup !== "failed" && <div className="notice notice-warning"><p role="alert">{view.notice}</p><button type="button" className="button button-secondary" onClick={retry}>Check again</button></div>}
     {view.setup === "failed" && <div className="notice notice-error"><p>{view.notice ?? "We couldn't hear you clearly. Check your headset is on and connected, then try again."}</p><button type="button" className="button button-secondary" onClick={retry}>Try again</button></div>}
     {view.setup !== "ready" && view.setup !== "input" && <p className="headset-level">Current level: {view.levelDb.toFixed(1)} dB</p>}
   </section>;

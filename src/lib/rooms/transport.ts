@@ -1,7 +1,11 @@
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import { IDENTIFY_REQUEST_ID, validIdentificationPhases, validIdentifyRequests, type Participant, type ParticipantStatus, type RoomControl } from "./types";
 import type { VoicePhase } from "./voice-identity";
-import { validHeadsetControl, validHeadsetPresence, validHeadsetSignal, type HeadsetControl, type HeadsetPresence, type HeadsetSignal } from "../headset/messages";
+import { validHeadsetControl, validHeadsetPresence, validHeadsetPresenceUpdate, validHeadsetSignal, type HeadsetControl, type HeadsetPresence, type HeadsetPresenceUpdate, type HeadsetSignal } from "../headset/messages";
+
+// A connection allows five Presence writes in 30 s. The two initial room
+// tracks leave room for at most three headset snapshots in that window.
+const HEADSET_PRESENCE_INTERVAL_MS = 12000;
 
 type TransportCallbacks = {
   /** Host: the participant's current identification request, or null when none is open. */
@@ -33,6 +37,11 @@ export class SupabaseRoomTransport implements RoomTransport {
   private allowed = new Set<string>();
   private identifyState: string | null = null;
   private headsetState: HeadsetPresence | null = null;
+  private readonly headsetSession = crypto.randomUUID();
+  private headsetSeq = 0;
+  private lastPresenceAt = 0;
+  private headsetPresenceTimer: ReturnType<typeof setTimeout> | null = null;
+  private headsetVersions = new Map<string, { sessionId: string; seq: number; retired: Set<string> }>();
 
   constructor(private readonly client: SupabaseClient, private readonly roomId: string, private readonly self: Participant, private readonly callbacks: TransportCallbacks) {}
 
@@ -51,6 +60,7 @@ export class SupabaseRoomTransport implements RoomTransport {
     await this.updateParticipants(participants);
     this.callbacks.state(this.self.id, "Connected");
     if (await this.channels.get(this.self.id)?.track({ online: true }) !== "ok") throw new Error("Room presence could not be established.");
+    this.lastPresenceAt = Date.now();
     const presence = this.client.channel(`caption-room:${this.roomId}:presence`, { config: { private: true } });
     this.presenceChannel = presence;
     // Payloads are ignored: Presence cannot supply names, identity, roles or removal state.
@@ -66,6 +76,7 @@ export class SupabaseRoomTransport implements RoomTransport {
     for (const [id, channel] of this.channels) {
       if (!this.allowed.has(id)) {
         this.channels.delete(id);
+        this.headsetVersions.delete(id);
         await this.client.removeChannel(channel);
       }
     }
@@ -82,7 +93,20 @@ export class SupabaseRoomTransport implements RoomTransport {
         if (this.stopped || !this.allowed.has(participant.id)) return;
         const entries = Object.values(channel.presenceState()).flat() as Array<{ identify?: unknown; headset?: unknown }>;
         this.callbacks.state(participant.id, entries.length ? "Connected" : "Disconnected");
-        if (this.self.role === "host" && participant.id !== this.self.id) { this.callbacks.identify(participant.id, identifyRequest(entries)); this.callbacks.headsetPresence?.(participant.id, headsetPresence(entries)); }
+        if (this.self.role === "host" && participant.id !== this.self.id) {
+          this.callbacks.identify(participant.id, identifyRequest(entries));
+          if (!entries.length) {
+            this.headsetVersions.delete(participant.id);
+            this.callbacks.headsetPresence?.(participant.id, null);
+          } else {
+            const update = headsetPresenceUpdate(entries);
+            if (update) this.receiveHeadsetPresence(participant.id, update);
+            else if (!this.headsetVersions.has(participant.id)) this.callbacks.headsetPresence?.(participant.id, headsetPresence(entries));
+          }
+        }
+      });
+      channel.on("broadcast", { event: "headset-presence" }, ({ payload }) => {
+        if (!this.stopped && this.self.role === "host" && this.allowed.has(participant.id) && validHeadsetPresenceUpdate(payload)) this.receiveHeadsetPresence(participant.id, payload);
       });
       channel.on("broadcast", { event: "headset" }, ({ payload }) => {
         if (!this.stopped && this.self.role === "host" && this.allowed.has(participant.id) && validHeadsetSignal(payload)) this.callbacks.headsetSignal?.(participant.id, payload);
@@ -112,13 +136,46 @@ export class SupabaseRoomTransport implements RoomTransport {
     if (this.stopped || this.self.role === "host") return;
     this.identifyState = requestId;
     const channel = this.channels.get(this.self.id);
-    if (!channel || await channel.track({ online: true, identify: requestId, ...(this.headsetState ? { headset: this.headsetState } : {}) }) !== "ok") throw new Error("Your request could not reach the host. Try again.");
+    this.lastPresenceAt = Date.now();
+    if (!channel || await channel.track(this.presencePayload()) !== "ok") throw new Error("Your request could not reach the host. Try again.");
   }
   async setHeadsetPresence(presence: HeadsetPresence): Promise<void> {
     if (this.stopped || this.self.role === "host") return;
+    if (JSON.stringify(this.headsetState) === JSON.stringify(presence)) return;
     this.headsetState = presence;
+    const update: HeadsetPresenceUpdate = { sessionId: this.headsetSession, seq: ++this.headsetSeq, presence };
     const channel = this.channels.get(this.self.id);
-    if (!channel || await channel.track({ online: true, identify: this.identifyState, headset: presence }) !== "ok") throw new Error("Your headset state could not reach the host.");
+    // Calibration transitions are immediate Broadcast messages. Presence is a
+    // coalesced snapshot for a host that subscribes after those transitions.
+    this.scheduleHeadsetPresence();
+    if (!channel || await channel.send({ type: "broadcast", event: "headset-presence", payload: update }) !== "ok") throw new Error("Your headset state could not reach the host.");
+  }
+  private presencePayload() {
+    return { online: true, identify: this.identifyState, ...(this.headsetState ? { headset: this.headsetState, headsetSession: this.headsetSession, headsetSeq: this.headsetSeq } : {}) };
+  }
+  private scheduleHeadsetPresence() {
+    if (this.stopped || this.headsetPresenceTimer || !this.headsetState) return;
+    const delay = Math.max(0, HEADSET_PRESENCE_INTERVAL_MS - (Date.now() - this.lastPresenceAt));
+    this.headsetPresenceTimer = setTimeout(() => {
+      this.headsetPresenceTimer = null;
+      if (this.stopped) return;
+      if (Date.now() - this.lastPresenceAt < HEADSET_PRESENCE_INTERVAL_MS) { this.scheduleHeadsetPresence(); return; }
+      const channel = this.channels.get(this.self.id);
+      this.lastPresenceAt = Date.now();
+      void channel?.track(this.presencePayload()).then((status) => {
+        if (status !== "ok" && !this.stopped) this.callbacks.disconnected();
+      }).catch(() => { if (!this.stopped) this.callbacks.disconnected(); });
+    }, delay);
+  }
+  private receiveHeadsetPresence(participantId: string, update: HeadsetPresenceUpdate) {
+    const previous = this.headsetVersions.get(participantId);
+    if (previous?.retired.has(update.sessionId)) return;
+    if (previous?.sessionId === update.sessionId && update.seq <= previous.seq) return;
+    const retired = previous?.retired ?? new Set<string>();
+    if (previous && previous.sessionId !== update.sessionId) retired.add(previous.sessionId);
+    if (retired.size > 16) retired.delete(retired.values().next().value!);
+    this.headsetVersions.set(participantId, { sessionId: update.sessionId, seq: update.seq, retired });
+    this.callbacks.headsetPresence?.(participantId, update.presence);
   }
   async sendHeadsetSignal(signal: HeadsetSignal): Promise<void> {
     if (this.stopped || this.self.role === "host") return;
@@ -130,6 +187,9 @@ export class SupabaseRoomTransport implements RoomTransport {
   }
   async disconnect(): Promise<void> {
     this.stopped = true;
+    if (this.headsetPresenceTimer) clearTimeout(this.headsetPresenceTimer);
+    this.headsetPresenceTimer = null;
+    this.headsetVersions.clear();
     const channels = [...this.channels.values(), ...(this.controlChannel ? [this.controlChannel] : []), ...(this.presenceChannel ? [this.presenceChannel] : [])];
     this.channels.clear(); this.controlChannel = null;
     this.presenceChannel = null;
@@ -146,5 +206,13 @@ function identifyRequest(entries: Array<{ identify?: unknown }>): string | null 
 }
 function headsetPresence(entries: Array<{ headset?: unknown }>): HeadsetPresence | null {
   for (const entry of [...entries].reverse()) if (validHeadsetPresence(entry.headset)) return entry.headset;
+  return null;
+}
+function headsetPresenceUpdate(entries: Array<{ headset?: unknown }>): HeadsetPresenceUpdate | null {
+  for (const entry of [...entries].reverse()) {
+    const fields = entry as { headset?: unknown; headsetSession?: unknown; headsetSeq?: unknown };
+    const update = { presence: fields.headset, sessionId: fields.headsetSession, seq: fields.headsetSeq };
+    if (validHeadsetPresenceUpdate(update)) return update;
+  }
   return null;
 }

@@ -7,6 +7,7 @@ export type HeadsetPresence = {
   setup: "not_started" | "input" | "quiet" | "voice" | "ready" | "failed";
   floorDb: number | null; ownDb: number | null; visible: boolean;
 };
+export type HeadsetPresenceUpdate = { sessionId: string; seq: number; presence: HeadsetPresence };
 export type HeadsetSignal = { kind: "gate"; seq: number; open: boolean; levelDb: number; openDb: number } | { kind: "check-result"; checkId: string; levels: Record<string, number | null> };
 export type HeadsetControl = { type: "headset-check"; checkId: string; order: string[]; slotMs: number; gapMs: number } | { type: "headset-check-cancel"; checkId: string };
 export const CHECK_ID = /^[A-Za-z0-9-]{8,64}$/;
@@ -16,6 +17,12 @@ export function validHeadsetPresence(value: unknown): value is HeadsetPresence {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const p = value as HeadsetPresence;
   return presenceEnums.mic.includes(p.mic) && presenceEnums.input.includes(p.input) && presenceEnums.setup.includes(p.setup) && (p.label === null || typeof p.label === "string" && p.label.length <= 60) && validDb(p.floorDb) && validDb(p.ownDb) && typeof p.visible === "boolean" && (p.processing === null || (typeof p.processing === "object" && [p.processing.autoGainControl, p.processing.noiseSuppression, p.processing.echoCancellation].every((v) => v === null || typeof v === "boolean")));
+}
+export function validHeadsetPresenceUpdate(value: unknown): value is HeadsetPresenceUpdate {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const update = value as HeadsetPresenceUpdate;
+  return typeof update.sessionId === "string" && CHECK_ID.test(update.sessionId)
+    && Number.isSafeInteger(update.seq) && update.seq >= 1 && validHeadsetPresence(update.presence);
 }
 export function validHeadsetSignal(value: unknown): value is HeadsetSignal {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;

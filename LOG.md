@@ -318,3 +318,10 @@ Use this format:
 ### 2026-10-11 — CAPTION-008.1 reproduced timer fix publication
 - Source commit `77efcef` pushed to `main`; GitHub combined status reported Vercel `success`: https://vercel.com/madziyis-projects/caption-assist/7ke58AMsU8NYNd51be4wpTuaExhu.
 - Next action: reload phone pages and retry Default/connected Bluetooth calibration. Physical audio/Bluetooth behavior still needs human confirmation.
+
+### 2026-10-11 — CAPTION-008.1 participant Presence quota fix
+- Trigger: human confirms host calibration/input changes work; joining phones disconnect during setup. Live Realtime log aggregation found 14 ClientPresenceRateLimitReached errors; documented per-connection quota is five Presence updates per 30 s, exceeded by the existing setup sequence.
+- Changed: immediate validated headset state Broadcast on existing private participant topics; deduplicated, coalesced Presence snapshots at 12 s with identify metadata preserved. Session/sequence guards reject stale snapshots/retired sessions; pending snapshots cancel on disconnect; fire-and-forget failures now produce visible retry feedback.
+- Verification: 168 tests/27 files, typecheck, lint, build and diff check pass. Live local host + two simulated phones calibrated, produced a room-check matrix, and first phone refreshed/rejoined/recalibrated without Presence-limit errors/disconnection/page errors. No host mic, STT request or AssemblyAI socket. Early harness attempts typed before hydration; corrected by waiting for the invitation check. All test rooms ended; synthetic WAVs removed.
+- Decisions: keep security policies, provider configuration, acoustic thresholds and audio privacy contracts unchanged. No live configuration or schema mutation; physical phone/Bluetooth confirmation remains pending.
+- Next action: publish, reload/rejoin physical phones, complete setup and room check, then return acoustic exports to the Planner.
