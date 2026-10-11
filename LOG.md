@@ -203,7 +203,7 @@ Use this format:
 - Configured host browser creation opened QR with muted You and count one; mode locked. Explicit mic activation remained pending in IAB, and End canceled it successfully. Old invitation showed ended feedback. No actual audio/provider session inferred. Only IAB available; independent guest/physical-phone/background UAT remains pending.
 - Production rebuild passed with configured environment. CAPTION-003 remains active/partial for progression; next action is configured host + guest-phone audio UAT. CAPTION-004 not started.
 
-### 2026-10-11 — CAPTION-003 one-row desktop header refinement
+### 2026-10-11 - CAPTION-003 one-row desktop header refinement
 - Changed: CSS uses available screen width and keeps desktop title, mode, actions and status on one row with compact controls. Narrow screens wrap for readability.
 - Verification: Local IAB Table idle/Connected active/ended at measured 1280 CSS pixels fit one row without horizontal overflow; 391 CSS pixel view wrapped without overflow. Ended temporary UI verification room. Typecheck, lint and production build passed; 51 tests across 12 files and git diff --check passed. No mic/audio session started.
 - Next action: CAPTION-003 remains active pending host + guest-phone audio UAT; CAPTION-004 not started.
