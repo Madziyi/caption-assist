@@ -268,3 +268,27 @@ select:focus-visible { outline: 4px solid #f1bd4b; outline-offset: 3px; }
 .headset-range-labels { display: flex; justify-content: space-between; }
 .headset-hidden-caption { opacity: 0.65; }
 .headset-sensitivity-list input[type="range"] { display: block; width: 100%; min-width: 0; }
+.headset-input-card { padding: 1rem; border: 1px solid var(--line); border-radius: 0.85rem; background: var(--surface); display: grid; gap: 0.65rem; min-width: 0; }
+.headset-input-heading { display: flex; align-items: center; gap: 0.75rem; min-width: 0; }
+.headset-input-heading > div { min-width: 0; }
+.headset-input-heading h3 { margin: 0 0 0.2rem; font-size: 0.9rem; color: var(--muted); }
+.headset-input-icon { display: grid; place-items: center; flex: 0 0 2.5rem; height: 2.5rem; border: 1px solid var(--line); border-radius: 0.65rem; background: var(--panel); }
+.headset-input-name { font-weight: 700; overflow-wrap: anywhere; }
+.headset-input-hint, .headset-input-help { font-size: 0.95rem; color: var(--muted); }
+.headset-input-label { display: grid; gap: 0.35rem; font-size: 1rem; font-weight: 700; min-width: 0; }
+.headset-input-select { width: 100%; min-width: 0; min-height: 2.75rem; padding: 0.6rem 0.65rem; border: 1px solid #8998a8; border-radius: 0.65rem; background: var(--panel); color: var(--ink); font: inherit; }
+.headset-input-help summary { cursor: pointer; padding: 0.35rem 0; }
+.headset-input-help p { padding-top: 0.3rem; }
+.headset-activity { display: inline-flex; align-items: center; justify-content: center; gap: 0.65rem; min-height: 4.25rem; padding: 0.85rem 1rem; border: 1px solid #b7c4d0; border-radius: 0.9rem; background: #eef2f6; color: #334155; font-weight: 700; text-align: center; transition: background-color 160ms ease, color 160ms ease, border-color 160ms ease; overflow-wrap: anywhere; }
+.headset-activity small { display: block; font-size: 0.85rem; font-weight: 400; }
+.headset-activity-dot { flex: 0 0 0.55rem; height: 0.55rem; border-radius: 50%; background: currentColor; }
+.headset-activity-speaking { background: #dcf5e5; color: #14532d; border-color: #7ab78e; }
+.headset-activity-pending { background: #fff4d6; color: #714b00; border-color: #c7a64e; }
+.headset-activity-error { background: #fde9e9; color: #8c2222; border-color: #d49191; }
+.headset-activity-compact { min-height: 2rem; padding: 0.25rem 0.65rem; border-radius: 0.65rem; font-size: 0.95rem; }
+.headset-row > strong { min-width: 0; overflow-wrap: anywhere; }
+.headset-row-status { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; max-width: 65%; min-width: 0; }
+.headset-row-status small { font-size: 0.8rem; color: var(--muted); text-align: right; }
+.headset-reading-block .current-caption { width: 100%; text-align: left; overflow-wrap: anywhere; }
+@media (prefers-reduced-motion: reduce) { .headset-activity { transition: none; } }
+@media (forced-colors: active) { .headset-activity { border-color: CanvasText; } }

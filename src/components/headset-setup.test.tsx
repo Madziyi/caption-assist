@@ -48,4 +48,11 @@ describe("headset input picker", () => {
     expect(screen.getByLabelText("Choose input")).toHaveValue("");
     expect(screen.getByRole("option", { name: "Current input (selected by browser)" })).toBeDisabled();
   });
+  it("keeps route guidance in expandable help and shows speaking without a repeated quiet label", () => {
+    render(<HeadsetSetup view={{ ...view, setup: "ready", stt: "on", speaking: true }} start={vi.fn()} useAnyway={vi.fn()} retry={vi.fn()} choose={vi.fn()} />);
+    expect(screen.getByRole("heading", { name: "Microphone" })).toBeInTheDocument();
+    expect(screen.getByText("About microphone choices").closest("details")).not.toHaveAttribute("open");
+    expect(screen.getByText("Speaking").closest("[role=status]")).toHaveClass("headset-activity-speaking");
+    expect(screen.queryByText("Quiet")).not.toBeInTheDocument();
+  });
 });

@@ -120,6 +120,7 @@ Supersedes the personal-microphone parts of the CAPTION-003 source contracts (pa
   - Own level uses speech frames above `max(floor + 6, p95 − 15)`; the phone reports whether room-check tuning is still current. Slider thresholds use the higher calibrated/applied own reference and warn about quiet-speech loss.
   - The first interim relays immediately, subsequent interims at most once per 200 ms. Only overlapping unfinished turns can hold a final, for at most 800 ms. Table and Connected bypass the arbiter.
   - Provider latency uses signed `receivedAt − audioEndAt`; clock-aligned relay extra delay is measured separately. Synthetic provider endpoints sometimes lead receipt, so negative samples and the resulting on-screen estimate are not human end-to-end latency guarantees. Export v3 contains numerical diagnostics, no names, IDs, audio or caption text.
+  - Human-approved presentation follow-up: microphone card retains native device-ID selection and advisory browser-route guidance; shared Speaking/Quiet indicators are prominent on phones and compact in existing host rows, with errors/setup states taking precedence. Headset live captions use display-only same-speaker/source reading blocks, breaking for speaker change, overlap, pause over 2 s or an 80-word turn-boundary limit. Original turns, revisions, duplicate removal, history and Table/Connected rendering remain unchanged; no text buffering or provider-timing change.
 
 ## Verified repository baseline — 2026-10-10
 

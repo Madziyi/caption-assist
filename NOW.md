@@ -1,13 +1,22 @@
 # Active Initiative
 
 **Initiative:** CAPTION-008 - Headset Mode (separate mode: every speaker wears AirPods/a headset on their own phone; no room microphone)
-**Active slice:** CAPTION-008.3 - Duplicate control: continuous per-person sensitivity slider, visible room-check tuning state, robust own-level estimator, calibrated cross-phone arbitration of overlapping captions, latency measurement
-**Status:** 008.3 implemented and published as `6695c60`; Vercel reported success. Automated gates and the final local live-provider comparison passed. Physical testing and Planner review remain pending. 008.2 was deployed as `aac146a` (setup fix `df89148`).
+**Active slice:** CAPTION-008.3 UI/readability follow-up — polished input picker, phone and compact host speaking indicators, flowing same-speaker paragraphs; human approved implementation after discussion.
+**Status:** Human reports deployed 008.3 "works perfectly now". Approved UI/readability follow-up implemented and locally verified; publication pending. Quantitative physical measurements, Planner review and separate latency work remain outstanding. Previous source `6695c60` had Vercel success; 008.2 was deployed as `aac146a` (setup fix `df89148`).
 - The human ran it on two phones (wired and Bluetooth headsets): captions work and are named by phone, but bleed still opens the other phone's gate when people sit close, and captions feel about 2 s behind. The human's verdict: "I'm actually happy, it's kind of working."
 - The export shows weak single-phone separation (4.4 and 6.9 dB) and 16 s of both gates open in a 160 s session.
 - But the person actually talking is always 4–7 dB nearer their own calibrated level than the other phone is to its own. 008.3 arbitrates on that.
 - Full specification: `CAPTION-008-HEADSET-MODE.md` ("Planner review of 008.2", "CAPTION-008.3 specification").
-**Owner:** Human runs the 008.3 physical script and returns the export and notes; Planner resyncs and reviews the published implementation and field evidence before selecting 008.4 latency work.
+**Owner:** Builder publishes the UI/readability follow-up; human then reloads and confirms the picker, indicators and flowing paragraphs. Planner reviews before selecting separate 008.4 latency work.
+
+## Approved UI/readability follow-up (current Builder pass)
+
+- Human reports 008.3 "works perfectly now"; this is user-observed acceptance, not new quantitative device/accuracy evidence. Latency remains noticeable and short provider turns waste reading space.
+- Scope: styled accessible native microphone selector in a compact card; prominent rounded Speaking/Quiet rectangle on phones and compact replacement status pills in existing host rows, with failure/setup states taking precedence. Browser route labels remain advisory; device selection/permission behavior unchanged.
+- Headset live view groups adjacent same-speaker/source captions visually; short pauses/provider finals do not repeat the label. Initial display limits: a pause over 2 s or an 80-word block limit at turn boundaries starts a new paragraph. Other speakers and overlap stay distinct. Underlying turn IDs/events remain untouched for revisions and duplicate removal. No new delay, transcript rewriting or persistence; Table/Connected/history behavior unchanged.
+- Order: presentation helper/components/tests → responsive/keyboard browser checks → full automated gates → durable handoff and commit/push. Provider timing, gate/look-ahead and arbiter constants are explicitly unchanged; 008.4 is not started.
+- Acceptance: selected input stays correct; prominent/compact indicators never say Quiet during mic/STT failure; finals/interims flow in one block without delaying updates; removal/revision regroup correctly; 390/1280 px and enlarged text remain usable. Physical readability confirmation remains human-owned.
+- Implemented: microphone card with native select/expandable guidance; shared activity-state precedence and coloured text-labelled rectangles; headset-only presentation grouping, with original reducer records/history unchanged. 238 tests/36 files, typecheck, lint, production build and browser checks passed. Both surfaces fit 390/1280 px at 100/200% root text; real fake-media capture/worklet input selection/restart passed. No new provider/audio/latency measurement.
 
 ## Current implementation evidence
 
@@ -42,7 +51,7 @@ A single loudness threshold per phone cannot separate wearer from bleed once peo
 
 ## Next action
 
-Human reloads every device, calibrates both headsets, runs the room check, tunes sliders at normal and 50 cm seating, counts duplicates/misses/wrong names and returns **Copy results** plus delay observations. Follow the six-step 008.3 script in `CAPTION-008-HEADSET-MODE.md`. Planner resyncs and reviews before advancing. Deployment-status evidence: https://vercel.com/madziyis-projects/caption-assist/8p9jzqvjnmnT8pqpFFKQBf8dua7P (not physical-device UAT).
+Publish the UI/readability follow-up, then human reloads and verifies microphone choice, green Speaking/neutral Quiet indicators and paragraph continuity. Quantitative duplicate/latency notes remain useful under the six-step 008.3 script. Provider timing stays unchanged until separately approved 008.4 work; Planner resyncs before advancing.
 
 ## Paused
 

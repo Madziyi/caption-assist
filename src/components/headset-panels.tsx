@@ -3,6 +3,7 @@ import { useState } from "react";
 import type { ConnectedRoom, RoomView } from "@/lib/rooms/controller";
 import { sensitivityDb, sensitivityLabel } from "@/lib/headset/calibration";
 import { LOOKAHEAD_MS } from "@/lib/headset/gated-audio";
+import { HeadsetActivity } from "./headset-activity";
 
 export function HeadsetDelay({ view, id }: { view: RoomView; id: string }) {
   const stt = view.headsetHost?.people[id]?.presence?.latency?.interimP50;
@@ -30,7 +31,7 @@ export function HeadsetSensitivity({ view, room }: { view: RoomView; room: Conne
 export function HeadsetSpeakingBoard({ view }: { view: RoomView }) {
   const host = view.headsetHost;
   const readyCount = Object.values(host?.people ?? {}).filter((p) => p.presence?.setup === "ready" && p.presence?.mic === "on").length;
-  return <section className="headset-board" aria-labelledby="headset-board-heading"><h2 id="headset-board-heading">Speaking board</h2>{host ? Object.entries(host.people).map(([id, person]) => <div className="headset-row" key={id}><strong>{view.snapshot?.participants.find((p) => p.id === id)?.displayName ?? "Participant"}</strong><span role="status">{person.presence?.mic === "disconnected" ? "Headset disconnected" : person.presence?.setup === "ready" && person.presence.mic === "on" ? person.speaking ? "Speaking" : "Quiet" : person.presence?.mic === "off" ? "Microphone off" : person.presence?.setup === "not_started" ? "Not set up" : person.presence?.setup === "quiet" || person.presence?.setup === "voice" ? "Setting up" : person.presence?.visible === false ? "Screen off" : "Not set up"} {person.presence?.stt === "on" ? "· Captioning" : person.presence?.stt === "connecting" ? "· Connecting captions…" : person.presence?.stt === "reconnecting" ? "· Captions reconnecting…" : person.presence?.stt === "failed" ? "· Captions stopped" : ""} {readyCount >= 2 && person.presence?.setup === "ready" && person.presence.tuned === false ? "· Room check needed" : ""}</span></div>) : <p>No participants yet.</p>}</section>;
+  return <section className="headset-board" aria-labelledby="headset-board-heading"><h2 id="headset-board-heading">Speaking board</h2>{host ? Object.entries(host.people).map(([id, person]) => <div className="headset-row" key={id}><strong>{view.snapshot?.participants.find((p) => p.id === id)?.displayName ?? "Participant"}</strong><div className="headset-row-status"><HeadsetActivity compact state={person.presence ? { ...person.presence, speaking: person.speaking, checking: host.check?.status === "running" } : null} />{readyCount >= 2 && person.presence?.setup === "ready" && person.presence.tuned === false && <small>Room check needed</small>}</div></div>) : <p>No participants yet.</p>}</section>;
 }
 
 export function HeadsetHostPanel({ view, room }: { view: RoomView; room: ConnectedRoom }) {

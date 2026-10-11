@@ -9,6 +9,7 @@ import { ConnectedRoom, idleRoomView, type RoomMicrophoneState } from "@/lib/roo
 import { IdentificationBanner, InvitePanel, ParticipantsPanel } from "@/components/room-panels";
 import { HeadsetHostPanel, HeadsetSpeakingBoard } from "@/components/headset-panels";
 import { HeadsetSetup } from "@/components/headset-setup";
+import { HeadsetTranscript } from "@/components/headset-transcript";
 
 const roomMicrophoneCopy: Record<RoomMicrophoneState, string> = {
   Off: "Room mic off",
@@ -349,13 +350,13 @@ export default function HomePage() {
           <section className="caption-stage" aria-label="Live caption transcript">
         {state.finalized.length > 0 || state.interim || Object.keys(state.activeInterims).length > 0 ? (
           <div className="live-caption-scroll" ref={liveCaptionRef}>
-            {state.finalized.map((caption) => (
+            {mode === "headset" ? <HeadsetTranscript finalized={state.finalized} interims={[...(state.interim ? [state.interim] : []), ...Object.values(state.activeInterims)]} speaker={(id) => <SpeakerIdentity speakerId={id} speakerMap={speakerMap} onActivate={openSpeakerPanel} live />} /> : <>{state.finalized.map((caption) => (
               <LiveCaptionLine key={caption.id} caption={caption} speakerMap={speakerMap} onActivate={openSpeakerPanel} />
             ))}
             {state.interim && (
               <LiveCaptionLine caption={state.interim} speakerMap={speakerMap} onActivate={openSpeakerPanel} isInterim />
             )}
-            {Object.values(state.activeInterims).map((caption) => <LiveCaptionLine key={caption.sourceId} caption={caption} speakerMap={speakerMap} onActivate={openSpeakerPanel} isInterim />)}
+            {Object.values(state.activeInterims).map((caption) => <LiveCaptionLine key={caption.sourceId} caption={caption} speakerMap={speakerMap} onActivate={openSpeakerPanel} isInterim />)}</>}
           </div>
         ) : (
           <p className="caption-placeholder">

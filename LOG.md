@@ -414,3 +414,11 @@ Use this format:
 
 - Implementation `6695c60e823f655714db9ae09933a11c2b88e811` pushed to `main`; GitHub combined status reported Vercel success: https://vercel.com/madziyis-projects/caption-assist/8p9jzqvjnmnT8pqpFFKQBf8dua7P.
 - Source/live-local pipeline checks are complete; deployment status only, no physical or deployed-device UAT inferred. No infrastructure/configuration change. Next owner: human physical script and Planner resync/review; 008.3 remains active until acceptance.
+
+### 2026-10-11 — Human acceptance and headset UI/readability follow-up
+
+- Human reports 008.3 "works perfectly now". Asked for a professional microphone chooser, rounded coloured Speaking/Quiet rectangle on both phones and host (host uncluttered), faster captions and fewer broken sentence blocks. Discussion approved flowing paragraphs and compact host row pills; explicit implementation approval leaves transcription timing unchanged.
+- Synced clean `d87d7db`. Added microphone card/expandable browser-route help, shared failure-aware activity pills and headset-only pure paragraph composition (2 s pause, 80-word boundary, no merge across speaker/source/overlap). Original turn IDs/reducer/history/arbiter preserved; no delayed text, timing, provider, audio or transport changes.
+- GSD quick skill could not run its normal roadmap workflow because this repository has no `.planning/ROADMAP.md`; used the allowed safe fallback in existing shared-context files, no new planning system or subagents. Plan/scope, verification and commit handoff kept explicit.
+- Verification: 238 tests/36 files, typecheck, lint, build and diff check passed. Isolated native Chromium render checks passed at 390/1280 px and 100/200% root text, keyboard picker/help, status failures, paragraph interim/final/removal and reduced motion; screenshots inspected. Real fake-media capture/worklet picker/restart check passed (3 captures, 3 routes, zero page errors). Fixture selector/alias/reduced-motion/hash-navigation issues corrected and recorded in QUALITY.md; no product timing adjusted.
+- No new live room/provider or physical device test; no external requests allowed in runners. Browsers/servers closed, synthetic screenshots ignored, no audio or state retained. Next: publish, verify deployment status, human reload/visual confirmation; 008.4 remains separately planned.

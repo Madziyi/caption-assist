@@ -36,7 +36,7 @@ let server;
 let browser;
 try {
   server = await createServer({
-    root, configFile: false,
+    root, configFile: false, resolve: { alias: { "@": path.join(root, "src") } },
     plugins: [react(), {
       name: "isolated-headset-setup",
       resolveId(id) { if (id === "/headset-setup-test.tsx") return "\0headset-setup-test"; },
@@ -50,7 +50,7 @@ try {
         });
       },
     }],
-    server: { host: "127.0.0.1", port: 0 },
+    server: { host: "127.0.0.1", port: 0, watch: { ignored: ["**/.next/**", "**/test-results/**"] } },
   });
   await server.listen();
   const port = server.httpServer.address().port;

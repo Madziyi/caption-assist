@@ -22,6 +22,13 @@ it("shows current tuning state when at least two people are ready", () => {
   render(<HeadsetSpeakingBoard view={view} />);
   expect(screen.getAllByText(/Room check needed/)).toHaveLength(2);
 });
+it("uses compact pills in existing host rows and never labels caption failure as Quiet", () => {
+  const result = render(<HeadsetSpeakingBoard view={{ ...view, headsetHost: { ...view.headsetHost!, people: { a: { presence: { ...presence, stt: "failed" }, speaking: true } } } }} />);
+  expect(screen.getByRole("status")).toHaveTextContent("Captions stopped");
+  expect(screen.getByRole("status")).toHaveClass("headset-activity-compact");
+  expect(result.container.querySelectorAll(".headset-row")).toHaveLength(1);
+  expect(screen.queryByText("Quiet")).not.toBeInTheDocument();
+});
 it("estimates stage latency and keeps hidden captions opt-in and host-only", () => {
   const hostView = { ...view, mode: "headset", snapshot: { roomId: "test", mode: "headset", status: "open", expiresAt: "2026-10-12", participants: [], self: { id: "a", displayName: "A", role: "host", accentIndex: null, removed: false } }, headsetHost: { ...view.headsetHost!, relayLatency: { a: { relayExtraP50: 40, relayExtraP90: 60, relaySamples: 2 } }, hiddenCaptions: [{ participantId: "b", sourceTurnId: "turn", text: "Synthetic hidden line", startAt: 1, reason: "text" }], people: { a: { speaking: false, presence: { ...presence, latency: { interimP50: 900, interimP90: 1100, finalP50: 1300, finalP90: 1500, samples: { interim: 2, final: 2 } } } } } } } as RoomView;
   const r = render(<><HeadsetDelay view={hostView} id="a" /><HeadsetHiddenDuplicates view={hostView} /></>);
