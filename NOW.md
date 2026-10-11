@@ -2,7 +2,7 @@
 
 **Initiative:** CAPTION-003 - Connected Mode / QR Participant Rooms
 **Active correction:** CAPTION-003.3 - Connected Voice Focus acoustic A/B experiment
-**Status:** Transcript-side reconciliation and episode continuity both failed real co-located microphone acceptance. Connected personal streams are being isolated with Universal-3.6 Pro + Voice Focus while Table Mode remains unchanged. Verification and publication pending; CAPTION-003 remains open and CAPTION-004 remains deferred.
+**Status:** Transcript-side reconciliation and episode continuity both failed real co-located microphone acceptance. Connected personal streams are being isolated with Universal-3.6 Pro + Voice Focus while Table Mode remains unchanged. Commit `dcbd894beb00388f7446679c6360a2623e4a9676` is pushed to main and Vercel reports success. CAPTION-003 remains open and CAPTION-004 remains deferred.
 **Owner:** Builder until verified commit/push. CAPTION-004 planning/implementation is deferred by the current user instruction.
 
 ## Objective and contracts

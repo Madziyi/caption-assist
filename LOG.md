@@ -251,6 +251,10 @@ Use this format:
 - A/B isolation: ConnectedRoom sends authorized participant captions directly to the reducer; CrossMicReconciler remains intact but is disabled for this experiment. Connected identity remains channel-owned. Table path and temporary token architecture remain unchanged; no browser permanent key exposure or fallback on provider rejection.
 - Verification: Provider parameter/profile tests and direct Connected bypass tests added. Full repository gates and real-device deployment follow. CAPTION-003 remains open; CAPTION-004 deferred.
 
+### 2026-10-11 - CAPTION-003.3 publication verification
+- Implementation `dcbd894beb00388f7446679c6360a2623e4a9676` pushed to main. GitHub Vercel status reported success: https://vercel.com/madziyis-projects/caption-assist/8Mi3AjeoW5mRSFW614MsqhfbyJMC
+- Final gates: 118 tests / 15 files, typecheck, lint, production build and diff check passed. No real Connected Voice Focus microphone session performed by Builder; CAPTION-003 remains open.
+
 ## Reconciliation diagnostics publication - 2026-10-11
 
 - Implementation `a308e231b3c14a6f319cb4096692d64ad0d2da77` pushed to main. GitHub Vercel check reported success: [Deployment status](https://vercel.com/madziyis-projects/caption-assist/Hy8PjJApogR2SvEXk9oX8m9yfY2u). Existing Git workflow used; no hosting/provider configuration changes.
