@@ -39,7 +39,7 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
   private readonly connectionId: string;
   private fallbackTurnCounter = 0;
 
-  constructor(private readonly token: string, connectionId = createProviderConnectionId()) {
+  constructor(private readonly token: string, connectionId = createProviderConnectionId(), private readonly diarization = true) {
     this.connectionId = connectionId;
   }
 
@@ -51,21 +51,29 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
       sample_rate: "16000",
       speech_model: ASSEMBLYAI_MODEL,
       format_turns: "true",
-      speaker_labels: "true",
+      speaker_labels: String(this.diarization),
     });
 
     return new Promise((resolve, reject) => {
       const socket = new WebSocket(`${ASSEMBLYAI_WS_URL}?${params.toString()}`);
       this.socket = socket;
       let settled = false;
+      const connectionTimeout = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        reject(new Error("The speech service connection timed out."));
+        socket.close();
+      }, 12000);
       socket.binaryType = "arraybuffer";
       socket.onopen = () => {
+        window.clearTimeout(connectionTimeout);
         settled = true;
         this.emitStatus({ type: "connected" });
         resolve();
       };
       socket.onmessage = (message) => this.handleMessage(message.data);
       socket.onerror = () => {
+        window.clearTimeout(connectionTimeout);
         const error = new Error("The speech service connection failed.");
         this.emitStatus({ type: "error", message: error.message });
         if (!settled) {
@@ -74,7 +82,9 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
         }
       };
       socket.onclose = () => {
+        window.clearTimeout(connectionTimeout);
         this.socket = null;
+        if (!settled) { settled = true; reject(new Error("The speech connection closed before it was ready.")); }
         if (!this.intentionallyTerminated) this.emitStatus({ type: "closed" });
       };
     });

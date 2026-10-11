@@ -247,3 +247,18 @@ Append concise entries:
 - Cost evidence:
 - Result:
 ```
+
+### 2026-10-11 — CAPTION-003 Connected source / live infrastructure verification
+- Environment/device: Windows Builder tooling; local Codex in-app browser, default host viewport and 390×844 phone-width participant route. No physical phone was tested.
+- Audio path: No real microphone → AssemblyAI → Supabase → host session completed. The user supplied local environment values; all required names are nonempty and configured host creation/end passed. The AssemblyAI key was not printed or validated by real speech.
+- Automated: typecheck/lint passed; 51 tests across 12 files passed; production build and diff check passed. Coverage includes separate diarization modes, exact membership identity, independent interims, muted joins/rejoins, capture cleanup, permission/meter setup, no visibility/blur mute, stale removal/end filtering, rename resolution and local QR host controls.
+- Live SQL: Both metadata/RLS migrations applied to the existing caption-assist project. Rollback-only tests passed for identity reuse, duplicate names, rename, end/expiry, removal, application-table RLS, service-only RPC and private-topic authorization, including Broadcast denial on the advisory Presence topic.
+- Live transport: Anonymous sign-in worked. Direct private Realtime guest→host synthetic broadcast succeeded; unrelated user/other-participant subscriptions and guest control publication denied. First authorized subscription failed without useful detail; focused second attempt passed. Root cause remains unconfirmed.
+- Latency: One small synthetic same-process send→host-receive observation 169.8906 ms. Not STT latency, phone latency, mean/percentile or production guarantee. Application round-trip acknowledgements are separately available in memory; cross-device clocks are not assumed synchronized.
+- Accessibility: Browser showed mode selector, controlled unavailable-setup feedback, preserved history side pane/Escape dismissal, Full Screen entry, and phone-width name form. Mocked UI tests verified local QR dialog, locked active mode, You muted/count, permission explanation before mic check, and release-before-muted-join. Full configured Connected app/device UAT remains unverified.
+- Background/Wake Lock: Source continues healthy capture across visibility/blur changes and detects actual track/AudioContext interruption. No desktop audio tab-switch, Android/iPhone app-switch, PWA or Wake Lock test performed; browser/OS limitations remain unmeasured.
+- Quality not yet measured: Physical QR scan/join latency, selected real mic, real mute/unmute, speech identity/accuracy, overlapping speakers, end-to-end reconnect/removal/end, sustained session and cost.
+- Cleanup: Disposable test rooms ended and six synthetic Auth users deleted with cascading room/membership cleanup; query confirmed zero test rooms remain. SQL fixtures rolled back.
+- Result: Source and infrastructure security verified; CAPTION-003 remains active/partial pending host + phone audio UAT. See CAPTION-003-HANDOFF.md.
+
+- Configured browser follow-up: live room creation opened QR with muted You/count one, locked mode and personal Unmute. Mic activation remained pending in IAB; End succeeded and returned ended state, then the old invitation showed conversation-ended feedback. No completed capture or speech session inferred. Only IAB was available, so no independent guest browser or physical-device UAT. Production rebuild passed with the user-supplied environment.

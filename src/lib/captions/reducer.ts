@@ -4,6 +4,7 @@ export const initialCaptionState: CaptionState = {
   status: "idle",
   finalized: [],
   interim: null,
+  activeInterims: {},
   speakers: [],
   error: null,
   reconnectAttempt: 0,
@@ -11,6 +12,9 @@ export const initialCaptionState: CaptionState = {
 
 export type CaptionAction =
   | { type: "START" }
+  | { type: "CONNECTED_START" }
+  | { type: "CONNECTED_SPEAKERS"; speakers: SpeakerProfile[] }
+  | { type: "CLEAR_INTERIM"; sourceId: string }
   | { type: "CONNECTING" }
   | { type: "LISTENING" }
   | { type: "TRANSCRIPTION_EVENT"; event: TranscriptionEvent }
@@ -27,6 +31,15 @@ export function captionReducer(state: CaptionState, action: CaptionAction): Capt
   switch (action.type) {
     case "START":
       return { ...initialCaptionState, status: "requesting_permission" };
+    case "CONNECTED_START":
+      return { ...initialCaptionState, status: "connecting" };
+    case "CONNECTED_SPEAKERS":
+      return { ...state, speakers: action.speakers };
+    case "CLEAR_INTERIM": {
+      const activeInterims = { ...state.activeInterims };
+      delete activeInterims[action.sourceId];
+      return { ...state, activeInterims };
+    }
     case "CONNECTING":
       return { ...state, status: "connecting", error: null };
     case "LISTENING":
@@ -51,7 +64,7 @@ export function captionReducer(state: CaptionState, action: CaptionAction): Capt
     case "STOPPING":
       return { ...state, status: "stopping", interim: null };
     case "ENDED":
-      return { ...state, status: "ended", interim: null, error: null, reconnectAttempt: 0 };
+      return { ...state, status: "ended", interim: null, activeInterims: {}, error: null, reconnectAttempt: 0 };
     case "ERROR":
       return { ...state, status: "error", interim: null, error: action.error };
     case "RESET":
@@ -63,6 +76,10 @@ function applyTranscriptionEvent(state: CaptionState, event: TranscriptionEvent)
   if (event.type === "interim") {
     const caption = normalizeCaption(event.caption);
     if (!caption) return state;
+    if (caption.sourceId?.startsWith("participant:")) {
+      if (state.finalized.some((item) => item.sourceTurnId === caption.sourceTurnId)) return state;
+      return { ...state, activeInterims: { ...state.activeInterims, [caption.sourceId]: caption } };
+    }
     return { ...state, interim: caption, speakers: registerSpeakers(state.speakers, [caption]) };
   }
 
@@ -71,6 +88,10 @@ function applyTranscriptionEvent(state: CaptionState, event: TranscriptionEvent)
   const sourceTurnId = event.sourceTurnId;
   const existingIndex = state.finalized.findIndex((caption) => caption.sourceTurnId === sourceTurnId || caption.id === sourceTurnId);
   const finalized = [...state.finalized];
+  const activeInterims = { ...state.activeInterims };
+  for (const caption of captions) {
+    if (caption.sourceId && activeInterims[caption.sourceId]?.sourceTurnId === sourceTurnId) delete activeInterims[caption.sourceId];
+  }
   if (existingIndex >= 0) {
     let removeCount = 0;
     while (finalized[existingIndex + removeCount]?.sourceTurnId === sourceTurnId || finalized[existingIndex + removeCount]?.id === sourceTurnId) removeCount += 1;
@@ -81,6 +102,7 @@ function applyTranscriptionEvent(state: CaptionState, event: TranscriptionEvent)
   return {
     ...state,
     finalized,
+    activeInterims,
     interim: state.interim?.sourceTurnId === sourceTurnId || state.interim?.id === sourceTurnId ? null : state.interim,
     speakers: registerSpeakers(state.speakers, captions),
   };

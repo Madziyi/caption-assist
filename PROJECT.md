@@ -34,10 +34,28 @@ The product must work immediately with one host device, while allowing nearby pa
 One host laptop/tablet/phone captures the room and produces live captions. Speaker diarization may provide temporary labels such as `Speaker 1`, `Speaker 2`.
 
 ### Connected Mode
-Participants scan a QR/link on their own phones. Each phone contributes a separate named microphone stream, so connection identity supplies speaker identity without requiring diarization between those streams.
+Host room microphone OFF. The host automatically joins as `You`, with reserved navy identity, initially MUTED. Every participant joins/rejoins muted. Participants scan a QR/link, enter a display name, consent to a microphone-only level check, release the test microphone, and explicitly Unmute after joining. Each device supplies a personal microphone stream with exact membership identity and diarization OFF. Host Unmute is a personal You stream, never a room microphone.
 
 ### Hybrid Mode
-The host room microphone remains active while optional participant microphones are also connected. Personal streams are authoritative for their participant. Duplicate text from the room microphone must eventually be suppressed when it overlaps a connected participant's utterance.
+Future CAPTION-004 only; not implemented. The host room microphone would remain active alongside personal streams and require duplicate suppression.
+
+Table Mode uses the host as a room microphone with diarization ON. Mode selection is locked for the active conversation; end before selecting another mode.
+
+## CAPTION-003 source contracts — 2026-10-11
+
+- Supabase is the room/network layer; AssemblyAI remains STT. Pinned `@supabase/supabase-js` 2.117.3 and local-only `qrcode.react` 4.2.0.
+- Anonymous technical sessions persist through Supabase Auth; there is no visible account UX. Room and participant metadata alone are stored in Postgres. Raw audio and caption content are never stored there.
+- Server-only room mutations authenticate bearer tokens with `auth.getUser`, then call a service-role-only transaction. Invitations contain 256 random bits; only SHA-256 hashes are stored in the room table. Rooms expire after 24 hours; end/expiry invalidates invitations.
+- Database membership owns ID, name, role, color and removal. Same-user rejoin preserves identity/color/name; duplicate names on different memberships remain distinct. Guests may rename themselves; host cannot rename guests or remotely unmute them.
+- Private control topics permit only host publication. Private participant topics permit only the owner to publish captions/state, and the host to receive. Room-wide Presence is only a discovery hint; its payload is ignored. Per-participant Presence supplies connection/microphone state with channel-owned identity. Three-second metadata reconciliation provides fallback for rename, missed control, expiry and removal.
+- Application-table RLS restricts reads to membership/host ownership. Internal membership helpers are in non-exposed `caption_private`, with explicit caller identity, fixed search paths and restricted execution. The mutation RPC is security-invoker and executable only by `service_role`.
+- The host independently rejects events from removed participants and ended rooms, covering cached Realtime authorization. Captions use application stream/turn IDs and membership identity, not provider labels or Supabase auth IDs. Per-stream sequence numbers reject duplicates; finalized display order is monotonic host ingest without device-clock reordering.
+- Independent Connected interims feed the existing continuous transcript. The chronological viewport, internal scroll, live label styling, optional newest-first history side panel, Full Screen and Table speaker naming remain intact. Names resolve through the registry, including past captions.
+- Mute/leave/end/removal/real room disconnect stop capture and transmission. Permission acquisition is cancellable by cleanup; streams obtained late are stopped. STT-only interruption retries a bounded three times without changing room identity; failed speech recovery becomes muted with visible feedback. Provider sockets close on mute for straightforward cleanup; cost optimization remains out of scope.
+- Visibility and blur never intentionally mute/disconnect. Actual track loss or AudioContext suspension/interruption produces visible failure and stops unhealthy capture. While the browser/OS permits execution, personal audio and room connections continue across app/tab switches. Screen Wake Lock is supplemental, best-effort and reacquired when visible; it is not background execution.
+- Host refresh restores the latest open room for the anonymous identity, muted. Transcripts remain memory-only and are lost on full refresh. Only invitation metadata is optionally held in sessionStorage. If that invitation is unavailable after refresh, host requesting Invite rotates the hashed invitation; previous link then becomes invalid.
+- Development request-path logging is disabled and referrers suppressed to avoid leaking invitation URLs. Hosting/proxy logging must also redact `/join` credentials when deploying; no hosting was configured in this pass.
+- See `CAPTION-003-HANDOFF.md` for verified layers, setup and remaining device UAT. CAPTION-004 has not started.
 
 ## Planned technology stack
 

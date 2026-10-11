@@ -10,13 +10,12 @@ Use these states:
 
 ## In progress
 
-None.
+- **CAPTION-003** `[in-progress]` — Connected Mode / QR participant rooms source implemented; automated and live infrastructure/security checks passed. Configured host creation/end passed; pending full host/phone audio/UAT acceptance; see CAPTION-003-HANDOFF.md.
 
 ## Ready
 
 ## Planned
 
-- **CAPTION-003** `[ready]` — QR participant rooms: guest web join, name, mic permission/test, presence, separate participant streams, exact identity by connection.
 - **CAPTION-004** `[ready]` — Hybrid Mode: room mic + joined mics, authoritative personal streams, duplicate suppression, overlapping connected-speaker handling.
 - **CAPTION-005** `[ready]` — Accessibility layer: refined caption presentation, large text, high contrast, keyboard controls, history behavior, optional non-speech event research/implementation.
 - **CAPTION-006** `[ready]` — Production hardening: failure recovery, room expiry, rate limiting, privacy controls, diagnostics without transcript leakage, compatibility hardening.

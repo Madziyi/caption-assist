@@ -29,6 +29,11 @@ class FakeWebSocket {
 }
 
 describe("AssemblyAIStreamingProvider", () => {
+  it("disables diarization for a personal Connected stream", async () => {
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    await new AssemblyAIStreamingProvider("temporary-token", "personal-stream", false).connect();
+    expect(new URL(FakeWebSocket.lastUrl).searchParams.get("speaker_labels")).toBe("false");
+  });
   afterEach(() => {
     vi.unstubAllGlobals();
     FakeWebSocket.lastSocket = null;

@@ -16,21 +16,27 @@ export class MicrophoneCapture {
   private worklet: AudioWorkletNode | null = null;
   private sink: GainNode | null = null;
   private acceptingAudio = true;
+  private generation = 0;
 
-  constructor(private readonly onAudio: (chunk: ArrayBuffer) => void) {}
+  constructor(private readonly onAudio: (chunk: ArrayBuffer) => void, private readonly onFailure?: () => void) {}
 
   async start(): Promise<void> {
+    const generation = ++this.generation;
     if (!navigator.mediaDevices?.getUserMedia) {
       throw new MicrophoneCaptureError("microphone_unavailable", "This browser does not provide microphone access.");
     }
 
     try {
-      this.stream = await navigator.mediaDevices.getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia({
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
+      if (generation !== this.generation) { stream.getTracks().forEach((track) => track.stop()); return; }
+      this.stream = stream;
+      stream.getTracks().forEach((track) => { track.onended = () => { if (this.acceptingAudio) this.onFailure?.(); }; });
       this.acceptingAudio = true;
       this.context = new AudioContext();
       await this.context.audioWorklet.addModule("/audio/pcm-worklet.js");
+      if (generation !== this.generation) return;
       this.source = this.context.createMediaStreamSource(this.stream);
       this.worklet = new AudioWorkletNode(this.context, "pcm-worklet", {
         numberOfInputs: 1,
@@ -47,6 +53,10 @@ export class MicrophoneCapture {
       this.worklet.connect(this.sink);
       this.sink.connect(this.context.destination);
       await this.context.resume();
+      if (generation !== this.generation) return;
+      this.context.onstatechange = () => {
+        if (this.acceptingAudio && this.context && ["suspended", "interrupted"].includes(String(this.context.state))) this.onFailure?.();
+      };
     } catch (error) {
       await this.stop();
       if (error instanceof MicrophoneCaptureError) throw error;
@@ -59,6 +69,7 @@ export class MicrophoneCapture {
   }
 
   async stop(): Promise<void> {
+    ++this.generation;
     this.acceptingAudio = false;
     this.worklet?.port.close();
     this.source?.disconnect();

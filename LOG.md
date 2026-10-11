@@ -187,3 +187,18 @@ Use this format:
 - **Live state:** Unchanged; no live system was inspected.
 - **Known issues:** Broader live speaker and responsive quality checks remain pending.
 - **Next action:** Planner/user may continue review; do not start CAPTION-003.
+
+### 2026-10-11 — CAPTION-003 — Connected Mode source and infrastructure handoff
+- Changed: Added locked mode selector, muted navy You host, local QR invite/Participants/self-mic/end controls; mobile anonymous name/mic-level-check/muted-join/rename/leave; application room transport and personal STT lifecycle; independent exact-identity interims in the existing continuous transcript. Preserved Table diarization, UI refinements, history and Full Screen. Added pinned Supabase/QR dependencies, server-authenticated APIs, metadata/RLS migrations and opt-in infrastructure verification scripts.
+- Decisions: Connected room mic stays OFF; all actual re-entries muted; no remote unmute/Hybrid Mode/audio or transcript persistence. Private participant channels bind identity; host controls are host-only; shared Presence is only a roster-refresh hint. Host filters removed/ended messages despite cached authorization. Healthy visibility/blur changes never mute; actual capture/room failure does. Refresh restores room metadata, not transcript.
+- Verification: Typecheck/lint, 51 tests / 12 files, production build and diff check passed. Applied two migrations to existing caption-assist Supabase project, matched source/live migration versions; rollback SQL assertions passed. Anonymous Auth/direct private Realtime delivery and rejection of outsiders/impersonation/guest control publication observed. Advisor only reported expected anonymous-access warnings. No secrets/transcripts/audio logged or committed.
+- Quality: One synthetic same-process relay sample ~169.9 ms; first subscription failed generically, second passed without weakening policies; root cause unconfirmed. Browser verified selector/configuration feedback/history Escape/Full Screen entry and phone-width participant form. No real device/audio/background/Wake Lock UAT; no accuracy/cost metrics inferred. Disposable infrastructure fixtures cleaned up.
+- Live state: Updated only observed project/migration/RLS/Auth/Realtime facts. Full application/deployment/provider configuration remains unverified.
+- Known issues: Three Supabase env names absent locally; full configured app/phone UAT outstanding. Browser/OS background limitations unmeasured. Existing dev-only ESLint dependency audit findings recorded in handoff, with no unrelated major-version downgrade.
+- Next action: Configure Supabase URL/publishable/server-secret privately, restart/rebuild and execute host + guest-phone UAT; Planner/user decides progression. CAPTION-004 not started.
+
+## 2026-10-11 — CAPTION-003 configured local app follow-up
+
+- User supplied `.env.local`; all four required variable names are nonempty, values never displayed or committed.
+- Configured host browser creation opened QR with muted You and count one; mode locked. Explicit mic activation remained pending in IAB, and End canceled it successfully. Old invitation showed ended feedback. No actual audio/provider session inferred. Only IAB available; independent guest/physical-phone/background UAT remains pending.
+- Production rebuild passed with configured environment. CAPTION-003 remains active/partial for progression; next action is configured host + guest-phone audio UAT. CAPTION-004 not started.

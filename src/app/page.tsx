@@ -5,6 +5,8 @@ import { ConversationSession } from "@/lib/captions/session";
 import { groupNewestFirst, newestFirst } from "@/lib/captions/history";
 import { captionReducer, initialCaptionState } from "@/lib/captions/reducer";
 import type { CaptionEvent, SessionStatus, SpeakerProfile } from "@/lib/captions/types";
+import { ConnectedRoom, idleRoomView } from "@/lib/rooms/controller";
+import { InvitePanel, ParticipantsPanel } from "@/components/room-panels";
 
 const statusCopy: Record<SessionStatus, string> = {
   idle: "Ready to caption",
@@ -24,6 +26,15 @@ export default function HomePage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editingSpeakerId, setEditingSpeakerId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
+  const [mode, setMode] = useState<"table" | "connected">("table");
+  const [roomView, setRoomView] = useState(idleRoomView);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [participantsOpen, setParticipantsOpen] = useState(false);
+  const [roomError, setRoomError] = useState<string | null>(null);
+  const [roomBusy, setRoomBusy] = useState(false);
+  const [micBusy, setMicBusy] = useState(false);
+  const [restoring, setRestoring] = useState(Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL));
+  const roomRef = useRef<ConnectedRoom | null>(null);
   const sessionRef = useRef<ConversationSession | null>(null);
   const liveCaptionRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
@@ -36,9 +47,19 @@ export default function HomePage() {
   useEffect(() => () => void sessionRef.current?.stop(), []);
 
   useEffect(() => {
+    const room = new ConnectedRoom(setRoomView, dispatch);
+    roomRef.current = room;
+    let current = true;
+    if (process.env.NEXT_PUBLIC_SUPABASE_URL) void room.restore().then((restored) => {
+      if (current && restored) setMode("connected");
+    }).catch(() => undefined).finally(() => { if (current) setRestoring(false); });
+    return () => { current = false; void room.dispose(); };
+  }, []);
+
+  useEffect(() => {
     const liveCaption = liveCaptionRef.current;
     if (liveCaption) liveCaption.scrollTop = liveCaption.scrollHeight;
-  }, [state.finalized, state.interim]);
+  }, [state.finalized, state.interim, state.activeInterims]);
 
   useEffect(() => {
     if (!speakerPanelOpen && !historyOpen) return;
@@ -69,12 +90,27 @@ export default function HomePage() {
   }, [editingSpeakerId]);
 
   async function startConversation() {
+    setRoomError(null);
+    if (mode === "connected") {
+      setRoomBusy(true);
+      try { await roomRef.current?.create(); setInviteOpen(true); }
+      catch (error) { setRoomError(error instanceof Error ? error.message : "Connected Mode could not start."); dispatch({ type: "ENDED" }); }
+      finally { setRoomBusy(false); }
+      return;
+    }
     const session = new ConversationSession(dispatch);
     sessionRef.current = session;
     await session.start().catch(() => undefined);
   }
 
   async function endConversation() {
+    if (mode === "connected") {
+      setRoomBusy(true); setRoomError(null);
+      try { await roomRef.current?.end(); dispatch({ type: "ENDED" }); setInviteOpen(false); setParticipantsOpen(false); }
+      catch (error) { setRoomError(error instanceof Error ? error.message : "Room end could not be confirmed. Try again."); }
+      finally { setRoomBusy(false); }
+      return;
+    }
     await sessionRef.current?.stop();
     sessionRef.current = null;
   }
@@ -89,6 +125,7 @@ export default function HomePage() {
   }
 
   function openSpeakerPanel(speakerId?: string) {
+    if (mode === "connected") { setParticipantsOpen(true); return; }
     setSpeakerPanelOpen(true);
     if (speakerId) beginEditing(speakerId);
   }
@@ -126,6 +163,15 @@ export default function HomePage() {
   const isActive = ["requesting_permission", "connecting", "listening", "reconnecting", "stopping"].includes(state.status);
   const canStart = state.status === "idle" || state.status === "ended";
   const editingSpeaker = editingSpeakerId ? speakerMap.get(editingSpeakerId) : undefined;
+  const connectedActive = mode === "connected" && ["connecting", "joined", "disconnected"].includes(roomView.phase) && Boolean(roomView.snapshot);
+  const participantCount = roomView.snapshot?.participants.filter((p) => !p.removed).length ?? 0;
+  const anyMicActive = Object.values(roomView.statuses).some((status) => status === "Microphone active");
+  const waitingCopy = anyMicActive ? "Ready for conversation" : participantCount <= 1 ? "Waiting for participants…" : "All microphones are muted.";
+
+  async function openInvite() {
+    try { await roomRef.current?.invite(); setParticipantsOpen(false); setInviteOpen(true); }
+    catch (error) { setRoomError(error instanceof Error ? error.message : "Invitation is unavailable."); }
+  }
 
   return (
     <main className="conversation-shell">
@@ -134,16 +180,19 @@ export default function HomePage() {
           <p className="eyebrow">Accessible Conversation Captions</p>
         </div>
         <div className="header-actions">
+          <label className="mode-label">Mode <select aria-label="Conversation mode" value={mode} disabled={isActive || connectedActive || roomBusy || restoring} onChange={(event) => { setMode(event.target.value as "table" | "connected"); setRoomError(null); }}>
+            <option value="table">Table Mode</option><option value="connected">Connected Mode</option>
+          </select></label>
           {canStart ? (
-            <button type="button" className="button button-primary header-button" onClick={startConversation}>
+            <button type="button" className="button button-primary header-button" onClick={startConversation} disabled={roomBusy || restoring}>
               {state.status === "ended" ? "Start New Conversation" : "Start Conversation"}
             </button>
           ) : isActive ? (
-            <button type="button" className="button button-end header-button" onClick={endConversation} disabled={state.status === "stopping"}>
+            <button type="button" className="button button-end header-button" onClick={endConversation} disabled={state.status === "stopping" || roomBusy}>
               {state.status === "stopping" ? "Ending Conversation…" : "End Conversation"}
             </button>
           ) : null}
-          {state.speakers.length > 0 && (
+          {mode === "table" && state.speakers.length > 0 && (
             <button
               type="button"
               className="speaker-control"
@@ -154,6 +203,12 @@ export default function HomePage() {
               <span aria-hidden="true">👥</span> {state.speakers.length}
             </button>
           )}
+          {connectedActive && <>
+            <button className="button button-secondary header-button" disabled={roomView.phase !== "joined" || roomBusy || micBusy} aria-label={roomView.microphone === "Muted" ? "Unmute your microphone" : "Mute your microphone"} onClick={async () => { setMicBusy(true); try { await roomRef.current?.toggleMicrophone(); } finally { setMicBusy(false); } }}>
+              {roomView.microphone === "Muted" ? "🔇 Muted" : roomView.microphone === "Microphone active" ? "🎤 Mic On" : roomView.microphone}
+            </button>
+            <button className="speaker-control" aria-expanded={participantsOpen} onClick={() => setParticipantsOpen(true)}>Participants {participantCount}</button>
+          </>}
           <button
             ref={historyButtonRef}
             type="button"
@@ -177,13 +232,20 @@ export default function HomePage() {
           </button>
           <div className={`status status-${state.status}`} role="status" aria-live="polite">
             <span className="status-dot" aria-hidden="true" />
-            <span>{statusCopy[state.status]}</span>
-            {state.status === "reconnecting" && <span className="status-detail">Attempt {state.reconnectAttempt} of 5</span>}
+            <span>{mode === "connected" && connectedActive ? roomView.phase === "joined" ? "Connected" : roomView.phase === "disconnected" ? "Room disconnected" : "Connecting" : statusCopy[state.status]}</span>
+            {mode === "table" && state.status === "reconnecting" && <span className="status-detail">Attempt {state.reconnectAttempt} of 5</span>}
           </div>
         </div>
       </header>
 
-      {speakerPanelOpen && state.speakers.length > 0 && (
+      {inviteOpen && connectedActive && <InvitePanel view={roomView} close={() => setInviteOpen(false)} />}
+      {participantsOpen && connectedActive && roomRef.current && <ParticipantsPanel view={roomView} room={roomRef.current} close={() => setParticipantsOpen(false)} invite={() => void openInvite()} />}
+      {(roomError || (mode === "connected" && roomView.error)) && <p className="notice notice-error" role="alert">{roomError ?? roomView.error}</p>}
+      {mode === "connected" && roomView.phase === "disconnected" && roomView.snapshot && <button className="button button-secondary" disabled={roomBusy} onClick={async () => {
+        setRoomBusy(true); try { await roomRef.current?.rejoin(); setRoomError(null); } catch (error) { setRoomError(error instanceof Error ? error.message : "Rejoin failed."); } finally { setRoomBusy(false); }
+      }}>Rejoin Conversation — muted</button>}
+
+      {mode === "table" && speakerPanelOpen && state.speakers.length > 0 && (
         <section className="speaker-panel" role="dialog" aria-labelledby="speakers-heading">
           <div className="speaker-panel-header">
             <h2 id="speakers-heading">Speakers</h2>
@@ -254,7 +316,7 @@ export default function HomePage() {
 
         <div className="conversation-content">
           <section className="caption-stage" aria-label="Live caption transcript">
-        {state.finalized.length > 0 || state.interim ? (
+        {state.finalized.length > 0 || state.interim || Object.keys(state.activeInterims).length > 0 ? (
           <div className="live-caption-scroll" ref={liveCaptionRef}>
             {state.finalized.map((caption) => (
               <LiveCaptionLine key={caption.id} caption={caption} speakerMap={speakerMap} onActivate={openSpeakerPanel} />
@@ -262,15 +324,16 @@ export default function HomePage() {
             {state.interim && (
               <LiveCaptionLine caption={state.interim} speakerMap={speakerMap} onActivate={openSpeakerPanel} isInterim />
             )}
+            {Object.values(state.activeInterims).map((caption) => <LiveCaptionLine key={caption.sourceId} caption={caption} speakerMap={speakerMap} onActivate={openSpeakerPanel} isInterim />)}
           </div>
         ) : (
           <p className="caption-placeholder">
-            {state.status === "listening" ? "Listening for conversation…" : "Start a conversation to see captions here."}
+            {mode === "connected" && roomView.phase === "joined" ? waitingCopy : state.status === "listening" ? "Listening for conversation…" : "Start a conversation to see captions here."}
           </p>
         )}
           </section>
 
-          {state.status === "reconnecting" && (
+          {mode === "table" && state.status === "reconnecting" && (
             <p className="notice notice-warning" role="alert">
               Captions are temporarily interrupted. Finalized captions remain visible while the connection is restored.
             </p>
@@ -299,6 +362,7 @@ function SpeakerIdentity({ speakerId, speakerMap, onActivate, live = false }: { 
   const speaker = speakerId ? speakerMap.get(speakerId) : undefined;
   const label = speaker ? speakerLabel(speaker) : "Someone";
   if (!speaker) return <span className={`speaker-identity speaker-identity-someone ${live ? "speaker-identity-live" : ""}`}>{label}</span>;
+  if (speaker.identityOrigin && speaker.identityOrigin !== "diarized") return <span className={`speaker-identity speaker-accent-${speaker.accentIndex} ${live ? "speaker-identity-live" : ""}`}><span className="speaker-dot" aria-hidden="true" />{label}</span>;
   return (
     <button type="button" className={`speaker-identity speaker-identity-${speaker.side} speaker-accent-${speaker.accentIndex} ${live ? "speaker-identity-live" : ""}`} onClick={() => onActivate(speaker.id)} aria-label={`Name ${label}`}>
       <span className="speaker-dot" aria-hidden="true" />

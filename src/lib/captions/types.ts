@@ -8,7 +8,10 @@ export type CaptionEvent = {
   confidence?: number;
   sourceId?: string;
   sourceTurnId?: string;
+  ingestOrder?: number;
 };
+
+export type IdentityOrigin = "diarized" | "connected-participant" | "connected-host";
 
 export type SpeakerProfile = {
   id: string;
@@ -16,6 +19,7 @@ export type SpeakerProfile = {
   displayName: string | null;
   side: "left" | "right";
   accentIndex: number;
+  identityOrigin?: IdentityOrigin;
 };
 
 export type TranscriptionEvent =
@@ -53,6 +57,7 @@ export type CaptionState = {
   status: SessionStatus;
   finalized: CaptionEvent[];
   interim: CaptionEvent | null;
+  activeInterims: Record<string, CaptionEvent>;
   speakers: SpeakerProfile[];
   error: SessionError | null;
   reconnectAttempt: number;

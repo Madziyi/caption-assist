@@ -1,65 +1,27 @@
 # Active Initiative
 
-**Initiative:** CAPTION-002 — Speaker-aware Table Mode (closure)
-**Status:** COMPLETE FOR PROGRESSION — user-observed product/UAT acceptance recorded; continuous-transcript presentation, caption-history panel, and header control refinements implemented; deeper quality checks remain pending
-**Planner:** Planner agent  
-**Implementation / verification:** Builder agent
+**Initiative:** CAPTION-003 — Connected Mode / QR Participant Rooms
+**Status:** SOURCE IMPLEMENTED; PARTIAL FOR PROGRESSION — infrastructure/security verification passed, configured host browser checks passed; full multi-device audio UAT pending
+**Implementation / verification:** Builder owns durable context until pushed.
 
-## Objective
+## Scope and contracts
 
-Extend the working one-device captioning path with AssemblyAI streaming diarization, conversation-local speaker profiles, newest-first speaker-aware chat history, speaker revisions, and responsive speaker management without intentionally delaying live text.
+Preserve Table Mode and the continuous transcript, history side panel, header and Full Screen. Add temporary Supabase rooms, anonymous identity, private membership-scoped Realtime, QR/mobile join, mic check, personal streams, exact identity, independent interims, rename/removal/end, and muted re-entry.
 
-## Current scope
+Table: room mic, diarization on. Connected: room mic off; host You navy and muted; every join/rejoin muted; personal mic streams, diarization off. No Hybrid Mode/CAPTION-004. Names may duplicate; membership authorizes identity. No transcript/audio persistence. Secure hashed invitations expire within 24 hours. No visibility/blur mute; actual room disconnect stops mic, re-entry muted. Wake Lock is supplemental; browser/OS background execution remains best-effort.
 
-- Preserve the AssemblyAI v3 `universal-streaming-english` baseline and enable `speaker_labels=true` in the existing adapter.
-- Normalize interim turns, finalized speaker-attributed segments, speaker revisions, and provider status into application-owned events.
-- Namespace turn and speaker identities by provider connection so reconnect labels cannot collide or inherit names.
-- Add in-memory conversation-local speaker profiles with stable ordinal, alternating side, accent, and editable display name.
-- Keep live caption text dominant and immediate while showing the best current speaker label above it.
-- Render newest-first finalized history as separate accessible left/right chat bubbles with derived consecutive-speaker grouping.
-- Keep caption history out of the default page flow and expose it through a header control that opens a left-side pane beside the live caption area, with speaker names above each caption group.
-- Keep conversation start and full-screen controls available in the header; use the expanded 85vh live caption stage for focused viewing.
-- Keep the active conversation action in the same header position, swapping Start Conversation for End Conversation; do not render a footer control bar.
-- Use a lighter neutral gray for live caption-area speaker label text while retaining accent dots as speaker indicators; history colors remain unchanged.
-- Add responsive Speakers management and fast naming/renaming/removal without transcript or name persistence.
-- Add focused provider, registry/reducer, grouping, and UI tests plus normal typecheck, lint, test, build, and diff checks.
+## Steps and gates
 
-## Decisions
+Implement domain/provider/state, migrations/RLS, server-authorized room API and transport; integrate mobile mic/join and host controls; test authorization, interims and lifecycle; run typecheck/lint/tests/build/diff check; perform available browser/live checks and record unverified device/audio checks honestly; update context, commit and push main. Follow all acceptance criteria in the approved CAPTION-003 brief.
 
-- GitHub `main` is the shared source of truth.
-- The coding runtime is called **Builder** in durable context so Luna/Sol/Cursor can be swapped without rewriting project memory.
-- Only one agent edits durable context during a task.
-- The product must work in one-device Table Mode before requiring participant joining.
-- Provider-specific STT payloads must be hidden behind an internal adapter/normalizer.
-- Raw audio is not stored by default.
-- Build success alone is insufficient verification for real-time audio work.
-- AssemblyAI v3 `wss://streaming.assemblyai.com/v3/ws` with `speech_model=universal-streaming-english` is the initial provider path; provider-specific events remain behind an adapter.
-- CAPTION-002 adds AssemblyAI streaming diarization with `speaker_labels=true`; no speaker-count constraints or alternate provider are introduced.
-- Speaker identity is application-owned and connection-scoped; raw provider labels never reach presentation code and names are conversation-local memory only.
-- Caption text is rendered as soon as it arrives; speaker metadata may revise finalized history later without a second network request.
-- Transcript and speaker state remain memory-only; no audio, name, analytics, database, auth, or deployment infrastructure is added in this initiative.
+## Constraints
 
-## Explicit non-goals
+The user supplied local environment values; all four required names are nonempty, and configured host creation/end succeeded without exposing values. Existing caption-assist project has the two Connected migrations applied and verified via connector. Anonymous Auth and direct private Realtime authorization/delivery worked. This does not verify the full application or physical-device audio path. Do not create another project.
 
-- No QR rooms, participant devices, WebRTC, hybrid deduplication, sound recognition, persistence, exports, accounts, Supabase, deployment, provider benchmarking, model migration, or native apps.
-- No speaker merge/split, bubble editing, manual reassignment, current-user identity, voiceprints, cross-conversation recognition, or expected speaker-count setup.
-- No raw-audio replay across provider outages.
+## Verification evidence
 
-## Blockers
-
-- None currently known. Real diarization UAT depends on credentials, microphone hardware, and multiple available voices; report any unavailable checks honestly.
-
-## Verification plan
-
-- `npm run lint`
-- `npm run typecheck`
-- `npm test`
-- `npm run build`
-- `git diff --check`
-- Browser UAT for live speaker labels, newest-first bubbles, naming, speaker panel, keyboard behavior, and desktop/narrow responsive states where the local environment supports it.
-- Real microphone/provider UAT for multiple voices, naming during speech, short turns, revisions, reconnect identity isolation, and end/new-conversation lifecycle when valid local configuration and hardware are available.
-- Record only observed speaker counts, perceived latency, grouping, revision, reconnect, and responsive evidence; do not infer metrics.
+Typecheck/lint passed; 51 tests across 12 files passed; production build passed; diff check passed. Live rollback-only SQL verified identity/rejoin/duplicate names/rename/end/expiry/removal, application RLS, topic authorization and service-only RPC. Direct anonymous Realtime smoke verified private delivery, unrelated-user rejection, participant impersonation rejection and guest control publication rejection. One synthetic same-process relay sample was ~169.9 ms; the first authorized subscription failed without diagnostic detail, the second attempt passed. Fixtures cleaned up. No phone microphone, simultaneous speech, sustained session, background app-switch or Wake Lock UAT was performed. See CAPTION-003-HANDOFF.md and QUALITY.md.
 
 ## Next action
 
-Planner reviews the CAPTION-002 closure and the tuned continuous-transcript presentation, then decides whether to activate CAPTION-003; do not begin CAPTION-003 during this task.
+Run host + guest-phone UAT from CAPTION-003-HANDOFF.md. Keep CAPTION-003 active until Planner/user acceptance; do not start CAPTION-004.
