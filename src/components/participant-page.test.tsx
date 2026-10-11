@@ -1,36 +1,47 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import ParticipantPage from "./participant-page";
-const mocks = vi.hoisted(() => ({ start: vi.fn(), stop: vi.fn().mockResolvedValue(undefined), join: vi.fn(), unmute: vi.fn() }));
+const mocks = vi.hoisted(() => ({ join: vi.fn(), identify: vi.fn(), getUserMedia: vi.fn(), onView: null as null | ((view: unknown) => void), base: {} as Record<string, unknown> }));
 vi.mock("@/lib/rooms/browser", () => ({ roomRequest: async () => ({ status: "open" }) }));
-vi.mock("@/lib/audio/microphone-check", () => ({ MicrophoneCheck: class { start = mocks.start; stop = mocks.stop; } }));
 vi.mock("@/lib/rooms/controller", async (original) => {
   const actual = await original<typeof import("@/lib/rooms/controller")>();
   return { ...actual, ConnectedRoom: class {
-    constructor(private onView: (view: unknown) => void) {}
-    async join(token: string, name: string) { mocks.join(token, name); this.onView({ ...actual.idleRoomView, phase: "joined", snapshot: { self: { displayName: name } } }); }
-    async toggleMicrophone() { mocks.unmute(); }
+    constructor(onView: (view: unknown) => void) { mocks.onView = onView; }
+    async join(token: string, name: string) {
+      mocks.join(token, name);
+      mocks.base = { ...actual.idleRoomView, phase: "joined", snapshot: { self: { id: "sarah", displayName: name } } };
+      mocks.onView!(mocks.base);
+    }
+    async identify(participantId: string | undefined, action = "request") { mocks.identify(participantId, action); }
     async dispose() {}
   } };
 });
-describe("participant microphone setup", () => {
+const publish = (phase: string) => act(async () => mocks.onView!({ ...mocks.base, identification: { sarah: phase } }));
+
+describe("participant phone", () => {
   afterEach(() => { cleanup(); vi.clearAllMocks(); });
-  it("explains audio before permission, checks without STT, releases the test mic and joins muted", async () => {
-    mocks.start.mockImplementation(async (level: (value: number, label: string) => void) => level(0.4, "Test microphone"));
+  it("joins by name without microphone permission and identifies the owner's voice through the host", async () => {
+    Object.defineProperty(navigator, "mediaDevices", { configurable: true, value: { getUserMedia: mocks.getUserMedia } });
     render(<ParticipantPage token="synthetic-token" />);
+    expect(screen.getByText(/does not record audio/)).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Your display name"), { target: { value: "Sarah" } });
-    await waitFor(() => expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled());
-    fireEvent.click(screen.getByRole("button", { name: "Continue" }));
-    expect(screen.getByText(/Your microphone sends live audio/)).toBeInTheDocument();
-    expect(mocks.start).not.toHaveBeenCalled(); expect(mocks.unmute).not.toHaveBeenCalled();
-    fireEvent.click(screen.getByRole("button", { name: "Enable microphone permission" }));
-    await screen.findByText("Test microphone");
-    expect(screen.getByLabelText(/Microphone input level/)).toHaveAttribute("value", "0.4");
+    await waitFor(() => expect(screen.getByRole("button", { name: "Join Conversation" })).toBeEnabled());
     fireEvent.click(screen.getByRole("button", { name: "Join Conversation" }));
-    await screen.findByText("Microphone muted");
-    expect(mocks.stop.mock.invocationCallOrder.at(-1)).toBeLessThan(mocks.join.mock.invocationCallOrder[0]);
+    await screen.findByText("Your phone is not recording audio. The host's device listens to the room.");
     expect(mocks.join).toHaveBeenCalledWith("synthetic-token", "Sarah");
-    expect(mocks.unmute).not.toHaveBeenCalled();
-    expect(screen.getByRole("button", { name: "Unmute" })).toBeInTheDocument();
+    expect(mocks.getUserMedia).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Identify my voice" }));
+    expect(mocks.identify).toHaveBeenCalledWith(undefined, "request");
+    await publish("listening");
+    expect(screen.getByText("Speak normally for a few seconds now.")).toBeInTheDocument();
+    expect(screen.getByText(/Hi, this is Sarah/)).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
+    expect(mocks.identify).toHaveBeenLastCalledWith(undefined, "cancel");
+    await publish("identified");
+    expect(screen.getByText(/Your voice is identified/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Identify my voice again" })).toBeInTheDocument();
+    await publish("not_found");
+    expect(screen.getByText(/couldn't pick out your voice/)).toBeInTheDocument();
+    expect(mocks.getUserMedia).not.toHaveBeenCalled();
   });
 });

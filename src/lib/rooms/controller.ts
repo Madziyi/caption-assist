@@ -1,94 +1,114 @@
 import type { CaptionAction } from "../captions/reducer";
 import type { TranscriptionEvent } from "../captions/types";
-import { CrossMicReconciler } from "../captions/cross-mic-reconciler";
+import { AssemblyAIStreamingProvider, CONNECTED_ROOM_ASSEMBLYAI_OPTIONS, type StreamingTranscriptionProvider } from "../captions/provider";
+import { ConversationSession } from "../captions/session";
 import { roomClient, roomRequest, technicalSession } from "./browser";
-import { PersonalMicrophone, type PersonalMicrophoneState } from "./personal-microphone";
 import { SupabaseRoomTransport, type RoomTransport } from "./transport";
-import { participantProfiles, type ParticipantStatus, type RelayObservation, type RoomSnapshot } from "./types";
+import { participantProfiles, type IdentifyAction, type Participant, type ParticipantStatus, type RoomSnapshot } from "./types";
+import { VoiceIdentityRegistry, type VoicePhase } from "./voice-identity";
 
+export type RoomMicrophoneState = "Off" | "Starting" | "Listening" | "Reconnecting";
 export type RoomView = {
   phase: "idle" | "connecting" | "joined" | "disconnected" | "ended" | "removed";
   snapshot: RoomSnapshot | null;
   statuses: Record<string, ParticipantStatus>;
-  microphone: PersonalMicrophoneState;
+  /** Host only: the single room microphone that captions the conversation. */
+  roomMicrophone: RoomMicrophoneState;
+  /** Host: every participant. Guest: phases most recently published by the host. */
+  identification: Record<string, VoicePhase>;
+  identificationNotice: string | null;
   error: string | null;
-  relay: RelayObservation | null;
 };
-export const idleRoomView: RoomView = { phase: "idle", snapshot: null, statuses: {}, microphone: "Muted", error: null, relay: null };
-// CAPTION-003.3 Voice Focus A/B: Connected captions bypass text reconciliation
-// so acoustic/STT behavior can be measured independently. The reconciler remains
-// available for a future experiment and for its existing tests/history.
-export const CONNECTED_TEXT_RECONCILIATION_ENABLED = false;
+export const idleRoomView: RoomView = { phase: "idle", snapshot: null, statuses: {}, roomMicrophone: "Off", identification: {}, identificationNotice: null, error: null };
+
+export type RoomMicrophoneSession = { start(): Promise<void>; stop(): Promise<void> };
+export type RoomMicrophoneFactory = (dispatch: (action: CaptionAction) => void, providerFactory: (token: string) => StreamingTranscriptionProvider) => RoomMicrophoneSession;
+const defaultRoomMicrophone: RoomMicrophoneFactory = (dispatch, providerFactory) => new ConversationSession(dispatch, providerFactory);
+const IDENTIFY_ACK_TIMEOUT_MS = 10_000;
+type OwnIdentifyRequest = { id: string; acknowledged: boolean };
 
 export class ConnectedRoom {
   private view: RoomView = idleRoomView;
   private transport: RoomTransport | null = null;
-  private mic: PersonalMicrophone | null = null;
   private timer: ReturnType<typeof setInterval> | null = null;
+  private identityTimer: ReturnType<typeof setInterval> | null = null;
   private generation = 0;
-  private ingest = 0;
-  private accepting = false;
+  private roomId: string | null = null;
+  private roomMic: RoomMicrophoneSession | null = null;
+  private micGeneration = 0;
+  private aliasKey = "{}";
   private refreshing = false;
   private refreshPending = false;
   private disposed = false;
-  private readonly reconciler = new CrossMicReconciler();
+  private readonly identity: VoiceIdentityRegistry;
+  /** Host: last presence request ID applied per participant, so repeated syncs apply it once. */
+  private readonly appliedRequests = new Map<string, string | null>();
+  private ownRequest: OwnIdentifyRequest | null = null;
+  private ownRequestTimer: ReturnType<typeof setTimeout> | null = null;
+  /** Guest: the host's last reported phase for this phone outside an identification attempt. */
+  private settledPhase: VoicePhase = "unidentified";
 
-  constructor(private readonly onView: (view: RoomView) => void, private readonly dispatch?: (action: CaptionAction) => void) {}
+  constructor(private readonly onView: (view: RoomView) => void, private readonly dispatch?: (action: CaptionAction) => void,
+    private readonly roomMicrophoneFactory: RoomMicrophoneFactory = defaultRoomMicrophone, now: () => number = Date.now) {
+    this.identity = new VoiceIdentityRegistry(now);
+  }
   private update(values: Partial<RoomView>) { this.view = { ...this.view, ...values }; this.onView(this.view); }
-  setDiagnosticsEnabled(enabled: boolean) { this.reconciler.setDiagnosticsEnabled(enabled && CONNECTED_TEXT_RECONCILIATION_ENABLED); }
-  get diagnosticRecords() { return this.reconciler.diagnosticRecords; }
-  clearDiagnostics() { this.reconciler.clearDiagnostics(); }
+  private get isHost() { return this.view.snapshot?.self.role === "host"; }
 
   async create() {
     this.dispatch?.({ type: "CONNECTED_START" });
     this.update({ phase: "connecting", error: null });
-    try { await this.enter(await roomRequest("create")); }
+    try { await this.enter(await roomRequest("create"), true); }
     catch (error) { this.update({ phase: "disconnected", error: message(error) }); throw error; }
   }
+  // Restoring after a refresh needs a user gesture before the room microphone starts.
   async restore(): Promise<boolean> {
     const snapshot = await roomRequest<RoomSnapshot | null>("restore");
     if (!snapshot || this.disposed) return false;
     this.dispatch?.({ type: "CONNECTED_START" });
     try { snapshot.joinUrl = sessionStorage.getItem(`caption-invite:${snapshot.roomId}`) ?? undefined; } catch { /* Room restoration does not require storage. */ }
-    await this.enter(snapshot);
+    await this.enter(snapshot, false);
     return true;
   }
   async join(token: string, name: string) {
     this.update({ phase: "connecting", error: null });
-    try { await this.enter(await roomRequest("join", { token, name })); }
+    try { await this.enter(await roomRequest("join", { token, name }), false); }
     catch (error) { this.update({ phase: "disconnected", error: message(error) }); throw error; }
   }
   async rejoin() {
     const snapshot = this.view.snapshot;
     if (!snapshot) throw new Error("Start or join a conversation first.");
     this.update({ phase: "connecting", error: null });
-    try { await this.enter(await roomRequest("snapshot", { roomId: snapshot.roomId })); }
+    try { await this.enter(await roomRequest("snapshot", { roomId: snapshot.roomId }), true); }
     catch (error) { this.update({ phase: "disconnected", error: message(error) }); throw error; }
   }
-  private async enter(snapshot: RoomSnapshot) {
+  private async enter(snapshot: RoomSnapshot, startMicrophone: boolean) {
     if (this.disposed) return;
     await this.release();
     if (this.disposed) return;
+    if (snapshot.roomId !== this.roomId) await this.resetRoom(snapshot.roomId);
     if (snapshot.status !== "open" || snapshot.self.removed) {
-      this.update({ snapshot, phase: snapshot.self.removed ? "removed" : "ended", microphone: "Muted" });
+      await this.stopRoomMicrophone();
+      this.update({ snapshot, phase: snapshot.self.removed ? "removed" : "ended" });
       return;
     }
     const generation = this.generation;
     const joinUrl = snapshot.joinUrl ?? (this.view.snapshot?.roomId === snapshot.roomId ? this.view.snapshot.joinUrl : undefined);
     snapshot = { ...snapshot, joinUrl };
     if (joinUrl && snapshot.self.role === "host") { try { sessionStorage.setItem(`caption-invite:${snapshot.roomId}`, joinUrl); } catch { /* Optional invite metadata only. */ } }
-    this.update({ snapshot, phase: "connecting", microphone: "Muted", statuses: Object.fromEntries(snapshot.participants.map((p) => [p.id, p.removed ? "Removed" : "Disconnected"])), error: null });
+    this.update({ snapshot, phase: "connecting", statuses: Object.fromEntries(snapshot.participants.map((p) => [p.id, p.removed ? "Removed" : "Disconnected"])), error: null });
     this.dispatch?.({ type: "CONNECTED_SPEAKERS", speakers: participantProfiles(snapshot.participants) });
     const supabase = roomClient();
     const session = await technicalSession();
     if (generation !== this.generation) return;
     await supabase.realtime.setAuth(session.access_token);
     const transport = new SupabaseRoomTransport(supabase, snapshot.roomId, snapshot.self, {
-      caption: (id, event) => { if (generation === this.generation) this.caption(id, event); },
+      identify: (id, requestId) => { if (generation === this.generation && this.isHost) this.receiveIdentifyRequest(id, requestId); },
+      identification: (phases, requests) => { if (generation === this.generation && !this.isHost) this.receiveIdentification(phases, requests); },
       state: (id, status) => {
         if (generation !== this.generation) return;
         this.update({ statuses: { ...this.view.statuses, [id]: status } });
-        if (status !== "Microphone active") this.dispatch?.({ type: "CLEAR_INTERIM", sourceId: `participant:${id}` });
+        if (status === "Connected" && this.isHost && id !== this.view.snapshot?.self.id) this.syncIdentity(true);
       },
       control: (event) => {
         if (generation !== this.generation) return;
@@ -97,44 +117,156 @@ export class ConnectedRoom {
         else void this.refresh();
       },
       disconnected: () => { if (generation === this.generation) void this.lostConnection(); },
-      relay: (relay) => { if (generation === this.generation) this.update({ relay }); },
       registryChanged: () => { if (generation === this.generation) void this.refresh(); },
     });
     this.transport = transport;
-    this.mic = new PersonalMicrophone(snapshot.roomId, (event) => transport.sendCaption(event), (microphone) => {
-      if (generation !== this.generation) return;
-      this.update({ microphone });
-      void transport.setMicrophone(microphone === "Microphone active" || microphone === "Reconnecting").catch(() => this.lostConnection());
-    }, (error) => this.update({ error }));
     try {
       await transport.connect(snapshot.participants);
       if (generation !== this.generation) { await transport.disconnect(); return; }
-      this.accepting = true;
       this.update({ phase: "joined" });
       this.dispatch?.({ type: "LISTENING" });
       this.timer = setInterval(() => void this.refresh(), 3000);
-      if (snapshot.self.role === "host") void this.refresh();
+      if (snapshot.self.role === "host") {
+        this.identityTimer = setInterval(() => this.syncIdentity(), 1000);
+        this.syncIdentity(true);
+        void this.refresh();
+        if (startMicrophone) void this.startRoomMicrophone();
+      }
     } catch (error) {
       if (generation === this.generation) await this.lostConnection(message(error));
       throw error;
     }
   }
-  private caption(id: string, event: TranscriptionEvent) {
-    if (!this.accepting || this.view.phase !== "joined" || !this.view.snapshot?.participants.some((p) => p.id === id && !p.removed)) return;
-    // Authorized transport already bound microphone identity. During the Voice
-    // Focus A/B, pass Connected events directly to the reducer so no hidden text
-    // suppression affects the acoustic experiment.
-    const ingestOrder = ++this.ingest;
-    this.dispatch?.({ type: "TRANSCRIPTION_EVENT", event: event.type === "interim"
-      ? { ...event, caption: { ...event.caption, ingestOrder } }
-      : { ...event, captions: event.captions.map((caption) => ({ ...caption, ingestOrder })) } });
+
+  async startRoomMicrophone() {
+    if (!this.isHost || this.roomMic || this.disposed || !["joined", "disconnected"].includes(this.view.phase)) return;
+    const micGeneration = ++this.micGeneration;
+    const session = this.roomMicrophoneFactory((action) => this.roomMicrophoneAction(micGeneration, action), (token) => this.createRoomProvider(micGeneration, token));
+    this.roomMic = session;
+    this.update({ roomMicrophone: "Starting", error: null });
+    try { await session.start(); }
+    catch { if (this.roomMic === session) this.roomMic = null; }
   }
-  async toggleMicrophone() {
-    if (this.view.phase !== "joined") return;
-    this.update({ error: null });
-    if (this.view.microphone === "Muted") await this.mic?.unmute();
-    else await this.mic?.mute();
+  private createRoomProvider(micGeneration: number, token: string): StreamingTranscriptionProvider {
+    const connectionId = `assemblyai/${crypto.randomUUID()}`;
+    if (micGeneration === this.micGeneration) {
+      const hadIdentified = Object.values(this.view.identification).includes("identified");
+      this.identity.setConnection(connectionId);
+      if (hadIdentified) this.update({ identificationNotice: "The captioning connection restarted, so voices need to be identified again." });
+      this.syncIdentity();
+    }
+    return new AssemblyAIStreamingProvider(token, connectionId, CONNECTED_ROOM_ASSEMBLYAI_OPTIONS);
   }
+  private roomMicrophoneAction(micGeneration: number, action: CaptionAction) {
+    if (micGeneration !== this.micGeneration) return;
+    switch (action.type) {
+      case "TRANSCRIPTION_EVENT": this.roomTranscription(action.event); return;
+      case "START": this.update({ roomMicrophone: "Starting" }); return;
+      case "CONNECTING": if (this.view.roomMicrophone !== "Reconnecting") this.update({ roomMicrophone: "Starting" }); return;
+      case "LISTENING": this.update({ roomMicrophone: "Listening", error: null }); return;
+      case "RECONNECTING": this.update({ roomMicrophone: "Reconnecting" }); return;
+      case "ERROR": this.roomMic = null; this.update({ roomMicrophone: "Off", error: action.error.message }); return;
+      case "STOPPING": case "ENDED": this.update({ roomMicrophone: "Off" }); return;
+    }
+  }
+  private roomTranscription(event: TranscriptionEvent) {
+    if (!this.isHost || !["joined", "connecting", "disconnected"].includes(this.view.phase)) return;
+    this.identity.observe(event);
+    this.dispatch?.({ type: "TRANSCRIPTION_EVENT", event });
+    this.syncIdentity();
+  }
+  private async stopRoomMicrophone() {
+    const session = this.roomMic;
+    this.roomMic = null;
+    await session?.stop().catch(() => undefined);
+    ++this.micGeneration;
+    if (this.view.roomMicrophone !== "Off") this.update({ roomMicrophone: "Off" });
+  }
+
+  /** Host: identify any participant, including You. Guest: ask the host to identify this phone's owner. */
+  async identify(participantId = this.view.snapshot?.self.id, action: IdentifyAction = "request") {
+    const snapshot = this.view.snapshot;
+    if (this.view.phase !== "joined" || !snapshot || !participantId) return;
+    if (snapshot.self.role === "host") { this.applyIdentify(participantId, action); return; }
+    const selfId = snapshot.self.id;
+    this.clearOwnRequest();
+    if (action === "cancel") {
+      this.update({ identification: { ...this.view.identification, [selfId]: this.settledPhase } });
+      await this.transport?.setIdentifyRequest(null);
+      return;
+    }
+    const request: OwnIdentifyRequest = { id: crypto.randomUUID(), acknowledged: false };
+    this.ownRequest = request;
+    this.ownRequestTimer = setTimeout(() => this.requestUnanswered(request), IDENTIFY_ACK_TIMEOUT_MS);
+    this.update({ identification: { ...this.view.identification, [selfId]: "waiting" }, identificationNotice: null });
+    try { await this.transport?.setIdentifyRequest(request.id); }
+    catch (error) {
+      if (this.ownRequest === request) { this.clearOwnRequest(); this.update({ identification: { ...this.view.identification, [selfId]: this.settledPhase } }); }
+      throw error;
+    }
+  }
+  private receiveIdentifyRequest(participantId: string, requestId: string | null) {
+    if ((this.appliedRequests.get(participantId) ?? null) === requestId) return;
+    this.appliedRequests.set(participantId, requestId);
+    this.applyIdentify(participantId, requestId ? "request" : "cancel");
+  }
+  // The phone keeps its request open until a host phase that names this request reports an outcome.
+  private receiveIdentification(phases: Record<string, VoicePhase>, requests: Record<string, string>) {
+    const selfId = this.view.snapshot?.self.id;
+    if (!selfId) return;
+    const own = phases[selfId] ?? "unidentified";
+    const active = own === "waiting" || own === "listening";
+    if (!active) this.settledPhase = own;
+    const request = this.ownRequest;
+    if (request && requests[selfId] !== request.id) {
+      const shown = request.acknowledged ? this.view.identification[selfId] ?? "waiting" : "waiting";
+      this.update({ identification: { ...phases, [selfId]: shown } });
+      return;
+    }
+    if (request) {
+      request.acknowledged = true;
+      if (this.ownRequestTimer) clearTimeout(this.ownRequestTimer);
+      this.ownRequestTimer = null;
+      if (!active) { this.clearOwnRequest(); void this.transport?.setIdentifyRequest(null).catch(() => undefined); }
+    }
+    this.update({ identification: phases });
+  }
+  private requestUnanswered(request: OwnIdentifyRequest) {
+    const selfId = this.view.snapshot?.self.id;
+    if (this.ownRequest !== request || request.acknowledged || !selfId) return;
+    this.clearOwnRequest();
+    void this.transport?.setIdentifyRequest(null).catch(() => undefined);
+    this.update({
+      identification: { ...this.view.identification, [selfId]: this.settledPhase },
+      identificationNotice: "The host's device didn't respond. Make sure the host's conversation is open, then try again.",
+    });
+  }
+  private clearOwnRequest() {
+    if (this.ownRequestTimer) clearTimeout(this.ownRequestTimer);
+    this.ownRequestTimer = null;
+    this.ownRequest = null;
+  }
+  private applyIdentify(participantId: string, action: IdentifyAction) {
+    if (!this.view.snapshot?.participants.some((p) => p.id === participantId && !p.removed)) return;
+    if (action === "request") { this.identity.request(participantId); this.update({ identificationNotice: null }); }
+    else this.identity.cancel(participantId);
+    this.syncIdentity(true);
+  }
+  private syncIdentity(broadcast = false) {
+    const snapshot = this.view.snapshot;
+    if (!snapshot || snapshot.self.role !== "host") return;
+    this.identity.tick();
+    const aliases = this.identity.aliases();
+    const aliasKey = JSON.stringify(aliases);
+    if (aliasKey !== this.aliasKey) { this.aliasKey = aliasKey; this.dispatch?.({ type: "SPEAKER_ALIASES", aliases }); }
+    const active = snapshot.participants.filter((p) => !p.removed).map((p) => p.id);
+    const phases = this.identity.phases(active);
+    const requests = Object.fromEntries(active.flatMap((id) => { const request = this.appliedRequests.get(id); return request ? [[id, request]] : []; }));
+    const changed = JSON.stringify(phases) !== JSON.stringify(this.view.identification);
+    if (changed) this.update({ identification: phases, identificationNotice: identificationNotice(this.view.identification, phases, snapshot.participants) ?? this.view.identificationNotice });
+    if ((changed || broadcast) && this.view.phase === "joined") void this.transport?.sendControl({ type: "voice-identification", phases, requests }).catch(() => undefined);
+  }
+
   async rename(name: string) {
     if (!this.view.snapshot) return;
     const snapshot = await roomRequest("rename", { roomId: this.view.snapshot.roomId, name });
@@ -153,24 +285,22 @@ export class ConnectedRoom {
     const snapshot = await roomRequest("remove", { roomId: this.view.snapshot.roomId, participantId });
     // Mark removed before any further transport message can be accepted.
     this.update({ snapshot: { ...snapshot, joinUrl: this.view.snapshot.joinUrl }, statuses: { ...this.view.statuses, [participantId]: "Removed" } });
-    this.dispatch?.({ type: "CLEAR_INTERIM", sourceId: `participant:${participantId}` });
-    this.reconciler.discardSource(`participant:${participantId}`);
+    this.identity.cancel(participantId);
+    this.syncIdentity();
     await this.transport?.sendControl({ type: "participant-removed", participantId });
     await this.transport?.updateParticipants(snapshot.participants);
   }
   async end() {
     if (!this.view.snapshot) return;
-    this.accepting = false;
-    await this.mic?.mute();
+    await this.stopRoomMicrophone();
     await roomRequest("end", { roomId: this.view.snapshot.roomId });
     await this.transport?.sendControl({ type: "room-ended" }).catch(() => undefined);
     await this.finish("ended");
   }
-  async leave() { await this.release(); this.update({ phase: "idle", microphone: "Muted" }); }
-  async dispose() { this.disposed = true; await this.release(); }
+  async leave() { await this.release(); this.update({ phase: "idle" }); }
+  async dispose() { this.disposed = true; await Promise.all([this.release(), this.stopRoomMicrophone()]); }
 
   private async refresh() {
-    this.reconciler.prune();
     if (this.view.phase !== "joined" || !this.view.snapshot) return;
     if (this.refreshing) { this.refreshPending = true; return; }
     this.refreshing = true;
@@ -181,8 +311,9 @@ export class ConnectedRoom {
       if (snapshot.status !== "open") { await this.finish("ended"); return; }
       if (snapshot.self.removed) { await this.finish("removed"); return; }
       this.update({ snapshot: { ...snapshot, joinUrl: this.view.snapshot?.joinUrl } });
-      for (const participant of snapshot.participants) if (participant.removed) this.reconciler.discardSource(`participant:${participant.id}`);
+      for (const participant of snapshot.participants) if (participant.removed) this.identity.cancel(participant.id);
       this.dispatch?.({ type: "CONNECTED_SPEAKERS", speakers: participantProfiles(snapshot.participants) });
+      this.syncIdentity();
       await this.transport?.updateParticipants(snapshot.participants);
     } catch { if (generation === this.generation) await this.lostConnection(); }
     finally {
@@ -190,27 +321,46 @@ export class ConnectedRoom {
       if (this.refreshPending) { this.refreshPending = false; void this.refresh(); }
     }
   }
-  private async lostConnection(error = "Room connection interrupted. Rejoin to continue; your microphone will be muted.") {
-    this.accepting = false;
-    this.update({ phase: "disconnected", error, microphone: "Muted" });
-    for (const participant of this.view.snapshot?.participants ?? []) this.dispatch?.({ type: "CLEAR_INTERIM", sourceId: `participant:${participant.id}` });
+  // The host room microphone keeps captioning locally while the room network reconnects.
+  private async lostConnection(error = "Room connection interrupted. Rejoin to continue.") {
+    this.update({ phase: "disconnected", error });
     await this.release();
-    this.dispatch?.({ type: "RECONNECTING", attempt: 0 });
+    if (!this.isHost || !this.roomMic) this.dispatch?.({ type: "RECONNECTING", attempt: 0 });
   }
   private async finish(phase: "ended" | "removed") {
-    this.accepting = false;
-    this.update({ phase, microphone: "Muted", error: null });
-    await this.release();
+    this.update({ phase, error: null });
+    await Promise.all([this.release(), this.stopRoomMicrophone()]);
     this.dispatch?.({ type: "ENDED" });
   }
-  private async release() {
-    ++this.generation; this.accepting = false;
-    this.reconciler.reset();
-    if (this.timer) clearInterval(this.timer);
-    this.timer = null;
-    const mic = this.mic; const transport = this.transport;
-    this.mic = null; this.transport = null;
-    await Promise.all([mic?.mute(), transport?.disconnect()]);
+  private async resetRoom(roomId: string) {
+    await this.stopRoomMicrophone();
+    this.roomId = roomId;
+    this.identity.reset();
+    this.appliedRequests.clear();
+    this.settledPhase = "unidentified";
+    this.aliasKey = "{}";
+    this.dispatch?.({ type: "SPEAKER_ALIASES", aliases: {} });
+    this.update({ identification: {}, identificationNotice: null });
   }
+  private async release() {
+    ++this.generation;
+    if (this.timer) clearInterval(this.timer);
+    if (this.identityTimer) clearInterval(this.identityTimer);
+    this.timer = null; this.identityTimer = null;
+    this.clearOwnRequest();
+    const transport = this.transport;
+    this.transport = null;
+    await transport?.disconnect();
+  }
+}
+
+function identificationNotice(previous: Record<string, VoicePhase>, next: Record<string, VoicePhase>, participants: Participant[]): string | null | undefined {
+  for (const participant of participants) {
+    if (previous[participant.id] !== "listening") continue;
+    const self = participant.role === "host";
+    if (next[participant.id] === "identified") return self ? "Your voice is identified." : `${participant.displayName}'s voice is identified.`;
+    if (next[participant.id] === "not_found") return self ? "Couldn't pick out your voice. Try again and speak for a few seconds." : `Couldn't pick out ${participant.displayName}'s voice. They can try again.`;
+  }
+  return undefined;
 }
 function message(error: unknown) { return error instanceof Error ? error.message : "The conversation could not be reached."; }

@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AssemblyAIStreamingProvider, connectedAssemblyAIOptions, connectedVoiceFocusProfile, normalizeSpeakerId, TABLE_ASSEMBLYAI_OPTIONS } from "./provider";
+import { AssemblyAIStreamingProvider, CONNECTED_ROOM_ASSEMBLYAI_OPTIONS, connectedAssemblyAIOptions, connectedVoiceFocusProfile, normalizeSpeakerId, TABLE_ASSEMBLYAI_OPTIONS } from "./provider";
 import type { TranscriptionEvent } from "./types";
 
 class FakeWebSocket {
@@ -186,5 +186,49 @@ describe("AssemblyAIStreamingProvider", () => {
 
   it("keeps the same provider label isolated across connections", () => {
     expect(normalizeSpeakerId("connection-one", "A")).not.toBe(normalizeSpeakerId("connection-two", "A"));
+  });
+
+  it("configures the Connected room microphone with Table diarization and mid-session revisions", async () => {
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    await new AssemblyAIStreamingProvider("temporary-token", "room", CONNECTED_ROOM_ASSEMBLYAI_OPTIONS).connect();
+    const params = new URL(FakeWebSocket.lastUrl).searchParams;
+    expect(params.get("speech_model")).toBe("universal-streaming-english");
+    expect(params.get("speaker_labels")).toBe("true");
+    expect(params.get("speaker_labels_revision_interval_ms")).toBe("120000");
+    expect(params.has("voice_focus")).toBe(false);
+    await new AssemblyAIStreamingProvider("temporary-token", "table").connect();
+    expect(new URL(FakeWebSocket.lastUrl).searchParams.has("speaker_labels_revision_interval_ms")).toBe(false);
+  });
+
+  it("applies every item of a documented SpeakerRevision revisions array and keeps the formatted final text", async () => {
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    const provider = new AssemblyAIStreamingProvider("temporary-token", "room");
+    const events: TranscriptionEvent[] = [];
+    provider.onEvent((event) => events.push(event));
+    await provider.connect();
+    FakeWebSocket.lastSocket?.onmessage?.({ data: JSON.stringify({ type: "Turn", turn_order: 3, end_of_turn: true, speaker_label: "A",
+      transcript: "Hello there, Sarah.", words: [{ text: "Hello", speaker: "A" }, { text: "there,", speaker: "A" }, { text: "Sarah.", speaker: "A" }] }) });
+    FakeWebSocket.lastSocket?.onmessage?.({ data: JSON.stringify({ type: "SpeakerRevision", revisions: [
+      { turn_order: 3, speaker_label: "B", words: [{ text: "Hello", speaker: "B" }, { text: "there,", speaker: "B" }, { text: "Sarah.", speaker: "B" }] },
+      { turn_order: 7, speaker_label: "A", words: [{ text: "Got", speaker: "A" }, { text: "it.", speaker: "B" }] },
+      { speaker_label: "A", words: [{ text: "Ignored", speaker: "A" }] },
+    ] }) });
+    const revisions = events.filter((event) => event.type === "speaker_revision");
+    expect(revisions.map((event) => event.sourceTurnId)).toEqual(["room/turn/3", "room/turn/7"]);
+    expect(revisions[0].captions).toMatchObject([{ text: "Hello there, Sarah.", speakerId: normalizeSpeakerId("room", "B"), isFinal: true }]);
+    expect(revisions[1].captions.map((caption) => caption.speakerId)).toEqual([normalizeSpeakerId("room", "A"), normalizeSpeakerId("room", "B")]);
+  });
+
+  it("attributes final words without a speaker field to the turn label", async () => {
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    const provider = new AssemblyAIStreamingProvider("temporary-token", "room");
+    const events: TranscriptionEvent[] = [];
+    provider.onEvent((event) => events.push(event));
+    await provider.connect();
+    FakeWebSocket.lastSocket?.onmessage?.({ data: JSON.stringify({ type: "Turn", turn_order: 1, end_of_turn: true, speaker_label: "A",
+      transcript: "See you at seven.", words: [{ text: "See", speaker: "A" }, { text: "you" }, { text: "at", speaker: "A" }, { text: "seven.", speaker: "A" }] }) });
+    if (events[0]?.type !== "final_turn") throw new Error("Expected a final turn");
+    expect(events[0].captions).toHaveLength(1);
+    expect(events[0].captions[0]).toMatchObject({ text: "See you at seven.", speakerId: normalizeSpeakerId("room", "A") });
   });
 });

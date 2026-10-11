@@ -60,6 +60,8 @@ export type CaptionState = {
   interim: CaptionEvent | null;
   activeInterims: Record<string, CaptionEvent>;
   speakers: SpeakerProfile[];
+  /** Connected Mode: diarized speaker ID → participant ID for session-local voice identification. */
+  speakerAliases: Record<string, string>;
   error: SessionError | null;
   reconnectAttempt: number;
 };

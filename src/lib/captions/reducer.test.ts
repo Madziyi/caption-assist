@@ -151,6 +151,18 @@ describe("captionReducer", () => {
     expect(revised.finalized.map((caption) => caption.text)).toEqual(["Hello revised", "Later"]);
   });
 
+  it("keeps diarized room speakers when the Connected roster refreshes and stores voice aliases until a new room", () => {
+    let state = captionReducer(initialCaptionState, { type: "CONNECTED_START" });
+    const roster = [{ id: "host", ordinal: 1, displayName: "You", side: "left" as const, accentIndex: 6, identityOrigin: "connected-host" as const }];
+    state = captionReducer(state, { type: "CONNECTED_SPEAKERS", speakers: roster });
+    state = captionReducer(state, { type: "TRANSCRIPTION_EVENT", event: { type: "final_turn", sourceTurnId: "t1", captions: [event({ id: "t1", sourceTurnId: "t1", isFinal: true, speakerId: "room/speaker/B" })] } });
+    state = captionReducer(state, { type: "CONNECTED_SPEAKERS", speakers: [{ ...roster[0], displayName: "Host" }] });
+    expect(state.speakers).toMatchObject([{ id: "host", displayName: "Host" }, { id: "room/speaker/B", ordinal: 1, identityOrigin: "diarized" }]);
+    state = captionReducer(state, { type: "SPEAKER_ALIASES", aliases: { "room/speaker/B": "host" } });
+    expect(state.speakerAliases).toEqual({ "room/speaker/B": "host" });
+    expect(captionReducer(state, { type: "CONNECTED_START" }).speakerAliases).toEqual({});
+  });
+
   it("resets speaker profiles on a new conversation while ended state retains them", () => {
     const listening = captionReducer(initialCaptionState, {
       type: "TRANSCRIPTION_EVENT",

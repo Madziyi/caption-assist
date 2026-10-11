@@ -43,8 +43,11 @@ For Table Mode:
 - overlap behavior;
 - renamed-speaker stability.
 
-For Connected Mode:
-- connection identity must map deterministically to participant identity.
+For Connected Mode (CAPTION-003.4 room microphone):
+- voice identification success rate and time per person;
+- wrong-name events, including similar voices and short replies;
+- names following speaker revisions;
+- re-identification after provider reconnect or host refresh.
 
 Status: **unverified**
 
@@ -300,3 +303,13 @@ Append concise entries:
 - Configuration: Table remains `universal-streaming-english` with diarization. Connected personal streams use `universal-3-6-pro`, `speaker_labels=false`, `voice_focus=far-field` by default, `mode=balanced`, 16 kHz PCM16 and formatted turns. Public `NEXT_PUBLIC_CONNECTED_VOICE_FOCUS_PROFILE` accepts only `near-field` or `far-field`; invalid/missing defaults safely to far-field.
 - A/B isolation: Connected host events bypass CrossMicReconciler; the reconciler remains available but no text suppression or old reconciliation diagnostics run in the caption path. Temporary debug UI shows model/profile/mode and `Text reconciliation: OFF` only with `?captionDebug=1`.
 - UAT pending: No real Universal-3.6 Pro Voice Focus Connected session has been completed in this pass. Record neighboring meaningful transcripts, owner accuracy, interim leakage and latency for far-field, then near-field if warranted.
+- Superseded: the user reported that none of the personal-microphone approaches worked in real use; CAPTION-003.4 replaced them before a Voice Focus result was recorded.
+
+### 2026-10-11 - CAPTION-003.4 room-microphone diarization pivot
+- Automated: 140 tests / 16 files, typecheck, lint and production build passed. New coverage: provider revision-array parsing and room options, voice-identity registry (binding, pre-request/interim/PENDING exclusion, formatted-duplicate idempotence, no stealing, revisions moving names, contested speakers, queue/cancel, re-identify, reconnect), presence-request transport validation, host request dedupe/withdrawal, phone acknowledgement including a reordered stale phase, unanswered-request notice, room-mic lifecycle through network loss and end.
+- Live provider check (Builder, Node, real `AssemblyAIStreamingProvider` + `VoiceIdentityRegistry`, synthetic Windows text-to-speech voices David/Zira/Hazel streamed in real time as 16 kHz PCM16; same audio three times): AssemblyAI accepted the Connected room parameters (Begin, Turn, SpeakerRevision, Termination; no Error). The end-of-session `SpeakerRevision` arrived in the documented `revisions` array form, which the previous parser dropped. David and Zira were identified. David 5/5 turns named correctly; Zira 4/7 live (two short replies shown as David, one unlabeled) and 7/7 after the revision. Hazel was merged with Zira by diarization (0/5 correct); her identification ended "not identified" without taking Zira's speaker.
+- Local live end-to-end (Builder, headless Chromium 1208 via Playwright with a WAV file as the host microphone; localhost dev server with live Supabase Realtime and live AssemblyAI; host 1280×800, phones 391×844): host made exactly one `getUserMedia` call and both phones made none. With two phones, David and Zira tapped Identify on their phones; phones and host Participants showed "✓ Voice identified"; every long sentence was named correctly; no duplicate captions. Short replies "That works for me." and "Perfect." showed as David live, and the end-of-session revision moved "Perfect." to Zira on screen.
+- Bug found and fixed: a tap right after joining was lost because the host had not yet subscribed to the new participant channel (one-shot broadcast). Requests now ride on participant presence. Re-test: immediate tap → host banner "Listening for Sarah's voice.", phone example sentence, Cancel cleared both, End showed "Conversation ended" on the phone (passed twice, including after the acknowledgement change).
+- A first two-phone presence run falsely withdrew David's request about 3 s after his tap; a traced rerun passed (host received presence updates 1.7–2.3 s after publish). The cause was not proven, so acknowledgement now requires a phase that names the phone's own request ID; a unit test covers a stale phase delivered after acknowledgement.
+- Test-environment limit: further two-phone runs were blocked when Supabase anonymous sign-in failed ("Could not connect anonymously") after roughly 20 sign-ins in about 35 minutes from one IP.
+- Not verified: physical phones, human voices, real room acoustics, mobile browser background behaviour, Bluetooth input, sessions longer than two minutes (mid-session revisions), sustained sessions, accuracy percentages or measured cost. Cost note only: Connected now uses one AssemblyAI stream per room instead of one per participant.

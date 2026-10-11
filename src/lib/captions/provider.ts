@@ -14,6 +14,7 @@ export interface StreamingTranscriptionProvider {
   onStatus(listener: (status: ProviderStatus) => void): () => void;
 }
 
+type AssemblyAIWord = { start?: number; end?: number; confidence?: number; speaker?: string; text?: string };
 type AssemblyAIMessage = {
   type?: string;
   id?: string;
@@ -22,15 +23,24 @@ type AssemblyAIMessage = {
   transcript?: string;
   utterance?: string;
   end_of_turn_confidence?: number;
-  speaker_label?: string;
-  words?: Array<{ start?: number; end?: number; confidence?: number; speaker?: string; text?: string }>;
+  speaker_label?: string | null;
+  words?: AssemblyAIWord[];
+  revisions?: Array<{ turn_order?: number; speaker_label?: string | null; words?: AssemblyAIWord[] }>;
   error?: string;
 };
 
 const ASSEMBLYAI_WS_URL = "wss://streaming.assemblyai.com/v3/ws";
+const MAX_REMEMBERED_TURN_TEXTS = 512;
 export const TABLE_ASSEMBLYAI_OPTIONS = {
   speechModel: "universal-streaming-english",
   diarization: true,
+} as const;
+// Connected Mode uses one host room microphone with the Table model and
+// diarization. Mid-session revisions (minimum 120 s of audio) let session-local
+// voice identities follow AssemblyAI's speaker reclustering.
+export const CONNECTED_ROOM_ASSEMBLYAI_OPTIONS = {
+  ...TABLE_ASSEMBLYAI_OPTIONS,
+  revisionIntervalMs: 120_000,
 } as const;
 export type VoiceFocusProfile = "near-field" | "far-field";
 export type AssemblyAIStreamingOptions = {
@@ -38,13 +48,14 @@ export type AssemblyAIStreamingOptions = {
   speechModel?: string;
   voiceFocus?: VoiceFocusProfile;
   mode?: "min_latency" | "balanced" | "max_accuracy";
+  revisionIntervalMs?: number;
 };
 
 export function connectedVoiceFocusProfile(value = typeof process === "undefined" ? undefined : process.env.NEXT_PUBLIC_CONNECTED_VOICE_FOCUS_PROFILE): VoiceFocusProfile {
   return value === "near-field" ? "near-field" : "far-field";
 }
 
-export function connectedAssemblyAIOptions(profile = connectedVoiceFocusProfile()): Required<AssemblyAIStreamingOptions> {
+export function connectedAssemblyAIOptions(profile = connectedVoiceFocusProfile()): Required<Omit<AssemblyAIStreamingOptions, "revisionIntervalMs">> {
   return { speechModel: "universal-3-6-pro", diarization: false, voiceFocus: profile, mode: "balanced" };
 }
 
@@ -56,15 +67,16 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
   private sessionStartedAt = Date.now();
   private readonly connectionId: string;
   private fallbackTurnCounter = 0;
+  private readonly finalTurnTexts = new Map<number, string>();
 
-  private readonly options: Required<Pick<AssemblyAIStreamingOptions, "speechModel" | "diarization">> & Pick<AssemblyAIStreamingOptions, "voiceFocus" | "mode">;
+  private readonly options: Required<Pick<AssemblyAIStreamingOptions, "speechModel" | "diarization">> & Pick<AssemblyAIStreamingOptions, "voiceFocus" | "mode" | "revisionIntervalMs">;
 
   constructor(private readonly token: string, connectionId = createProviderConnectionId(), options: AssemblyAIStreamingOptions | boolean = TABLE_ASSEMBLYAI_OPTIONS) {
     this.connectionId = connectionId;
     this.options = typeof options === "boolean"
       ? { speechModel: TABLE_ASSEMBLYAI_OPTIONS.speechModel, diarization: options }
       : { speechModel: options.speechModel ?? TABLE_ASSEMBLYAI_OPTIONS.speechModel, diarization: options.diarization ?? TABLE_ASSEMBLYAI_OPTIONS.diarization,
-          voiceFocus: options.voiceFocus, mode: options.mode };
+          voiceFocus: options.voiceFocus, mode: options.mode, revisionIntervalMs: options.revisionIntervalMs };
   }
 
   connect(): Promise<void> {
@@ -79,6 +91,7 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
     });
     if (this.options.voiceFocus) params.set("voice_focus", this.options.voiceFocus);
     if (this.options.mode) params.set("mode", this.options.mode);
+    if (this.options.diarization && this.options.revisionIntervalMs) params.set("speaker_labels_revision_interval_ms", String(this.options.revisionIntervalMs));
 
     return new Promise((resolve, reject) => {
       const socket = new WebSocket(`${ASSEMBLYAI_WS_URL}?${params.toString()}`);
@@ -93,6 +106,8 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
       socket.binaryType = "arraybuffer";
       socket.onopen = () => {
         window.clearTimeout(connectionTimeout);
+        // Provider word offsets count from the first audio received after open.
+        this.sessionStartedAt = Date.now();
         settled = true;
         this.emitStatus({ type: "connected" });
         resolve();
@@ -170,18 +185,43 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
       this.emitStatus({ type: "terminated" });
       return;
     }
+    if (message.type === "SpeakerRevision" && Array.isArray(message.revisions)) {
+      for (const revision of message.revisions) this.emitRevision(revision);
+      return;
+    }
     if (message.type !== "Turn" && message.type !== "SpeakerRevision") return;
     if (typeof message.transcript !== "string" && !message.words?.length) return;
+    if (message.type === "SpeakerRevision") {
+      this.emitRevision(message);
+      return;
+    }
 
     const sourceTurnId = this.sourceTurnId(message.turn_order);
-    const captions = normalizeTurn(message, sourceTurnId, this.connectionId, this.sessionStartedAt, message.type === "SpeakerRevision" || message.end_of_turn === true);
-    if (message.type === "SpeakerRevision") {
-      this.emitEvent({ type: "speaker_revision", sourceTurnId, captions });
-    } else if (message.end_of_turn === true) {
+    const captions = normalizeTurn(message, sourceTurnId, this.connectionId, this.sessionStartedAt, message.end_of_turn === true);
+    if (message.end_of_turn === true) {
+      this.rememberFinalText(message);
       this.emitEvent({ type: "final_turn", sourceTurnId, captions });
     } else if (captions[0]) {
       this.emitEvent({ type: "interim", caption: captions[0] });
     }
+  }
+
+  // Revisions change speaker assignments only; text and timestamps are unchanged,
+  // so the formatted final transcript is reused when the turn has one speaker.
+  private emitRevision(revision: Pick<AssemblyAIMessage, "turn_order" | "speaker_label" | "words" | "transcript">): void {
+    if (typeof revision.turn_order !== "number" || (!revision.words?.length && typeof revision.transcript !== "string")) return;
+    const sourceTurnId = this.sourceTurnId(revision.turn_order);
+    const transcript = this.finalTurnTexts.get(revision.turn_order) ?? revision.transcript;
+    const captions = normalizeTurn({ ...revision, transcript }, sourceTurnId, this.connectionId, this.sessionStartedAt, true);
+    if (captions.length) this.emitEvent({ type: "speaker_revision", sourceTurnId, captions });
+  }
+
+  private rememberFinalText(message: AssemblyAIMessage): void {
+    const text = message.utterance?.trim() || message.transcript?.trim();
+    if (typeof message.turn_order !== "number" || !text) return;
+    this.finalTurnTexts.delete(message.turn_order);
+    this.finalTurnTexts.set(message.turn_order, text);
+    if (this.finalTurnTexts.size > MAX_REMEMBERED_TURN_TEXTS) this.finalTurnTexts.delete(this.finalTurnTexts.keys().next().value!);
   }
 
   private sourceTurnId(turnOrder: number | undefined): string {
@@ -199,7 +239,7 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
 
 const UNRESOLVED_SPEAKER_LABELS = new Set(["", "UNKNOWN", "PENDING"]);
 
-export function normalizeSpeakerId(connectionId: string, label: string | undefined): string | null {
+export function normalizeSpeakerId(connectionId: string, label: string | null | undefined): string | null {
   const normalized = label?.trim().toUpperCase() ?? "";
   if (UNRESOLVED_SPEAKER_LABELS.has(normalized)) return null;
   return `${connectionId}/speaker/s${stableSpeakerHash(normalized)}`;
@@ -221,10 +261,12 @@ function normalizeTurn(message: AssemblyAIMessage, sourceTurnId: string, connect
   const lastWord = words.at(-1);
   const startedAt = sessionStartedAt + (firstWord?.start ?? 0);
   const fullText = message.utterance?.trim() || message.transcript?.trim() || words.map((word) => word.text?.trim()).join(" ") || "";
-  const hasSpeakerChange = words.length > 1 && new Set(words.map((word) => normalizeSpeakerId(connectionId, word.speaker))).size > 1;
+  // A word without a `speaker` field is unattributed and inherits the turn label.
+  const wordSpeakerId = (word: AssemblyAIWord) => normalizeSpeakerId(connectionId, word.speaker ?? message.speaker_label);
+  const hasSpeakerChange = words.length > 1 && new Set(words.map(wordSpeakerId)).size > 1;
 
   if (!hasSpeakerChange) {
-    const speakerId = turnSpeakerId ?? normalizeSpeakerId(connectionId, firstWord?.speaker);
+    const speakerId = turnSpeakerId ?? (firstWord ? wordSpeakerId(firstWord) : null);
     return fullText
       ? [{
           id: `${sourceTurnId}/segment/0`,
@@ -242,9 +284,9 @@ function normalizeTurn(message: AssemblyAIMessage, sourceTurnId: string, connect
   }
 
   const segments: CaptionEvent[] = [];
-  let current: { speakerId: string | null; words: NonNullable<AssemblyAIMessage["words"]> } | null = null;
+  let current: { speakerId: string | null; words: AssemblyAIWord[] } | null = null;
   for (const word of words) {
-    const speakerId = normalizeSpeakerId(connectionId, word.speaker);
+    const speakerId = wordSpeakerId(word);
     if (!current || current.speakerId !== speakerId) {
       current = { speakerId, words: [] };
       segments.push({

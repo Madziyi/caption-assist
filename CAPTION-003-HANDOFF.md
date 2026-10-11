@@ -1,8 +1,8 @@
 # CAPTION-003 — Connected Mode / QR Participant Rooms
 
-**Status:** REOPENED / PARTIAL FOR PROGRESSION - CAPTION-003.1 implementation verified automatically; physical-device duplicate-suppression acceptance pending.
+**Status:** REOPENED - CAPTION-003.4 room-microphone diarization pivot implemented and verified automatically and with local live synthetic-voice runs; physical multi-person UAT pending. See the CAPTION-003.4 section at the end.
 
-Earlier user acceptance of deployed Connected Mode and UI remains historical evidence. The latest deployed user testing revealed duplicate physical speech captured by nearby personal microphones, so CAPTION-003 is open again. Exact device/browser matrix, number of microphones, before/after duplicate counts and timing measurements were not provided. CAPTION-004 is deferred; no Hybrid or room mic implementation has started.
+Earlier user acceptance of deployed Connected Mode and UI remains historical evidence. Deployed user testing revealed duplicate physical speech captured by nearby personal microphones; CAPTION-003.1–003.3 attempts are kept below as history. CAPTION-004 (Hybrid) is deferred and has not started.
 
 ## Changed and architecture
 
@@ -133,3 +133,20 @@ ConnectedRoom bypasses CrossMicReconciler during this A/B and dispatches authori
 Verification tests cover Table/Connected models and diarization, exact Voice Focus parameter spelling and hyphenated profiles, safe defaults, balanced mode and direct Connected bypass. Real-device Voice Focus UAT is pending; do not claim activation from a WebSocket opening alone. Test far-field first using the prior duplicate arrangement, then near-field only if the physical setup warrants it or far-field is inadequate. Record duplicate persistence, owner accuracy, wrong-stream interim leakage and perceived latency.
 
 Publication: `dcbd894beb00388f7446679c6360a2623e4a9676` pushed to `main`; [Vercel deployment status](https://vercel.com/madziyis-projects/caption-assist/8Mi3AjeoW5mRSFW614MsqhfbyJMC) reported success. This confirms deployment only; no physical microphone/provider speech session was performed in this implementation pass.
+
+## CAPTION-003.4 room-microphone diarization pivot
+
+Personal-microphone Connected Mode is stopped: duplicates came from several open microphones hearing the same person, and neither text reconciliation nor Voice Focus fixed it in real use. Connected Mode now has one audio stream. The host device is the room microphone; AssemblyAI diarization separates voices; each QR participant taps **Identify my voice** on a phone that never records audio; and the host binds the next stable diarized speaker to that participant for this conversation.
+
+Where things live:
+- `src/lib/captions/provider.ts` — `CONNECTED_ROOM_ASSEMBLYAI_OPTIONS`, `revisions` array parsing, word-speaker fallback, socket-open session clock.
+- `src/lib/rooms/voice-identity.ts` — `VoiceIdentityRegistry` (queue, 20 s window, 5-word minimum, 1.5 s start tolerance, no stealing, evidence-turn bindings that follow revisions, phases).
+- `src/lib/rooms/controller.ts` — host room microphone session (independent of room networking), identification wiring, request dedupe, phone acknowledgement/timeout, reconnect "needs to identify again".
+- `src/lib/rooms/transport.ts` — participant presence `{ online, identify }`, host-only `voice-identification` control with `phases` and `requests`.
+- `src/lib/captions/reducer.ts` — `speakerAliases`, Connected roster merged with diarized speakers.
+- UI: `src/app/page.tsx` (room-mic state/Start, identification banner, alias-resolved names, unidentified voices panel), `src/components/room-panels.tsx` (Participants identify/cancel, invite copy), `src/components/participant-page.tsx` (no microphone, Identify my voice / Cancel / again, notices).
+- Dormant for Hybrid Mode: `personal-microphone`, `cross-mic-reconciler`, `reconciliation-diagnostics`, `reconciliation-debug-panel`, `audio/microphone-check`, Voice Focus option builder. `?captionDebug=1` is no longer wired.
+
+Verification summary (details in QUALITY.md): 140 tests / 16 files, typecheck, lint and build passed. A live AssemblyAI check with synthetic voices confirmed the room configuration and revision format, correct identification of two distinct voices, and refusal to steal a merged voice. Local live end-to-end runs (headless Chromium with a WAV microphone, live Supabase and AssemblyAI) showed one host microphone, zero phone microphones, both phones identified, correct names on long sentences and revisions correcting short replies. A lost-tap bug and an unexplained false withdrawal were fixed by presence-state requests with request-ID acknowledgement. No physical devices or human voices were tested by the Builder.
+
+Physical UAT script: place the host device centrally and start a Connected conversation; two or three people join by QR; each taps Identify my voice in turn and speaks a sentence while others pause; then talk naturally for at least three minutes. Record identification success/time, wrong-name events (similar voices, short replies), whether names correct themselves later, interim behaviour, latency, and recovery after a host refresh or network drop.

@@ -2,44 +2,32 @@
 import { useEffect, useRef, useState } from "react";
 import { ConnectedRoom, idleRoomView } from "@/lib/rooms/controller";
 import { roomRequest } from "@/lib/rooms/browser";
-import { MicrophoneCheck } from "@/lib/audio/microphone-check";
+import type { VoicePhase } from "@/lib/rooms/voice-identity";
+
+const phaseMessage: Record<VoicePhase, string> = {
+  unidentified: "Tap Identify my voice so captions show your name when you speak.",
+  waiting: "Waiting — the host's device will listen for your voice next.",
+  listening: "Speak normally for a few seconds now.",
+  identified: "✓ Your voice is identified. You can put your phone down.",
+  not_found: "We couldn't pick out your voice. Make sure the host's device can hear you, then try again.",
+  needs_again: "The captioner needs to hear your voice again. Tap Identify my voice.",
+};
 
 export default function ParticipantPage({ token }: { token: string }) {
   const [view, setView] = useState(idleRoomView);
   const [name, setName] = useState("");
-  const [step, setStep] = useState<"name" | "microphone" | "checked">("name");
   const [checked, setChecked] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [level, setLevel] = useState(0);
-  const [label, setLabel] = useState("Default microphone");
   const [busy, setBusy] = useState(false);
   const [editing, setEditing] = useState(false);
   const room = useRef<ConnectedRoom | null>(null);
-  const check = useRef<MicrophoneCheck | null>(null);
 
   useEffect(() => {
     const controller = new ConnectedRoom(setView); room.current = controller;
-    const test = new MicrophoneCheck(); check.current = test;
     let current = true;
     void roomRequest("check", { token }).then(() => { if (current) setChecked(true); }).catch((error: unknown) => { if (current) setError(error instanceof Error ? error.message : "This invitation is unavailable."); });
-    return () => { current = false; void test.stop(); void controller.dispose(); };
+    return () => { current = false; void controller.dispose(); };
   }, [token]);
-
-  // Visibility only reacquires a supplemental Wake Lock. It never mutes or disconnects.
-  useEffect(() => {
-    if (view.phase !== "joined" || !("wakeLock" in navigator)) return;
-    let lock: WakeLockSentinel | null = null;
-    let disposed = false;
-    let acquiring = false;
-    const acquire = async () => {
-      if (acquiring || document.visibilityState !== "visible" || (lock && !lock.released)) return;
-      acquiring = true;
-      try { const acquired = await navigator.wakeLock.request("screen"); if (disposed) await acquired.release(); else lock = acquired; } catch { /* Wake Lock is best-effort. */ }
-      finally { acquiring = false; }
-    };
-    void acquire(); document.addEventListener("visibilitychange", acquire);
-    return () => { disposed = true; document.removeEventListener("visibilitychange", acquire); void lock?.release(); };
-  }, [view.phase]);
 
   const execute = async (action: () => Promise<void>) => {
     setBusy(true); setError(null);
@@ -47,6 +35,9 @@ export default function ParticipantPage({ token }: { token: string }) {
     finally { setBusy(false); }
   };
   const disconnected = view.phase === "disconnected" && view.snapshot;
+  const selfId = view.snapshot?.self.id;
+  const phase: VoicePhase = (selfId && view.identification[selfId]) || "unidentified";
+  const identifying = phase === "waiting" || phase === "listening";
   return <main className="participant-shell">
     <p className="eyebrow">Accessible Conversation Captions</p>
     {view.phase === "ended" ? <><h1>Conversation ended</h1><p>The host ended this conversation.</p></>
@@ -54,33 +45,28 @@ export default function ParticipantPage({ token }: { token: string }) {
       : view.phase === "joined" ? <>
         <p className="participant-status" role="status">● Connected</p>
         <h1>{view.snapshot?.self.displayName}</h1>
-        <p role="status">{view.microphone === "Muted" ? "Microphone muted" : view.microphone}</p>
-        <button className="button button-primary" disabled={busy} onClick={() => void execute(() => room.current!.toggleMicrophone())}>{view.microphone === "Muted" ? "Unmute" : "Mute"}</button>
+        <p>Your phone is not recording audio. The host&apos;s device listens to the room.</p>
+        <p className={`voice-phase voice-phase-${phase}`} role="status" aria-live="polite">{phaseMessage[phase]}</p>
+        {view.identificationNotice && <p className="notice notice-warning" role="alert">{view.identificationNotice}</p>}
+        {phase === "listening" && <p className="participant-example">For example: “Hi, this is {view.snapshot?.self.displayName}. I&apos;m ready for the conversation.”</p>}
+        <button className="button button-primary" disabled={busy} onClick={() => void execute(() => room.current!.identify(undefined, identifying ? "cancel" : "request"))}>
+          {identifying ? "Cancel" : phase === "identified" ? "Identify my voice again" : "Identify my voice"}
+        </button>
         <button className="button button-quiet" onClick={() => { setName(view.snapshot?.self.displayName ?? ""); setEditing(!editing); }}>Edit name</button>
         {editing && <form className="participant-form" onSubmit={(event) => { event.preventDefault(); void execute(async () => { await room.current?.rename(name); setEditing(false); }); }}>
           <label htmlFor="rename">Your display name</label><input id="rename" value={name} maxLength={40} onChange={(event) => setName(event.target.value)} autoComplete="off" /><button className="button button-primary" disabled={busy || !name.trim()}>Save name</button>
         </form>}
-        <button className="button button-quiet" onClick={() => void execute(async () => { await room.current?.leave(); setStep("name"); })}>Leave</button>
-        <p>Only your microphone sends audio. You will not hear room audio on this phone.</p>
+        <button className="button button-quiet" onClick={() => void execute(async () => { await room.current?.leave(); })}>Leave</button>
       </> : disconnected ? <>
-        <h1>Room disconnected</h1><p>Your microphone is stopped. Rejoin muted, then tap Unmute to speak.</p>
+        <h1>Room disconnected</h1><p>Your name stays with your voice on the host&apos;s device. Rejoin to identify again or change your name.</p>
         <button className="button button-primary" disabled={busy} onClick={() => void execute(() => room.current!.rejoin())}>Rejoin Conversation</button>
       </> : <>
         <h1>Join Conversation</h1>
-        {step === "name" ? <form className="participant-form" onSubmit={(event) => { event.preventDefault(); setStep("microphone"); }}>
+        <p>The host&apos;s device captions the room. Your phone only adds your name; it does not record audio.</p>
+        <form className="participant-form" onSubmit={(event) => { event.preventDefault(); void execute(() => room.current!.join(token, name)); }}>
           <label htmlFor="display-name">Your display name</label><input id="display-name" value={name} maxLength={40} onChange={(event) => setName(event.target.value)} autoComplete="off" />
-          <button className="button button-primary" disabled={!checked || !name.trim() || busy}>Continue</button>
-        </form> : <>
-          <h2>Set up your microphone</h2>
-          <p>Your microphone sends live audio for captioning when you unmute. Audio is not stored by default.</p>
-          <p>This check shows your microphone level without transcribing. You will join muted.</p>
-          <button className="button button-secondary" disabled={busy} onClick={() => void execute(async () => {
-            await check.current?.stop();
-            await check.current?.start((value, micLabel) => { setLevel(value); setLabel(micLabel); }); setStep("checked");
-          })}>Enable microphone permission</button>
-          {step === "checked" && <><p>{label}</p><label htmlFor="microphone-level">Microphone input level — try speaking</label><meter id="microphone-level" min={0} max={1} value={level} />
-            <button className="button button-primary" disabled={busy} onClick={() => void execute(async () => { await check.current?.stop(); setLevel(0); await room.current?.join(token, name); })}>Join Conversation</button></>}
-        </>}
+          <button className="button button-primary" disabled={!checked || !name.trim() || busy}>Join Conversation</button>
+        </form>
       </>}
     {(error || view.error) && <p className="notice notice-error" role="alert">{error ?? view.error}</p>}
     {view.phase === "connecting" && <p role="status">Connecting…</p>}

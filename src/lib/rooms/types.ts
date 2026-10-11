@@ -1,4 +1,5 @@
 import type { SpeakerProfile, TranscriptionEvent } from "../captions/types";
+import { VOICE_PHASES, type VoicePhase } from "./voice-identity";
 
 export const ROOM_LIFETIME_MS = 24 * 60 * 60 * 1000;
 export const HOST_ACCENT_INDEX = 6;
@@ -17,10 +18,25 @@ export type RoomSnapshot = {
   participants: Participant[];
   joinUrl?: string;
 };
-export type ParticipantStatus = "Muted" | "Microphone active" | "Reconnecting" | "Disconnected" | "Removed";
-export type RoomControl = { type: "room-ended" } | { type: "participant-removed"; participantId: string } | { type: "registry-changed" };
+export type ParticipantStatus = "Connected" | "Reconnecting" | "Disconnected" | "Removed";
+export type IdentifyAction = "request" | "cancel";
+export type RoomControl = { type: "room-ended" } | { type: "participant-removed"; participantId: string } | { type: "registry-changed" }
+  /** `requests` names the phone request each participant's phase answers, so stale phases cannot end a newer request. */
+  | { type: "voice-identification"; phases: Record<string, VoicePhase>; requests: Record<string, string> };
+export const IDENTIFY_REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
+// Personal-microphone caption relay envelope, retained for a future Hybrid Mode.
 export type CaptionEnvelope = { event: TranscriptionEvent; sequence: number; readyAt: number; streamId: string };
-export type RelayObservation = { participantId: string; sequence: number; roundTripMs: number };
+
+export function validIdentificationPhases(value: unknown): value is Record<string, VoicePhase> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const entries = Object.entries(value);
+  return entries.length <= 64 && entries.every(([id, phase]) => id.length < 100 && VOICE_PHASES.includes(phase as VoicePhase));
+}
+export function validIdentifyRequests(value: unknown): value is Record<string, string> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
+  const entries = Object.entries(value);
+  return entries.length <= 64 && entries.every(([id, request]) => id.length < 100 && typeof request === "string" && IDENTIFY_REQUEST_ID.test(request));
+}
 
 export function validateName(value: unknown): string {
   if (typeof value !== "string" || !value.trim() || [...value.trim()].length > 40) throw new Error("Enter a name of 1–40 characters.");

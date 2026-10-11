@@ -34,10 +34,10 @@ The product must work immediately with one host device, while allowing nearby pa
 One host laptop/tablet/phone captures the room and produces live captions. Speaker diarization may provide temporary labels such as `Speaker 1`, `Speaker 2`.
 
 ### Connected Mode
-Host room microphone OFF. The host automatically joins as `You`, with reserved navy identity, initially MUTED. Every participant joins/rejoins muted. Participants scan a QR/link, enter a display name, consent to a microphone-only level check, release the test microphone, and explicitly Unmute after joining. Each device supplies a personal microphone stream with exact microphone/source membership identity and diarization OFF. This normally names that participant, but does not guarantee physical human speaker identity: nearby open microphones can hear the same speaker. Connected captions therefore pass through local cross-mic reconciliation before reduction. Host Unmute is a personal You stream, never a room microphone.
+One host room microphone with live diarization captions everyone (CAPTION-003.4). The host joins as `You` with the reserved navy identity, and the room microphone starts with the conversation. Participants scan a QR/link and enter a display name; their phones are identity/control devices only and never record audio. Each person taps **Identify my voice** once and speaks normally; the host binds the next stable diarized speaker to that participant for this conversation only, so captions show their name. The host can also identify itself, identify anyone from Participants, or name unidentified voices directly.
 
 ### Hybrid Mode
-Future CAPTION-004 only; not implemented. The host room microphone would remain active alongside personal streams and require duplicate suppression.
+Future CAPTION-004 only; not implemented. The host room microphone would remain active alongside headsets/personal microphones in acoustically isolated settings, reusing the dormant CAPTION-003.1–003.3 personal-microphone and reconciliation modules.
 
 Table Mode uses the host as a room microphone with diarization ON. Mode selection is locked for the active conversation; end before selecting another mode.
 
@@ -85,6 +85,17 @@ Transcript-side CAPTION-003.1 and CAPTION-003.2 reconciliation both failed real 
 The Connected host path bypasses text reconciliation for this experiment. `CrossMicReconciler` and its episode/diagnostic history remain in the repository for future comparison, but no hidden text suppression runs while measuring Voice Focus. Authorized participant channel identity remains authoritative and provider speaker labels are not used for Connected identity. The temporary debug panel reports the Connected STT model, Voice Focus profile, balanced mode and `Text reconciliation: OFF`; it remains hidden during normal product use. The server-generated temporary token path and server-only `ASSEMBLYAI_API_KEY` remain unchanged. No fallback to Universal Streaming is permitted after a Pro/Voice Focus configuration rejection.
 
 These are architectural intentions until verified by repository implementation and live configuration.
+
+## CAPTION-003.4 room-microphone diarization contract
+
+Supersedes the personal-microphone parts of the CAPTION-003 source contracts (participant mute/unmute, microphone check, per-participant caption relay, per-stream sequence numbers, Wake Lock), the CAPTION-003.1–003.3 contracts above and the temporary diagnostic contract below. Those modules stay in the repository, unwired, for Hybrid Mode. Rooms, membership identity, RLS, invitations, expiry, removal, rename and the accepted header/layout are unchanged.
+
+- Audio: only the host captures audio in Connected Mode, through the existing `ConversationSession` and temporary-token path. Connected uses `CONNECTED_ROOM_ASSEMBLYAI_OPTIONS`: Table's `universal-streaming-english` with `speaker_labels=true` and `format_turns=true`, plus `speaker_labels_revision_interval_ms=120000` (AssemblyAI's minimum; the first mid-session revision follows about two minutes of audio). The room microphone lifecycle is independent of room networking: Supabase reconnects do not stop captions; ending the conversation or the room becoming unavailable stops it. A restored host room waits for an explicit **Start room microphone** gesture.
+- Provider: `SpeakerRevision` messages are parsed in the documented `revisions: [{ turn_order, speaker_label, words }]` form and applied to the remembered final text of that turn. Words without a speaker inherit the turn label. Session start time is stamped when the socket opens so caption start times track the provider's audio clock. Each provider connection has a fresh `assemblyai/<uuid>` speaker namespace.
+- Voice identity: `VoiceIdentityRegistry` maps diarized speaker IDs to participant IDs in host memory only. Identification windows are queued one at a time, last 20 s, use final turns only, ignore unresolved labels and speech that started more than 1.5 s before the request, and bind the most-heard speaker after at least 5 words. A speaker already bound to another participant is never taken by a new request. Bindings keep up to 6 evidence turns and are recomputed from those turns after revisions, so the name follows the corrected speaker; the reducer resolves aliases at render time, including history. Phases: unidentified, waiting, listening, identified, not identified, needs to identify again. A new provider connection marks identified people "needs to identify again" while earlier history keeps their names.
+- Signalling: a phone publishes its request as presence state `{ online: true, identify: <request id> | null }` on its own private participant channel. The host applies each request ID once per participant (surviving transport reconnects) and treats a withdrawn request as cancel. Host-only control broadcasts `voice-identification` with `phases` and `requests` (the request ID each phase answers), validated on receipt. The phone stops requesting only when a phase naming its own request reports an outcome, which makes stale or reordered broadcasts harmless; after 10 s without acknowledgement it withdraws and shows a notice. No migration was needed: the CAPTION-003 private-topic policies already scope participant topics to the owner (publisher) and host (receiver), and control publication to the host.
+- Privacy: no voiceprints, embeddings, audio or biometric templates are created or stored by the application; the mapping is ordinary in-memory association between provider labels and participants for one conversation and is discarded when the room ends, changes or the host refreshes. Caption text remains memory-only and is not sent to Supabase.
+- Limitations: diarization can merge similar voices, short replies can be mislabelled before revisions, overlapping speech gets one label, and people speaking during someone else's window can mis-bind it (re-identification replaces it).
 
 ## Verified repository baseline — 2026-10-10
 
@@ -212,6 +223,7 @@ Provider connections receive unique namespaces. A provider label from a later re
 - Use least-privilege access for infrastructure and providers.
 - Record secret/environment-variable **names only** in `LIVE-STATE.md`, never values.
 - Treat conversation text as sensitive user content.
+- Connected voice identification is session-local association only: no voiceprints or biometric storage.
 
 ## Accessibility requirements
 

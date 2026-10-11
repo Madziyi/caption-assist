@@ -76,6 +76,14 @@ None expected initially. None verified.
 - GitHub combined commit status for `c8c95166dadd281801764d0154ae2c60b936d391` reported Vercel success after push to main. [Deployment status](https://vercel.com/madziyis-projects/caption-assist/3P9W5V6gqpR91WYzB6toEAmjv8MV). Existing Vercel Git integration was used; no hosting/provider configuration changed.
 - This is deployment-status evidence only. Builder did not perform physical-device/audio duplicate-suppression UAT or inspect deployed runtime credentials. No new Supabase schema/authorization changes.
 
+## CAPTION-003.4 local live observations - 2026-10-11
+
+- AssemblyAI streaming v3 (temporary token from the local `ASSEMBLYAI_API_KEY`; value not printed or recorded) accepted `speech_model=universal-streaming-english`, `speaker_labels=true`, `format_turns=true`, `speaker_labels_revision_interval_ms=120000`, `sample_rate=16000`: Begin, Turn, SpeakerRevision and Termination received, no Error. The session-end SpeakerRevision used the `revisions` array form. Synthetic audio only; mid-session revisions (after ~2 minutes of audio) were not observed.
+- Supabase project `cqnyvevhuxwfzhqpmccn` from a localhost dev server: participant presence payloads carrying an identify request ID reached the host's private participant subscription, observed 1.7–2.3 s after publish; host control broadcasts of identification phases reached phones. No schema, policy or Auth configuration was changed.
+- Anonymous sign-in began failing after roughly 20 sign-ins in about 35 minutes from one IP. The configured Auth rate-limit value was not inspected.
+- Test rooms were ended through the app. One room from a rate-limited run may remain open with no connected host or microphone until its 24-hour expiry; it could not be listed because the available Supabase connector points at a different project (`kzyoptgjzxtitdkvdstr`).
+- Local only: this does not establish deployed behaviour, physical devices or real voices.
+
 ## Reconciliation diagnostics publication - 2026-10-11
 
 - Implementation `a308e231b3c14a6f319cb4096692d64ad0d2da77` pushed to main. GitHub Vercel check reported success: [Deployment status](https://vercel.com/madziyis-projects/caption-assist/Hy8PjJApogR2SvEXk9oX8m9yfY2u). Existing Git workflow used; no hosting/provider configuration changes.

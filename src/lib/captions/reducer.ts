@@ -6,6 +6,7 @@ export const initialCaptionState: CaptionState = {
   interim: null,
   activeInterims: {},
   speakers: [],
+  speakerAliases: {},
   error: null,
   reconnectAttempt: 0,
 };
@@ -14,6 +15,7 @@ export type CaptionAction =
   | { type: "START" }
   | { type: "CONNECTED_START" }
   | { type: "CONNECTED_SPEAKERS"; speakers: SpeakerProfile[] }
+  | { type: "SPEAKER_ALIASES"; aliases: Record<string, string> }
   | { type: "CLEAR_INTERIM"; sourceId: string }
   | { type: "CONNECTING" }
   | { type: "LISTENING" }
@@ -34,7 +36,9 @@ export function captionReducer(state: CaptionState, action: CaptionAction): Capt
     case "CONNECTED_START":
       return { ...initialCaptionState, status: "connecting" };
     case "CONNECTED_SPEAKERS":
-      return { ...state, speakers: action.speakers };
+      return { ...state, speakers: [...action.speakers, ...state.speakers.filter(isDiarized)] };
+    case "SPEAKER_ALIASES":
+      return { ...state, speakerAliases: action.aliases };
     case "CLEAR_INTERIM": {
       const activeInterims = { ...state.activeInterims };
       delete activeInterims[action.sourceId];
@@ -118,17 +122,22 @@ function normalizeCaption(event: CaptionEvent): CaptionEvent | null {
   return text ? { ...event, text } : null;
 }
 
+function isDiarized(speaker: SpeakerProfile): boolean {
+  return !speaker.identityOrigin || speaker.identityOrigin === "diarized";
+}
+
 function registerSpeakers(existing: SpeakerProfile[], captions: CaptionEvent[]): SpeakerProfile[] {
   const next = [...existing];
   for (const caption of captions) {
     if (!caption.speakerId || next.some((speaker) => speaker.id === caption.speakerId)) continue;
-    const ordinal = next.length + 1;
+    const ordinal = next.filter(isDiarized).length + 1;
     next.push({
       id: caption.speakerId,
       ordinal,
       displayName: null,
       side: ordinal % 2 === 0 ? "right" : "left",
       accentIndex: (ordinal - 1) % 6,
+      identityOrigin: "diarized",
     });
   }
   return next;
