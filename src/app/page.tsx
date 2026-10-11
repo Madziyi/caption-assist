@@ -20,11 +20,15 @@ const statusCopy: Record<SessionStatus, string> = {
 export default function HomePage() {
   const [state, dispatch] = useReducer(captionReducer, initialCaptionState);
   const [speakerPanelOpen, setSpeakerPanelOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [isFullscreen, setIsFullscreen] = useState(false);
   const [editingSpeakerId, setEditingSpeakerId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
   const sessionRef = useRef<ConversationSession | null>(null);
   const liveCaptionRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const historyButtonRef = useRef<HTMLButtonElement>(null);
+  const historyCloseRef = useRef<HTMLButtonElement>(null);
 
   const speakerMap = useMemo(() => new Map(state.speakers.map((speaker) => [speaker.id, speaker])), [state.speakers]);
   const historyGroups = useMemo(() => groupNewestFirst(newestFirst(state.finalized)), [state.finalized]);
@@ -37,15 +41,28 @@ export default function HomePage() {
   }, [state.finalized, state.interim]);
 
   useEffect(() => {
-    if (!speakerPanelOpen) return;
+    if (!speakerPanelOpen && !historyOpen) return;
     function handleKeyDown(event: KeyboardEvent) {
       if (event.key !== "Escape") return;
       if (editingSpeakerId) cancelEditing();
+      else if (historyOpen) closeHistoryPanel();
       else setSpeakerPanelOpen(false);
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  }, [editingSpeakerId, speakerPanelOpen]);
+  }, [editingSpeakerId, historyOpen, speakerPanelOpen]);
+
+  useEffect(() => {
+    if (historyOpen) historyCloseRef.current?.focus();
+  }, [historyOpen]);
+
+  useEffect(() => {
+    function syncFullscreenState() {
+      setIsFullscreen(document.fullscreenElement === document.documentElement);
+    }
+    document.addEventListener("fullscreenchange", syncFullscreenState);
+    return () => document.removeEventListener("fullscreenchange", syncFullscreenState);
+  }, []);
 
   useEffect(() => {
     if (editingSpeakerId) nameInputRef.current?.focus();
@@ -62,9 +79,23 @@ export default function HomePage() {
     sessionRef.current = null;
   }
 
+  async function toggleFullscreen() {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await document.documentElement.requestFullscreen();
+    } catch {
+      setIsFullscreen(false);
+    }
+  }
+
   function openSpeakerPanel(speakerId?: string) {
     setSpeakerPanelOpen(true);
     if (speakerId) beginEditing(speakerId);
+  }
+
+  function closeHistoryPanel() {
+    setHistoryOpen(false);
+    historyButtonRef.current?.focus();
   }
 
   function beginEditing(speakerId: string) {
@@ -103,6 +134,11 @@ export default function HomePage() {
           <p className="eyebrow">Accessible Conversation Captions</p>
         </div>
         <div className="header-actions">
+          {canStart && (
+            <button type="button" className="button button-primary header-button" onClick={startConversation}>
+              {state.status === "ended" ? "Start New Conversation" : "Start Conversation"}
+            </button>
+          )}
           {state.speakers.length > 0 && (
             <button
               type="button"
@@ -114,6 +150,27 @@ export default function HomePage() {
               <span aria-hidden="true">👥</span> {state.speakers.length}
             </button>
           )}
+          <button
+            ref={historyButtonRef}
+            type="button"
+            className="history-control"
+            aria-expanded={historyOpen}
+            aria-controls="caption-history-panel"
+            onClick={() => {
+              setHistoryOpen((open) => !open);
+              setSpeakerPanelOpen(false);
+            }}
+          >
+            <span aria-hidden="true">☰</span> Caption history
+          </button>
+          <button
+            type="button"
+            className="button button-secondary header-button"
+            aria-pressed={isFullscreen}
+            onClick={toggleFullscreen}
+          >
+            <span aria-hidden="true">⛶</span> {isFullscreen ? "Exit Full Screen" : "Full Screen"}
+          </button>
           <div className={`status status-${state.status}`} role="status" aria-live="polite">
             <span className="status-dot" aria-hidden="true" />
             <span>{statusCopy[state.status]}</span>
@@ -163,7 +220,36 @@ export default function HomePage() {
         </section>
       )}
 
-      <section className="caption-stage" aria-label="Live caption transcript">
+      <div className={`conversation-workspace ${historyOpen ? "conversation-workspace-history-open" : ""}`}>
+        {historyOpen && (
+          <aside id="caption-history-panel" className="history-panel" role="dialog" aria-labelledby="caption-history-heading">
+            <div className="history-panel-header">
+              <h2 id="caption-history-heading">Caption history</h2>
+              <button ref={historyCloseRef} type="button" className="button button-quiet panel-close" onClick={closeHistoryPanel}>Close</button>
+            </div>
+            {historyGroups.length === 0 ? (
+              <p className="caption-placeholder">No captions yet.</p>
+            ) : (
+              <section className="history history-panel-list" aria-label="Caption history" aria-live="polite">
+                {historyGroups.map((group) => {
+                  const firstCaption = group.captions[0];
+                  if (!firstCaption) return null;
+                  return (
+                    <div className={`history-group ${group.speakerId ? `history-group-${speakerMap.get(group.speakerId)?.side ?? "left"}` : "history-group-left history-group-someone"}`} key={firstCaption.id}>
+                      <SpeakerIdentity speakerId={group.speakerId} speakerMap={speakerMap} onActivate={openSpeakerPanel} />
+                      <div className="history-bubbles">
+                        {group.captions.map((caption) => <p className={`history-caption speaker-accent-border-${speakerMap.get(caption.speakerId ?? "")?.accentIndex ?? "neutral"}`} key={caption.id}>{caption.text}</p>)}
+                      </div>
+                    </div>
+                  );
+                })}
+              </section>
+            )}
+          </aside>
+        )}
+
+        <div className="conversation-content">
+          <section className="caption-stage" aria-label="Live caption transcript">
         {state.finalized.length > 0 || state.interim ? (
           <div className="live-caption-scroll" ref={liveCaptionRef}>
             {state.finalized.map((caption) => (
@@ -178,54 +264,36 @@ export default function HomePage() {
             {state.status === "listening" ? "Listening for conversation…" : "Start a conversation to see captions here."}
           </p>
         )}
-      </section>
+          </section>
 
-      {state.status === "reconnecting" && (
-        <p className="notice notice-warning" role="alert">
-          Captions are temporarily interrupted. Finalized captions remain visible while the connection is restored.
-        </p>
-      )}
+          {state.status === "reconnecting" && (
+            <p className="notice notice-warning" role="alert">
+              Captions are temporarily interrupted. Finalized captions remain visible while the connection is restored.
+            </p>
+          )}
 
-      {state.error && (
-        <div className="notice notice-error" role="alert">
-          <strong>{state.error.message}</strong>
-          {state.error.code === "microphone_denied" && <p>Check your browser microphone permission, then try again.</p>}
-          {state.error.recoverable && (
-            <div className="notice-actions">
-              <button type="button" className="button button-secondary" onClick={startConversation}>Retry</button>
-              <button type="button" className="button button-quiet" onClick={endConversation}>End Conversation</button>
+          {state.error && (
+            <div className="notice notice-error" role="alert">
+              <strong>{state.error.message}</strong>
+              {state.error.code === "microphone_denied" && <p>Check your browser microphone permission, then try again.</p>}
+              {state.error.recoverable && (
+                <div className="notice-actions">
+                  <button type="button" className="button button-secondary" onClick={startConversation}>Retry</button>
+                  <button type="button" className="button button-quiet" onClick={endConversation}>End Conversation</button>
+                </div>
+              )}
             </div>
           )}
+
+          {isActive && (
+            <footer className="conversation-controls">
+              <button type="button" className="button button-end" onClick={endConversation} disabled={state.status === "stopping"}>
+                {state.status === "stopping" ? "Ending Conversation…" : "End Conversation"}
+              </button>
+            </footer>
+          )}
         </div>
-      )}
-
-      <section className="history" aria-label="Recent conversation history" aria-live="polite">
-        {historyGroups.map((group) => {
-          const firstCaption = group.captions[0];
-          if (!firstCaption) return null;
-          return (
-            <div className={`history-group ${group.speakerId ? `history-group-${speakerMap.get(group.speakerId)?.side ?? "left"}` : "history-group-left history-group-someone"}`} key={firstCaption.id}>
-              <SpeakerIdentity speakerId={group.speakerId} speakerMap={speakerMap} onActivate={openSpeakerPanel} />
-              <div className="history-bubbles">
-                {group.captions.map((caption) => <p className={`history-caption speaker-accent-border-${speakerMap.get(caption.speakerId ?? "")?.accentIndex ?? "neutral"}`} key={caption.id}>{caption.text}</p>)}
-              </div>
-            </div>
-          );
-        })}
-      </section>
-
-      <footer className="conversation-controls">
-        {canStart && (
-          <button type="button" className="button button-primary" onClick={startConversation}>
-            {state.status === "ended" ? "Start New Conversation" : "Start Conversation"}
-          </button>
-        )}
-        {isActive && (
-          <button type="button" className="button button-end" onClick={endConversation} disabled={state.status === "stopping"}>
-            {state.status === "stopping" ? "Ending Conversation…" : "End Conversation"}
-          </button>
-        )}
-      </footer>
+      </div>
     </main>
   );
 }

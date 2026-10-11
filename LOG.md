@@ -142,3 +142,21 @@ Use this format:
 - **Live state:** Unchanged; no live system was inspected.
 - **Known issues:** User review is still needed for the final live multi-turn appearance.
 - **Next action:** Planner/user reviews the tuned live caption text scale; do not start CAPTION-003.
+
+### 2026-10-10 — CAPTION-002 — caption history panel refinement
+- **Changed:** Removed the bottom caption history section and added a header Caption history control that opens a left-side pane beside the live caption area. The pane keeps newest-first history and places each speaker name above its caption text.
+- **Decisions:** Keep history retained in memory and available on demand; use the existing grouped history data and speaker identities without changing provider or transcript behavior.
+- **Verification:** Typecheck, lint, tests, build, diff check, and browser idle-state smoke verification passed. The browser showed the header control, side-by-side left history pane, live caption area shifted right, and Escape dismissal; no audio/provider behavior was changed.
+- **Quality:** The pane is keyboard-closeable, shares the desktop workspace with the live caption area, and falls back to a full-width narrow layout. Provider-backed history, narrow/mobile review, and deeper quality measurements remain pending.
+- **Live state:** Unchanged; no live system was inspected.
+- **Known issues:** The panel has no new provider/audio evidence yet.
+- **Next action:** Run normal repository checks and browser smoke verification, then push the Builder handoff; do not start CAPTION-003.
+
+### 2026-10-10 — CAPTION-002 — header controls and caption stage refinement
+- **Changed:** Moved Start Conversation into the header, added a Full Screen/Exit Full Screen toggle using the browser Fullscreen API, retained End Conversation while active, and increased the live caption stage to 85vh.
+- **Decisions:** Keep the start action visible only when a new conversation can begin; keep history and status controls in the header; do not change provider, event, retention, or speaker behavior.
+- **Verification:** Typecheck, lint, tests, build, diff check, and browser smoke verification passed. The browser showed the header start/full-screen controls, successful full-screen entry/exit, the expanded caption stage, and the side-by-side history pane; no audio/provider behavior was changed.
+- **Quality:** The full-screen control exposes a pressed state and accessible label. Browser capability and narrow/mobile review remain pending.
+- **Live state:** Unchanged; no live system was inspected.
+- **Known issues:** Full-screen behavior may depend on browser support or user-agent restrictions.
+- **Next action:** Run final repository checks and browser smoke verification, then push the Builder handoff; do not start CAPTION-003.

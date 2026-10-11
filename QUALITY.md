@@ -172,6 +172,30 @@ Record measured provider billing/configuration or carefully calculated cost from
 - Accessibility observations: Reduced the live caption text scale by 25% from the prior tuned size to fit more transcript lines in the fixed 65vh live box. History text size and live scrolling behavior are unchanged.
 - Result: User-requested readability adjustment implemented; no caption event, speaker identity, history retention, or provider behavior changed.
 
+### 2026-10-10 — CAPTION-002 — caption history panel refinement
+- Environment/device: Codex in-app browser on the local Next.js development server; desktop idle-state UI smoke verification, no new provider session performed.
+- Audio path: No new microphone or AssemblyAI verification performed.
+- Session length: Not measured.
+- Latency observations/measurements: Not measured.
+- Accuracy observations/measurements: Not measured.
+- Speaker observations: History continues to use the existing newest-first grouped speaker records; no physical speaker result was inferred.
+- Failure/recovery tests: Not performed.
+- Accessibility observations: Removed the bottom history region from normal page flow; added a visible header Caption history control and keyboard-closeable left-side pane sharing the screen with the live caption area at up to half the workspace width. Each history group presents its speaker name above the caption text, regardless of the prior left/right chat alignment.
+- Cost evidence: Not measured.
+- Result: User-requested navigation/layout refinement implemented. Browser smoke verification showed the header control, side-by-side left history pane, live caption area shifted right to accommodate it, and Escape dismissal; provider-backed history and narrow/mobile review remain pending. Provider, audio, caption event, retention, and speaker identity behavior are unchanged.
+
+### 2026-10-10 — CAPTION-002 — header controls and caption stage refinement
+- Environment/device: Codex in-app browser on the local Next.js development server; source-level UI refinement, no new provider session performed.
+- Audio path: No new microphone or AssemblyAI verification performed.
+- Session length: Not measured.
+- Latency observations/measurements: Not measured.
+- Accuracy observations/measurements: Not measured.
+- Speaker observations: No physical speaker result was inferred.
+- Failure/recovery tests: No provider/reconnect test performed; the browser full-screen toggle was exercised and exited successfully.
+- Accessibility observations: Moved the start action into the header, added a labeled full-screen toggle with pressed state, kept the end action available while active, and expanded the live caption stage to a fixed 85vh with no minimum height.
+- Cost evidence: Not measured.
+- Result: User-requested presentation refinement implemented. Browser smoke verification showed Start Conversation and Full Screen in the header, the 85vh caption stage, successful full-screen entry/exit, and the side-by-side history pane. Audio, provider, caption event, history retention, and speaker identity behavior are unchanged; narrow/mobile review remains pending.
+
 Append concise entries:
 
 ```text

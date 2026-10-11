@@ -1,7 +1,7 @@
 # Active Initiative
 
 **Initiative:** CAPTION-002 — Speaker-aware Table Mode (closure)
-**Status:** COMPLETE FOR PROGRESSION — user-observed product/UAT acceptance recorded; continuous-transcript presentation refinement implemented and tuned for readability; deeper quality checks remain pending
+**Status:** COMPLETE FOR PROGRESSION — user-observed product/UAT acceptance recorded; continuous-transcript presentation, caption-history panel, and header control refinements implemented; deeper quality checks remain pending
 **Planner:** Planner agent  
 **Implementation / verification:** Builder agent
 
@@ -17,6 +17,8 @@ Extend the working one-device captioning path with AssemblyAI streaming diarizat
 - Add in-memory conversation-local speaker profiles with stable ordinal, alternating side, accent, and editable display name.
 - Keep live caption text dominant and immediate while showing the best current speaker label above it.
 - Render newest-first finalized history as separate accessible left/right chat bubbles with derived consecutive-speaker grouping.
+- Keep caption history out of the default page flow and expose it through a header control that opens a left-side pane beside the live caption area, with speaker names above each caption group.
+- Keep conversation start and full-screen controls available in the header; use the expanded 85vh live caption stage for focused viewing.
 - Add responsive Speakers management and fast naming/renaming/removal without transcript or name persistence.
 - Add focused provider, registry/reducer, grouping, and UI tests plus normal typecheck, lint, test, build, and diff checks.
 
