@@ -2,7 +2,7 @@
 
 **Initiative:** CAPTION-003 - Connected Mode / QR Participant Rooms
 **Active correction:** CAPTION-003.1 - Temporary observation-only reconciliation diagnostics
-**Status:** User real-device suppression acceptance failed: duplicates still observed. Observation-only diagnostics implemented; 109 tests / 15 files, typecheck, lint and production build passed. Matching constants and suppression behavior unchanged. Publication/deployment verification follows; physical-device diagnostic test pending.
+**Status:** User real-device suppression acceptance failed: duplicates still observed. Observation-only diagnostics implemented; 109 tests / 15 files, typecheck, lint and production build passed. Matching constants and suppression behavior unchanged. Diff check passed; diagnostics implementation a308e231b3c14a6f319cb4096692d64ad0d2da77 pushed to main and GitHub Vercel status reported success. Physical-device diagnostic test pending.
 **Owner:** Builder until verified commit/push. CAPTION-004 planning/implementation is deferred by the current user instruction.
 
 ## Objective and contracts

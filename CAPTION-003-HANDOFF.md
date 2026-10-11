@@ -106,3 +106,8 @@ Open the deployed host with ?captionDebug=1 before room creation/restoration. On
 Verification: 109 tests / 15 files, typecheck, lint and production build passed; final diff check before publication. Tests verify match/failure/short/expiry/oversized/conflict/skip records, bounded private metrics, disabled default, same caption actions/clock calls/constants, Clear/Copy and Table hiding. Local IAB confirmed empty panel, constants/controls, ordinary Connected hiding and no overflow at measured 1280/391 CSS pixels. No Builder physical-device/audio UAT or new real accuracy/latency measurements performed.
 
 Next physical test: naturally position two devices (then three); clear before each case, have each owner speak, use different simultaneous sentences and simultaneous Yes. If duplicates escape, copy immediately before the 30-record window rolls over. Record mic count, browser/device context, visible duplicate count, missed/false suppression, interim label switching and perceived latency separately. Review delta/reason/similarity/exact/skip/expiry metrics before proposing a targeted correction. Do not close CAPTION-003 without user acceptance.
+
+## Reconciliation diagnostics publication - 2026-10-11
+
+- Implementation `a308e231b3c14a6f319cb4096692d64ad0d2da77` pushed to main. GitHub Vercel check reported success: [Deployment status](https://vercel.com/madziyis-projects/caption-assist/Hy8PjJApogR2SvEXk9oX8m9yfY2u). Existing Git workflow used; no hosting/provider configuration changes.
+- All required gates passed: typecheck, lint, 109 tests / 15 files, production build and staged diff check. Source and local browser verification do not establish physical-device suppression acceptance. CAPTION-003 stays open; next test uses ?captionDebug=1.

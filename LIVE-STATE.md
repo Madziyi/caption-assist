@@ -75,3 +75,8 @@ None expected initially. None verified.
 
 - GitHub combined commit status for `c8c95166dadd281801764d0154ae2c60b936d391` reported Vercel success after push to main. [Deployment status](https://vercel.com/madziyis-projects/caption-assist/3P9W5V6gqpR91WYzB6toEAmjv8MV). Existing Vercel Git integration was used; no hosting/provider configuration changed.
 - This is deployment-status evidence only. Builder did not perform physical-device/audio duplicate-suppression UAT or inspect deployed runtime credentials. No new Supabase schema/authorization changes.
+
+## Reconciliation diagnostics publication - 2026-10-11
+
+- Implementation `a308e231b3c14a6f319cb4096692d64ad0d2da77` pushed to main. GitHub Vercel check reported success: [Deployment status](https://vercel.com/madziyis-projects/caption-assist/Hy8PjJApogR2SvEXk9oX8m9yfY2u). Existing Git workflow used; no hosting/provider configuration changes.
+- All required gates passed: typecheck, lint, 109 tests / 15 files, production build and staged diff check. Source and local browser verification do not establish physical-device suppression acceptance. CAPTION-003 stays open; next test uses ?captionDebug=1.

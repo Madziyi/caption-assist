@@ -234,3 +234,8 @@ Use this format:
 - Contracts: No caption text/tokens in retained/copied records, logging, persistence, external diagnostics, new clock sampling, deliberate buffering, threshold/suppression/provider/Table/transport change. Supplemental metrics computed after caption dispatch; debug UI refresh independent.
 - Verification: 109 tests / 15 files, typecheck, lint and production build passed. Local IAB showed opt-in panel, default hiding and no overflow at 1280/391 CSS pixels. No real speech/device UAT performed by Builder. Diff and publication checked before handoff.
 - Next action: Publish through existing Vercel Git integration, then physical two/three-mic diagnostic test; collect metrics promptly and observed device/mic/switching/latency context before targeted changes. CAPTION-003 stays open, CAPTION-004 deferred.
+
+## Reconciliation diagnostics publication - 2026-10-11
+
+- Implementation `a308e231b3c14a6f319cb4096692d64ad0d2da77` pushed to main. GitHub Vercel check reported success: [Deployment status](https://vercel.com/madziyis-projects/caption-assist/Hy8PjJApogR2SvEXk9oX8m9yfY2u). Existing Git workflow used; no hosting/provider configuration changes.
+- All required gates passed: typecheck, lint, 109 tests / 15 files, production build and staged diff check. Source and local browser verification do not establish physical-device suppression acceptance. CAPTION-003 stays open; next test uses ?captionDebug=1.
