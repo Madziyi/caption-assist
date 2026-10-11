@@ -167,6 +167,11 @@ Record measured provider billing/configuration or carefully calculated cost from
 - Accessibility observations: Set the live caption box to a fixed 65vh height with no minimum height, kept its internal scroll behavior, and centered the live speaker indicator above each live caption line. Older lines scroll out of the live box as it fills while remaining available in caption history.
 - Result: User-requested layout tuning implemented; no caption event, speaker identity, history retention, or provider behavior changed.
 
+### 2026-10-10 — CAPTION-002 — live caption text scale tuning
+- Environment/device: Source-level verification; no new provider session performed.
+- Accessibility observations: Reduced the live caption text scale by 25% from the prior tuned size to fit more transcript lines in the fixed 65vh live box. History text size and live scrolling behavior are unchanged.
+- Result: User-requested readability adjustment implemented; no caption event, speaker identity, history retention, or provider behavior changed.
+
 Append concise entries:
 
 ```text

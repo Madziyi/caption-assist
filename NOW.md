@@ -1,7 +1,7 @@
 # Active Initiative
 
 **Initiative:** CAPTION-002 — Speaker-aware Table Mode (closure)
-**Status:** COMPLETE FOR PROGRESSION — user-observed product/UAT acceptance recorded; continuous-transcript presentation refinement implemented and tuned; deeper quality checks remain pending
+**Status:** COMPLETE FOR PROGRESSION — user-observed product/UAT acceptance recorded; continuous-transcript presentation refinement implemented and tuned for readability; deeper quality checks remain pending
 **Planner:** Planner agent  
 **Implementation / verification:** Builder agent
 

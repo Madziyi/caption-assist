@@ -133,3 +133,12 @@ Use this format:
 - **Live state:** Unchanged; no live system was inspected.
 - **Known issues:** User review is still needed for the final live multi-turn appearance.
 - **Next action:** Planner/user reviews the tuned continuous transcript; do not start CAPTION-003.
+
+### 2026-10-10 — CAPTION-002 — live caption text scale tuning
+- **Changed:** Reduced the live caption font scale by 25% from the previous tuned size; left the 65vh viewport, centered speaker indicator, history font, and internal scrolling unchanged.
+- **Decisions:** Apply the reduction only to `.current-caption`; chat-style history remains at its separately tuned size.
+- **Verification:** Source validation and browser idle-state smoke verification completed after the CSS update; no audio/provider behavior changed.
+- **Quality:** This is a user-requested readability adjustment. No new latency, accuracy, audio, session, reconnect, or device/browser evidence was produced.
+- **Live state:** Unchanged; no live system was inspected.
+- **Known issues:** User review is still needed for the final live multi-turn appearance.
+- **Next action:** Planner/user reviews the tuned live caption text scale; do not start CAPTION-003.
