@@ -55,6 +55,12 @@ None expected initially. None verified.
 
 - None recorded.
 
+## Headset UI/readability follow-up deployment — 2026-10-11
+
+- Source `7d4e8b02c3fde98543ebdb285e9cea625972722e` pushed to GitHub `main`; combined commit status reported Vercel **success**: [deployment status](https://vercel.com/madziyis-projects/caption-assist/DApfCBtoFZrxyavYjxTZp735nioo).
+- Presentation-only input card, activity pills and headset reading blocks. Existing hosting Git integration used; no environment/provider/gate/arbiter timing, database, policy, quota or retention change. Isolated local browser/capture checks in QUALITY.md are not deployed physical-device evidence.
+- Human's preceding "works perfectly now" applies to the deployed 008.3 duplicate-control build, not independently to this new UI follow-up. Human reload/visual confirmation remains pending.
+
 ## CAPTION-008.3 local live browser/provider verification — 2026-10-11
 
 - Verified local browser path, not deployed device behavior: host + two independent fake-media Chromium phones, live Supabase project `cqnyvevhuxwfzhqpmccn`, real AssemblyAI streaming v3 sessions using temporary tokens from the local API. The project connector reported ACTIVE_HEALTHY, ca-central-1, Postgres 17.11. No new project, migration, policy, quota or live provider configuration.

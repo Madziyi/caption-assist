@@ -422,3 +422,8 @@ Use this format:
 - GSD quick skill could not run its normal roadmap workflow because this repository has no `.planning/ROADMAP.md`; used the allowed safe fallback in existing shared-context files, no new planning system or subagents. Plan/scope, verification and commit handoff kept explicit.
 - Verification: 238 tests/36 files, typecheck, lint, build and diff check passed. Isolated native Chromium render checks passed at 390/1280 px and 100/200% root text, keyboard picker/help, status failures, paragraph interim/final/removal and reduced motion; screenshots inspected. Real fake-media capture/worklet picker/restart check passed (3 captures, 3 routes, zero page errors). Fixture selector/alias/reduced-motion/hash-navigation issues corrected and recorded in QUALITY.md; no product timing adjusted.
 - No new live room/provider or physical device test; no external requests allowed in runners. Browsers/servers closed, synthetic screenshots ignored, no audio or state retained. Next: publish, verify deployment status, human reload/visual confirmation; 008.4 remains separately planned.
+
+### 2026-10-11 — UI/readability follow-up publication
+
+- Source `7d4e8b02c3fde98543ebdb285e9cea625972722e` pushed to main; GitHub combined status reported Vercel success: https://vercel.com/madziyis-projects/caption-assist/DApfCBtoFZrxyavYjxTZp735nioo.
+- Presentation-only deployment, no configuration/timing/infrastructure changes. Next: human reloads host/phones and confirms picker, speaking pills and flowing paragraphs; latency optimization still requires separate approval.

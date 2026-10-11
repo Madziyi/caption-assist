@@ -2,12 +2,12 @@
 
 **Initiative:** CAPTION-008 - Headset Mode (separate mode: every speaker wears AirPods/a headset on their own phone; no room microphone)
 **Active slice:** CAPTION-008.3 UI/readability follow-up — polished input picker, phone and compact host speaking indicators, flowing same-speaker paragraphs; human approved implementation after discussion.
-**Status:** Human reports deployed 008.3 "works perfectly now". Approved UI/readability follow-up implemented and locally verified; publication pending. Quantitative physical measurements, Planner review and separate latency work remain outstanding. Previous source `6695c60` had Vercel success; 008.2 was deployed as `aac146a` (setup fix `df89148`).
+**Status:** Human reports deployed 008.3 "works perfectly now". Approved UI/readability follow-up implemented, locally verified and deployed as `7d4e8b0` (Vercel success). Human visual confirmation, quantitative physical measurements, Planner review and separate latency work remain outstanding. Previous source `6695c60` had Vercel success; 008.2 was deployed as `aac146a` (setup fix `df89148`).
 - The human ran it on two phones (wired and Bluetooth headsets): captions work and are named by phone, but bleed still opens the other phone's gate when people sit close, and captions feel about 2 s behind. The human's verdict: "I'm actually happy, it's kind of working."
 - The export shows weak single-phone separation (4.4 and 6.9 dB) and 16 s of both gates open in a 160 s session.
 - But the person actually talking is always 4–7 dB nearer their own calibrated level than the other phone is to its own. 008.3 arbitrates on that.
 - Full specification: `CAPTION-008-HEADSET-MODE.md` ("Planner review of 008.2", "CAPTION-008.3 specification").
-**Owner:** Builder publishes the UI/readability follow-up; human then reloads and confirms the picker, indicators and flowing paragraphs. Planner reviews before selecting separate 008.4 latency work.
+**Owner:** Human reloads and confirms the picker, indicators and flowing paragraphs. Planner resyncs before selecting separate 008.4 latency work.
 
 ## Approved UI/readability follow-up (current Builder pass)
 
@@ -51,7 +51,7 @@ A single loudness threshold per phone cannot separate wearer from bleed once peo
 
 ## Next action
 
-Publish the UI/readability follow-up, then human reloads and verifies microphone choice, green Speaking/neutral Quiet indicators and paragraph continuity. Quantitative duplicate/latency notes remain useful under the six-step 008.3 script. Provider timing stays unchanged until separately approved 008.4 work; Planner resyncs before advancing.
+Human reloads and verifies microphone choice, green Speaking/neutral Quiet indicators and paragraph continuity. Quantitative duplicate/latency notes remain useful under the six-step 008.3 script. Provider timing stays unchanged until separately approved 008.4 work; Planner resyncs before advancing. UI deployment status: https://vercel.com/madziyis-projects/caption-assist/DApfCBtoFZrxyavYjxTZp735nioo.
 
 ## Paused
 
