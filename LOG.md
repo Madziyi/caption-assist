@@ -115,3 +115,12 @@ Use this format:
 - **Live state:** `LIVE-STATE.md` remains unchanged because no new live infrastructure evidence was obtained.
 - **Known issues:** Formal diarization accuracy, exact caption latency, sustained-session stability, intentional reconnect, broader device/browser coverage, and narrow/mobile speaker placement remain unmeasured.
 - **Next action:** Planner reviews the closure and decides whether to activate CAPTION-003; do not begin CAPTION-003 during this task.
+
+### 2026-10-10 — CAPTION-002 — continuous transcript presentation refinement
+- **Changed:** Made the main caption stage a persistent chronological transcript with the interim turn appended at the bottom and automatic internal scrolling; increased the stage to 70vh, reduced live caption text by 15%, reduced history text by 30%, and moved history speaker labels beside their left/right bubbles.
+- **Decisions:** Retained the separate newest-first caption history. Kept transcript and speaker state in memory only. Preserved per-line polite live announcements for assistive technology.
+- **Verification:** Typecheck passed; lint passed; 26 tests passed; production build passed; browser idle-state smoke verification showed the expanded caption stage and preserved status/history regions; `git diff --check` passed.
+- **Quality:** No new audio, provider, latency, accuracy, session, reconnect, or device/browser measurements were produced. Multi-turn live scrolling and narrow/mobile label placement remain pending.
+- **Live state:** Unchanged; no live system was inspected.
+- **Known issues:** The provider-backed multi-turn transcript and responsive side-label layout still require user review.
+- **Next action:** Planner/user reviews the continuous transcript behavior; do not start CAPTION-003.

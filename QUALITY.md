@@ -157,6 +157,11 @@ Record measured provider billing/configuration or carefully calculated cost from
 - Cost evidence: Not measured.
 - Result: CAPTION-002 is accepted for progression based on user-observed product/UAT feedback. Formal diarization accuracy, exact latency, sustained-session stability, reconnect behavior, broader device/browser coverage, and narrow/mobile speaker-placement verification remain pending.
 
+### 2026-10-10 — CAPTION-002 — continuous transcript presentation refinement
+- Environment/device: Codex in-app browser on the local Next.js development server; desktop idle-state smoke verification.
+- Accessibility observations: Expanded the main caption stage to 70vh, kept finalized turns visible in chronological order, appended the current interim turn at the bottom, auto-scrolled within the stage, reduced live caption text by 15%, reduced history text by 30%, and placed history speaker labels beside their left/right bubbles.
+- Result: User-requested presentation refinement implemented. Provider behavior, caption event normalization, speaker identity, privacy, and separate newest-first history behavior remain unchanged. Live multi-turn scrolling and narrow/mobile side-label layout still require user/provider-backed verification.
+
 Append concise entries:
 
 ```text
