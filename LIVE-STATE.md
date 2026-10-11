@@ -55,6 +55,12 @@ None expected initially. None verified.
 
 - None recorded.
 
+## CAPTION-008.2 phone setup regression deployment — 2026-10-11
+
+- Source commit `df89148` pushed to `main`; GitHub combined status reported Vercel `success`: [deployment status](https://vercel.com/madziyis-projects/caption-assist/HB68pZaVw5LLj1toww39zMweRqEA).
+- Restores the microphone setup action for initialized joining-phone views. No hosting, database, policy, quota or provider configuration changes.
+- Deployment status verified only. Isolated local fake-media UI/capture verification is recorded in QUALITY.md; deployed physical-phone and live AssemblyAI browser-path acceptance remain unverified.
+
 ## CAPTION-008.2 pre-coding Realtime log check — 2026-10-11
 
 - Query window: `2026-10-11T17:29:27Z` (the `d839f09` commit time) through `2026-10-11T23:59:59Z`, project `cqnyvevhuxwfzhqpmccn`.

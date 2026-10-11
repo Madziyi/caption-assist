@@ -3,7 +3,7 @@
 **Initiative:** CAPTION-008 - Headset Mode (separate mode: every speaker wears AirPods/a headset on their own phone; no room microphone)
 **Active slice:** CAPTION-008.2 - Gate correction (room check tunes the gate, 2-frame attack, host sensitivity control, calibration survives rejoin), then gated per-phone transcription with Universal-3.6 Pro + Voice Focus `near-field`, captions relayed to the host and named by phone
 **Status:** 008.2 published as `aac146a`; joining-phone setup regression fixed in this follow-up. Initialized idle views now offer Start headset check, starting states show permission feedback, and stopped microphones offer Turn microphone back on. 179 tests/29 files and all source gates pass; isolated native Chromium UI + simulated capture/worklet verified start, input selection, restart and 390/1280 px overflow. Live AssemblyAI browser-path and physical headset verification remain unverified.
-**Owner:** Builder publishes the scoped setup fix and deployment evidence; then Planner/human resume the 008.2 physical script.
+**Owner:** Builder setup fix `df89148` deployed successfully (Vercel status verified); Planner/human resume the 008.2 physical script.
 
 ## Why
 

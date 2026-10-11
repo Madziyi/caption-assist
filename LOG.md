@@ -377,3 +377,7 @@ Use this format:
 - Changed: explicit microphone-state entry/restart/permission feedback; no ready claim with a stopped mic. Input picker/constraints/transport/provider/thresholds unchanged. Debugging skill used inline with a persistent evidence checkpoint; no subagent requested.
 - Verification: 179 tests/29 files, typecheck, lint, build and diff check passed. Isolated native Chromium UI + real worklet/fake media verified keyboard start, three input routes, selected track ID, selection/restart, stopped restart, zero page errors and no overflow at 390/1280 px. External network blocked; no live room/provider session or physical phone UAT. Initial harness lacked React preamble; corrected test server then passed. Browser/server closed, no audio/storage artifacts.
 - Next action: publish and reload/rejoin phones; verify Start headset check and inputs, then continue the physical 008.2 script. No 008.3 work.
+
+### 2026-10-11 — CAPTION-008.2 phone setup fix publication
+- Source `df89148` pushed to main; GitHub combined status reported Vercel success: https://vercel.com/madziyis-projects/caption-assist/HB68pZaVw5LLj1toww39zMweRqEA.
+- No live infrastructure change. Reload/rejoin physical phones and confirm the setup tap and browser-exposed inputs; full provider/browser-path and physical headset UAT remain outstanding.
