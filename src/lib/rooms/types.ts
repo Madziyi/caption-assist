@@ -1,5 +1,6 @@
 import type { SpeakerProfile, TranscriptionEvent } from "../captions/types";
 import { VOICE_PHASES, type VoicePhase } from "./voice-identity";
+import type { HeadsetControl } from "../headset/messages";
 
 export const ROOM_LIFETIME_MS = 24 * 60 * 60 * 1000;
 export const HOST_ACCENT_INDEX = 6;
@@ -16,13 +17,16 @@ export type RoomSnapshot = {
   status: "open" | "ended";
   self: Participant;
   participants: Participant[];
+  mode: RoomMode;
   joinUrl?: string;
 };
+export type RoomMode = "connected" | "headset";
 export type ParticipantStatus = "Connected" | "Reconnecting" | "Disconnected" | "Removed";
 export type IdentifyAction = "request" | "cancel";
 export type RoomControl = { type: "room-ended" } | { type: "participant-removed"; participantId: string } | { type: "registry-changed" }
   /** `requests` names the phone request each participant's phase answers, so stale phases cannot end a newer request. */
-  | { type: "voice-identification"; phases: Record<string, VoicePhase>; requests: Record<string, string> };
+  | { type: "voice-identification"; phases: Record<string, VoicePhase>; requests: Record<string, string> }
+  | HeadsetControl;
 export const IDENTIFY_REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
 // Personal-microphone caption relay envelope, retained for a future Hybrid Mode.
 export type CaptionEnvelope = { event: TranscriptionEvent; sequence: number; readyAt: number; streamId: string };

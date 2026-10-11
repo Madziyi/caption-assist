@@ -29,8 +29,8 @@ The Builder inspected repository source only; no deployed system, provider accou
 
 - Provider: not yet verified / may not be required for CAPTION-001
 - Project / instance identifier: —
-- Latest verified migration/version: —
-- Last verified: —
+- Latest verified migration/version: `20261011140359_headset_mode`
+- Last verified: 2026-10-11
 
 ## Server / API / real-time services
 
@@ -54,6 +54,13 @@ None expected initially. None verified.
 ## Known live-state drift
 
 - None recorded.
+
+## CAPTION-008.1 live migration and SQL verification — 2026-10-11
+
+- Confirmed target before applying: Supabase project `caption-assist`, ref `cqnyvevhuxwfzhqpmccn`, region `ca-central-1`, status `ACTIVE_HEALTHY`.
+- Applied exactly one additive migration: `20261011140359_headset_mode`, adding `caption_rooms.mode` and the specified backward-compatible `caption_room_action` update. No other live schema or policy change was made.
+- Extended `supabase/tests/connected_rooms.sql` passed rollback-only against the same ref, including connected/headset create, check, join, snapshot, restore and separate-owner mode assertions plus the existing authorization/RLS checks. Synthetic identities/rooms were rolled back.
+- Application deployment for the Builder commit is not yet verified; no Vercel status is claimed in this entry until after publication.
 
 ## Security observations
 

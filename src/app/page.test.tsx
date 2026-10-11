@@ -16,7 +16,7 @@ vi.mock("@/lib/rooms/controller", async (original) => {
     async create() {
       mocks.connectedCreate();
       this.dispatch({ type: "CONNECTED_START" });
-      this.onView({ ...actual.idleRoomView, phase: "joined", roomMicrophone: "Listening", snapshot: { roomId: "room", self: host, participants: [host], joinUrl: "https://caption.test/join/synthetic-invitation" }, ...mocks.view });
+      this.onView({ ...actual.idleRoomView, phase: "joined", roomMicrophone: "Listening", snapshot: { roomId: "room", mode: "connected", self: host, participants: [host], joinUrl: "https://caption.test/join/synthetic-invitation" }, ...mocks.view });
       this.dispatch({ type: "LISTENING" });
       for (const action of mocks.actions) this.dispatch(action);
     }
@@ -64,7 +64,7 @@ describe("host Connected UX", () => {
   });
 
   it("shows who is identifying, lets the host cancel, and offers identification per participant", async () => {
-    mocks.view = { snapshot: { roomId: "room", expiresAt: "", status: "open", self: host, participants: [host, guest] }, identification: { host: "identified", guest: "listening" }, statuses: { guest: "Connected" } };
+    mocks.view = { snapshot: { roomId: "room", mode: "connected", expiresAt: "", status: "open", self: host, participants: [host, guest] }, identification: { host: "identified", guest: "listening" }, statuses: { guest: "Connected" } };
     await startConnected();
     expect(screen.getByText("Listening for Alex's voice.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Cancel" }));
@@ -77,7 +77,7 @@ describe("host Connected UX", () => {
   });
 
   it("names identified voices with the participant and lets the host name unidentified voices", async () => {
-    mocks.view = { snapshot: { roomId: "room", expiresAt: "", status: "open", self: host, participants: [host, guest] } };
+    mocks.view = { snapshot: { roomId: "room", mode: "connected", expiresAt: "", status: "open", self: host, participants: [host, guest] } };
     mocks.actions = [
       { type: "CONNECTED_SPEAKERS", speakers: participantProfiles([host, guest]) },
       final("t1", "room/speaker/B", "I think we should leave around seven."),

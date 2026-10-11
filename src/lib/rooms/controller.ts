@@ -4,8 +4,11 @@ import { AssemblyAIStreamingProvider, CONNECTED_ROOM_ASSEMBLYAI_OPTIONS, type St
 import { ConversationSession } from "../captions/session";
 import { roomClient, roomRequest, technicalSession } from "./browser";
 import { SupabaseRoomTransport, type RoomTransport } from "./transport";
-import { participantProfiles, type IdentifyAction, type Participant, type ParticipantStatus, type RoomSnapshot } from "./types";
+import { participantProfiles, type IdentifyAction, type Participant, type ParticipantStatus, type RoomMode, type RoomSnapshot } from "./types";
 import { VoiceIdentityRegistry, type VoicePhase } from "./voice-identity";
+import { HeadsetHost, type HeadsetHostView } from "../headset/headset-host";
+import { HeadsetParticipant, type HeadsetParticipantView } from "../headset/headset-participant";
+import type { HeadsetPresence, HeadsetSignal } from "../headset/messages";
 
 export type RoomMicrophoneState = "Off" | "Starting" | "Listening" | "Reconnecting";
 export type RoomView = {
@@ -18,8 +21,11 @@ export type RoomView = {
   identification: Record<string, VoicePhase>;
   identificationNotice: string | null;
   error: string | null;
+  mode: RoomMode;
+  headsetHost: HeadsetHostView | null;
+  headsetSelf: HeadsetParticipantView | null;
 };
-export const idleRoomView: RoomView = { phase: "idle", snapshot: null, statuses: {}, roomMicrophone: "Off", identification: {}, identificationNotice: null, error: null };
+export const idleRoomView: RoomView = { phase: "idle", snapshot: null, statuses: {}, roomMicrophone: "Off", identification: {}, identificationNotice: null, error: null, mode: "connected", headsetHost: null, headsetSelf: null };
 
 export type RoomMicrophoneSession = { start(): Promise<void>; stop(): Promise<void> };
 export type RoomMicrophoneFactory = (dispatch: (action: CaptionAction) => void, providerFactory: (token: string) => StreamingTranscriptionProvider) => RoomMicrophoneSession;
@@ -47,6 +53,9 @@ export class ConnectedRoom {
   private ownRequestTimer: ReturnType<typeof setTimeout> | null = null;
   /** Guest: the host's last reported phase for this phone outside an identification attempt. */
   private settledPhase: VoicePhase = "unidentified";
+  private headsetHostInstance: HeadsetHost | null = null;
+  private headsetParticipantInstance: HeadsetParticipant | null = null;
+  private readonly visibilityHandler = () => this.headsetParticipantInstance?.setVisible(document.visibilityState === "visible");
 
   constructor(private readonly onView: (view: RoomView) => void, private readonly dispatch?: (action: CaptionAction) => void,
     private readonly roomMicrophoneFactory: RoomMicrophoneFactory = defaultRoomMicrophone, now: () => number = Date.now) {
@@ -55,20 +64,22 @@ export class ConnectedRoom {
   private update(values: Partial<RoomView>) { this.view = { ...this.view, ...values }; this.onView(this.view); }
   private get isHost() { return this.view.snapshot?.self.role === "host"; }
 
-  async create() {
+  get headsetHost() { return this.headsetHostInstance; }
+  get headsetParticipant() { return this.headsetParticipantInstance; }
+  async create(mode: RoomMode = "connected") {
     this.dispatch?.({ type: "CONNECTED_START" });
     this.update({ phase: "connecting", error: null });
-    try { await this.enter(await roomRequest("create"), true); }
+    try { await this.enter(await roomRequest(mode === "headset" ? "create_headset" : "create"), true); }
     catch (error) { this.update({ phase: "disconnected", error: message(error) }); throw error; }
   }
   // Restoring after a refresh needs a user gesture before the room microphone starts.
-  async restore(): Promise<boolean> {
+  async restore(): Promise<RoomMode | null> {
     const snapshot = await roomRequest<RoomSnapshot | null>("restore");
-    if (!snapshot || this.disposed) return false;
+    if (!snapshot || this.disposed) return null;
     this.dispatch?.({ type: "CONNECTED_START" });
     try { snapshot.joinUrl = sessionStorage.getItem(`caption-invite:${snapshot.roomId}`) ?? undefined; } catch { /* Room restoration does not require storage. */ }
     await this.enter(snapshot, false);
-    return true;
+    return normalizeRoomMode(snapshot.mode);
   }
   async join(token: string, name: string) {
     this.update({ phase: "connecting", error: null });
@@ -85,6 +96,7 @@ export class ConnectedRoom {
   private async enter(snapshot: RoomSnapshot, startMicrophone: boolean) {
     if (this.disposed) return;
     await this.release();
+    snapshot = { ...snapshot, mode: normalizeRoomMode(snapshot.mode) };
     if (this.disposed) return;
     if (snapshot.roomId !== this.roomId) await this.resetRoom(snapshot.roomId);
     if (snapshot.status !== "open" || snapshot.self.removed) {
@@ -96,7 +108,7 @@ export class ConnectedRoom {
     const joinUrl = snapshot.joinUrl ?? (this.view.snapshot?.roomId === snapshot.roomId ? this.view.snapshot.joinUrl : undefined);
     snapshot = { ...snapshot, joinUrl };
     if (joinUrl && snapshot.self.role === "host") { try { sessionStorage.setItem(`caption-invite:${snapshot.roomId}`, joinUrl); } catch { /* Optional invite metadata only. */ } }
-    this.update({ snapshot, phase: "connecting", statuses: Object.fromEntries(snapshot.participants.map((p) => [p.id, p.removed ? "Removed" : "Disconnected"])), error: null });
+    this.update({ snapshot, mode: snapshot.mode, headsetHost: null, headsetSelf: null, phase: "connecting", statuses: Object.fromEntries(snapshot.participants.map((p) => [p.id, p.removed ? "Removed" : "Disconnected"])), error: null });
     this.dispatch?.({ type: "CONNECTED_SPEAKERS", speakers: participantProfiles(snapshot.participants) });
     const supabase = roomClient();
     const session = await technicalSession();
@@ -118,6 +130,9 @@ export class ConnectedRoom {
       },
       disconnected: () => { if (generation === this.generation) void this.lostConnection(); },
       registryChanged: () => { if (generation === this.generation) void this.refresh(); },
+      headsetPresence: (id, presence) => { if (generation === this.generation) this.headsetHostInstance?.presence(id, presence); },
+      headsetSignal: (id, signal) => { if (generation === this.generation) this.headsetHostInstance?.signal(id, signal); },
+      headsetControl: (control) => { if (generation === this.generation) this.headsetParticipantInstance?.receiveControl(control); },
     });
     this.transport = transport;
     try {
@@ -130,7 +145,14 @@ export class ConnectedRoom {
         this.identityTimer = setInterval(() => this.syncIdentity(), 1000);
         this.syncIdentity(true);
         void this.refresh();
-        if (startMicrophone) void this.startRoomMicrophone();
+        if (snapshot.mode === "headset") {
+          this.headsetHostInstance = new HeadsetHost({ sendControl: (control) => transport.sendControl(control) }, (view) => this.update({ headsetHost: view }));
+          this.headsetHostInstance.setRoster(snapshot.participants);
+        } else if (startMicrophone) void this.startRoomMicrophone();
+      } else if (snapshot.mode === "headset") {
+        this.headsetParticipantInstance = new HeadsetParticipant(snapshot.self.id, { setPresence: (presence) => transport.setHeadsetPresence?.(presence) ?? Promise.resolve(), sendSignal: (signal) => transport.sendHeadsetSignal?.(signal) ?? Promise.resolve() }, (view) => this.update({ headsetSelf: view }));
+        this.headsetParticipantInstance.setVisible(document.visibilityState === "visible");
+        document.addEventListener("visibilitychange", this.visibilityHandler);
       }
     } catch (error) {
       if (generation === this.generation) await this.lostConnection(message(error));
@@ -139,7 +161,7 @@ export class ConnectedRoom {
   }
 
   async startRoomMicrophone() {
-    if (!this.isHost || this.roomMic || this.disposed || !["joined", "disconnected"].includes(this.view.phase)) return;
+    if (!this.isHost || this.view.mode === "headset" || this.roomMic || this.disposed || !["joined", "disconnected"].includes(this.view.phase)) return;
     const micGeneration = ++this.micGeneration;
     const session = this.roomMicrophoneFactory((action) => this.roomMicrophoneAction(micGeneration, action), (token) => this.createRoomProvider(micGeneration, token));
     this.roomMic = session;
@@ -186,7 +208,7 @@ export class ConnectedRoom {
   /** Host: identify any participant, including You. Guest: ask the host to identify this phone's owner. */
   async identify(participantId = this.view.snapshot?.self.id, action: IdentifyAction = "request") {
     const snapshot = this.view.snapshot;
-    if (this.view.phase !== "joined" || !snapshot || !participantId) return;
+    if (this.view.mode === "headset" || this.view.phase !== "joined" || !snapshot || !participantId) return;
     if (snapshot.self.role === "host") { this.applyIdentify(participantId, action); return; }
     const selfId = snapshot.self.id;
     this.clearOwnRequest();
@@ -254,7 +276,7 @@ export class ConnectedRoom {
   }
   private syncIdentity(broadcast = false) {
     const snapshot = this.view.snapshot;
-    if (!snapshot || snapshot.self.role !== "host") return;
+    if (!snapshot || snapshot.self.role !== "host" || this.view.mode === "headset") return;
     this.identity.tick();
     const aliases = this.identity.aliases();
     const aliasKey = JSON.stringify(aliases);
@@ -280,6 +302,22 @@ export class ConnectedRoom {
     try { sessionStorage.setItem(`caption-invite:${snapshot.roomId}`, snapshot.joinUrl!); } catch { /* Optional metadata. */ }
     return snapshot.joinUrl!;
   }
+  async startHeadsetSetup(deviceId?: string) {
+    if (this.view.mode !== "headset" || !this.view.snapshot) return;
+    if (!this.headsetParticipantInstance) {
+      const selfId = this.view.snapshot.self.id;
+      const io = this.isHost
+        ? { setPresence: async (presence: HeadsetPresence) => this.headsetHostInstance?.presence(selfId, presence), sendSignal: async (signal: HeadsetSignal) => this.headsetHostInstance?.signal(selfId, signal) }
+        : { setPresence: async (presence: HeadsetPresence) => this.transport?.setHeadsetPresence?.(presence), sendSignal: async (signal: HeadsetSignal) => this.transport?.sendHeadsetSignal?.(signal) };
+      this.headsetParticipantInstance = new HeadsetParticipant(selfId, { setPresence: async (presence) => { await io.setPresence(presence); }, sendSignal: async (signal) => { await io.sendSignal(signal); } }, (view) => this.update({ headsetSelf: view }));
+      if (this.isHost) this.headsetHostInstance?.attachLocal(selfId, this.headsetParticipantInstance);
+    }
+    await this.headsetParticipantInstance.startSetup(deviceId);
+  }
+  useCurrentHeadsetInput() { this.headsetParticipantInstance?.useCurrentInput(); }
+  async chooseHeadsetInput(deviceId: string) { await this.headsetParticipantInstance?.chooseInput(deviceId); }
+  async restartHeadsetMicrophone() { await this.headsetParticipantInstance?.restartMicrophone(); }
+
   async remove(participantId: string) {
     if (!this.view.snapshot) return;
     const snapshot = await roomRequest("remove", { roomId: this.view.snapshot.roomId, participantId });
@@ -313,6 +351,7 @@ export class ConnectedRoom {
       this.update({ snapshot: { ...snapshot, joinUrl: this.view.snapshot?.joinUrl } });
       for (const participant of snapshot.participants) if (participant.removed) this.identity.cancel(participant.id);
       this.dispatch?.({ type: "CONNECTED_SPEAKERS", speakers: participantProfiles(snapshot.participants) });
+      if (this.view.mode === "headset" && this.headsetHostInstance) this.headsetHostInstance.setRoster(snapshot.participants);
       this.syncIdentity();
       await this.transport?.updateParticipants(snapshot.participants);
     } catch { if (generation === this.generation) await this.lostConnection(); }
@@ -348,6 +387,8 @@ export class ConnectedRoom {
     if (this.identityTimer) clearInterval(this.identityTimer);
     this.timer = null; this.identityTimer = null;
     this.clearOwnRequest();
+    document.removeEventListener("visibilitychange", this.visibilityHandler);
+    await this.headsetParticipantInstance?.stopMicrophone().catch(() => undefined);
     const transport = this.transport;
     this.transport = null;
     await transport?.disconnect();
@@ -364,3 +405,4 @@ function identificationNotice(previous: Record<string, VoicePhase>, next: Record
   return undefined;
 }
 function message(error: unknown) { return error instanceof Error ? error.message : "The conversation could not be reached."; }
+function normalizeRoomMode(value: unknown): RoomMode { return value === "headset" ? "headset" : "connected"; }

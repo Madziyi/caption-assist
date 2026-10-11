@@ -249,6 +249,19 @@ select:focus-visible { outline: 4px solid #f1bd4b; outline-offset: 3px; }
 .voice-phase-listening, .voice-phase-waiting { color: var(--accent-dark); }
 .voice-phase-not_found, .voice-phase-needs_again { color: var(--warning); }
 .speaker-panel-hint { margin: 0.5rem 0 0; color: var(--muted); font-size: 1rem; }
+.headset-board, .headset-controls, .headset-host-setup, .headset-setup { padding: 1rem; background: var(--panel); border: 2px solid var(--line); border-radius: 1rem; }
+.headset-board h2, .headset-controls h2, .headset-host-setup h2 { margin-top: 0; }
+.headset-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.7rem 0; border-top: 1px solid var(--line); }
+.headset-row span { font-weight: 700; }
+.headset-controls { display: grid; gap: 0.7rem; }
+.headset-controls p { margin: 0; }
+.headset-matrix { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
+.headset-matrix caption { margin: 0.5rem 0; text-align: left; font-weight: 700; }
+.headset-matrix th, .headset-matrix td { border: 1px solid var(--line); padding: 0.45rem; text-align: left; }
+.headset-matrix th { background: var(--surface); }
+.headset-setup { display: grid; gap: 0.65rem; }
+.headset-setup p { margin: 0; }
+.headset-level { color: var(--muted); font-size: 0.95rem; }
 @media (min-width: 1200px) {
   .header-actions .room-mic-state { font-size: clamp(0.875rem, 0.75vw, 1rem); padding: 0.45rem 0.6rem; }
 }

@@ -7,7 +7,7 @@ export async function POST(request: Request) {
   try {
     const { supabase, userId } = await authenticatedRoomUser(request);
     const body = await request.json();
-    const allowed = ["create", "join", "snapshot", "restore", "rename", "remove", "end", "check", "invite"];
+    const allowed = ["create", "create_headset", "join", "snapshot", "restore", "rename", "remove", "end", "check", "invite"];
     if (!allowed.includes(body.action)) throw new RoomFailure(400, "Invalid conversation action.");
     if (["snapshot", "rename", "remove", "end", "invite"].includes(body.action) && !isUuid(body.roomId)) throw new RoomFailure(400, "Invalid conversation.");
     if (body.action === "remove" && !isUuid(body.participantId)) throw new RoomFailure(400, "Invalid participant.");
@@ -16,7 +16,7 @@ export async function POST(request: Request) {
     if (["join", "rename"].includes(body.action)) {
       try { name = validateName(body.name); } catch { throw new RoomFailure(400, "Enter a name of 1–40 characters."); }
     }
-    const invite = ["create", "invite"].includes(body.action) ? invitation() : null;
+    const invite = ["create", "create_headset", "invite"].includes(body.action) ? invitation() : null;
     const { data, error } = await supabase.rpc("caption_room_action", {
       operation: body.action, actor: userId, target_room: body.roomId ?? null,
       token_hash: invite?.hash ?? (body.token ? hashInvitation(body.token) : null),
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     }
     if (data === null) return NextResponse.json(null, { headers: { "Cache-Control": "no-store" } });
     const response = { ...data, ...(invite ? { joinToken: invite.token, joinUrl: `${new URL(request.url).origin}/join/${invite.token}` } : {}),
-      ...(body.action === "create" ? { hostParticipantId: data.self?.id } : {}) };
+      ...(["create", "create_headset"].includes(body.action) ? { hostParticipantId: data.self?.id } : {}) };
     return NextResponse.json(response, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const failure = error instanceof RoomFailure ? error : new RoomFailure(400, "Invalid conversation request.");

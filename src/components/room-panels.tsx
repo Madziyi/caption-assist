@@ -32,8 +32,8 @@ export function InvitePanel({ view, close }: { view: RoomView; close(): void }) 
   const url = view.snapshot?.joinUrl;
   return <RoomDialog title="Invite participants" close={close}>
     {url ? <><div className="room-qr"><QRCodeSVG value={url} size={220} marginSize={4} title="Scan to join this conversation" /></div>
-      <p>Scan to join, then tap Identify my voice. Phones do not record audio; this device&apos;s room microphone captions everyone.</p><a className="room-link" href={url}>{url}</a>
-      <p>Room microphone — {view.roomMicrophone === "Listening" ? "on" : view.roomMicrophone === "Off" ? "off" : view.roomMicrophone.toLowerCase()}</p>
+      <p>{view.mode === "headset" ? "Everyone who will speak wears AirPods or a headset connected to their phone, scans this code, and sets up their headset. This test build shows who is speaking; it does not caption yet, and no audio leaves any phone." : "Scan to join, then tap Identify my voice. Phones do not record audio; this device&apos;s room microphone captions everyone."}</p><a className="room-link" href={url}>{url}</a>
+      {view.mode === "connected" && <p>Room microphone — {view.roomMicrophone === "Listening" ? "on" : view.roomMicrophone === "Off" ? "off" : view.roomMicrophone.toLowerCase()}</p>}
       <p>{view.snapshot?.participants.filter((p) => !p.removed).length} participant(s)</p>
       <button className="button button-primary" onClick={async () => { try { await navigator.clipboard.writeText(url); setCopyStatus("Link copied."); } catch { setCopyStatus("Select the link to copy it."); } }}>Copy link</button>
       <p role="status">{copyStatus}</p></> : <p role="status">Preparing invitation…</p>}
@@ -49,10 +49,11 @@ export function ParticipantsPanel({ view, room, close, invite }: { view: RoomVie
       return <div className="speaker-row" key={p.id}>
         <span className={`speaker-dot speaker-accent-${p.role === "host" ? HOST_ACCENT_INDEX : p.accentIndex}`} aria-hidden="true" />
         <strong>{p.displayName}</strong><span>{p.removed ? "Removed" : p.role === "host" ? "This device" : view.statuses[p.id] ?? "Disconnected"}</span>
-        {!p.removed && <span className={`voice-phase voice-phase-${phase}`}>{phaseCopy[phase]}</span>}
-        {!p.removed && <button className="button button-secondary speaker-edit" onClick={() => void room.identify(p.id, active ? "cancel" : "request")}>
+        {view.mode === "connected" && !p.removed && <span className={`voice-phase voice-phase-${phase}`}>{phaseCopy[phase]}</span>}
+        {view.mode === "connected" && !p.removed && <button className="button button-secondary speaker-edit" onClick={() => void room.identify(p.id, active ? "cancel" : "request")}>
           {active ? "Cancel" : identifyLabel(p, phase)}
         </button>}
+        {view.mode === "headset" && !p.removed && <span className="voice-phase">{view.headsetHost?.people[p.id]?.presence?.setup === "ready" ? "Headset ready" : "Headset not set up"}</span>}
         {p.role !== "host" && !p.removed && <button className="button button-quiet speaker-edit" disabled={busy !== null} onClick={async () => {
           setBusy(p.id); setError(null); try { await room.remove(p.id); } catch { setError("Removal could not be confirmed. Try again."); } finally { setBusy(null); }
         }}>{busy === p.id ? "Removing…" : `Remove ${p.displayName}`}</button>}

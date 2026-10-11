@@ -1,6 +1,7 @@
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import { IDENTIFY_REQUEST_ID, validIdentificationPhases, validIdentifyRequests, type Participant, type ParticipantStatus, type RoomControl } from "./types";
 import type { VoicePhase } from "./voice-identity";
+import { validHeadsetControl, validHeadsetPresence, validHeadsetSignal, type HeadsetControl, type HeadsetPresence, type HeadsetSignal } from "../headset/messages";
 
 type TransportCallbacks = {
   /** Host: the participant's current identification request, or null when none is open. */
@@ -10,11 +11,16 @@ type TransportCallbacks = {
   control(event: RoomControl): void;
   disconnected(): void;
   registryChanged(): void;
+  headsetPresence?(participantId: string, presence: HeadsetPresence | null): void;
+  headsetSignal?(participantId: string, signal: HeadsetSignal): void;
+  headsetControl?(control: HeadsetControl): void;
 };
 export interface RoomTransport {
   connect(participants: Participant[]): Promise<void>;
   updateParticipants(participants: Participant[]): Promise<void>;
   setIdentifyRequest(requestId: string | null): Promise<void>;
+  setHeadsetPresence?(presence: HeadsetPresence): Promise<void>;
+  sendHeadsetSignal?(signal: HeadsetSignal): Promise<void>;
   sendControl(event: RoomControl): Promise<void>;
   disconnect(): Promise<void>;
 }
@@ -25,6 +31,8 @@ export class SupabaseRoomTransport implements RoomTransport {
   private presenceChannel: RealtimeChannel | null = null;
   private stopped = false;
   private allowed = new Set<string>();
+  private identifyState: string | null = null;
+  private headsetState: HeadsetPresence | null = null;
 
   constructor(private readonly client: SupabaseClient, private readonly roomId: string, private readonly self: Participant, private readonly callbacks: TransportCallbacks) {}
 
@@ -34,6 +42,8 @@ export class SupabaseRoomTransport implements RoomTransport {
       if (this.stopped) return;
       if (payload?.type === "voice-identification") {
         if (this.self.role !== "host" && validIdentificationPhases(payload.phases) && validIdentifyRequests(payload.requests)) this.callbacks.identification(payload.phases, payload.requests);
+      } else if (validHeadsetControl(payload)) {
+        if (this.self.role !== "host") this.callbacks.headsetControl?.(payload);
       } else if (payload?.type === "room-ended" || payload?.type === "registry-changed"
         || (payload?.type === "participant-removed" && typeof payload.participantId === "string")) this.callbacks.control(payload);
     });
@@ -70,9 +80,12 @@ export class SupabaseRoomTransport implements RoomTransport {
       // The private topic authorizes the publisher, so a request names that participant only.
       channel.on("presence", { event: "sync" }, () => {
         if (this.stopped || !this.allowed.has(participant.id)) return;
-        const entries = Object.values(channel.presenceState()).flat() as Array<{ identify?: unknown }>;
+        const entries = Object.values(channel.presenceState()).flat() as Array<{ identify?: unknown; headset?: unknown }>;
         this.callbacks.state(participant.id, entries.length ? "Connected" : "Disconnected");
-        if (this.self.role === "host" && participant.id !== this.self.id) this.callbacks.identify(participant.id, identifyRequest(entries));
+        if (this.self.role === "host" && participant.id !== this.self.id) { this.callbacks.identify(participant.id, identifyRequest(entries)); this.callbacks.headsetPresence?.(participant.id, headsetPresence(entries)); }
+      });
+      channel.on("broadcast", { event: "headset" }, ({ payload }) => {
+        if (!this.stopped && this.self.role === "host" && this.allowed.has(participant.id) && validHeadsetSignal(payload)) this.callbacks.headsetSignal?.(participant.id, payload);
       });
       await this.subscribe(channel, participant.id === this.self.id, participant.id);
     }
@@ -97,8 +110,19 @@ export class SupabaseRoomTransport implements RoomTransport {
 
   async setIdentifyRequest(requestId: string | null): Promise<void> {
     if (this.stopped || this.self.role === "host") return;
+    this.identifyState = requestId;
     const channel = this.channels.get(this.self.id);
-    if (!channel || await channel.track({ online: true, identify: requestId }) !== "ok") throw new Error("Your request could not reach the host. Try again.");
+    if (!channel || await channel.track({ online: true, identify: requestId, ...(this.headsetState ? { headset: this.headsetState } : {}) }) !== "ok") throw new Error("Your request could not reach the host. Try again.");
+  }
+  async setHeadsetPresence(presence: HeadsetPresence): Promise<void> {
+    if (this.stopped || this.self.role === "host") return;
+    this.headsetState = presence;
+    const channel = this.channels.get(this.self.id);
+    if (!channel || await channel.track({ online: true, identify: this.identifyState, headset: presence }) !== "ok") throw new Error("Your headset state could not reach the host.");
+  }
+  async sendHeadsetSignal(signal: HeadsetSignal): Promise<void> {
+    if (this.stopped || this.self.role === "host") return;
+    if (await this.channels.get(this.self.id)?.send({ type: "broadcast", event: "headset", payload: signal }) !== "ok") throw new Error("Your headset signal could not reach the host.");
   }
   async sendControl(event: RoomControl): Promise<void> {
     if (this.self.role !== "host" || this.stopped) return;
@@ -118,5 +142,9 @@ export class SupabaseRoomTransport implements RoomTransport {
 
 function identifyRequest(entries: Array<{ identify?: unknown }>): string | null {
   for (const entry of [...entries].reverse()) if (typeof entry.identify === "string" && IDENTIFY_REQUEST_ID.test(entry.identify)) return entry.identify;
+  return null;
+}
+function headsetPresence(entries: Array<{ headset?: unknown }>): HeadsetPresence | null {
+  for (const entry of [...entries].reverse()) if (validHeadsetPresence(entry.headset)) return entry.headset;
   return null;
 }

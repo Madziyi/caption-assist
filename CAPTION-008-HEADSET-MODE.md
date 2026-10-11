@@ -1,6 +1,13 @@
 # CAPTION-008 — Headset Mode
 
-**Status:** Planned by Planner/human on 2026-10-11. Active slice: **CAPTION-008.1** (ready for Builder). Later slices are outlined and will be refined from 008.1 field evidence.
+**Status:** CAPTION-008.1 implemented by Builder on 2026-10-11; physical test script and go/no-go remain with the human/Planner. Later slices are not started.
+
+## As built (008.1)
+
+- Pure headset level, calibration, gate, room-check, label, validation, preview-stat and anonymized-export modules live under `src/lib/headset/`, with co-located tests. `HeadsetMicrophone` wraps `MicrophoneCapture` with processing-off constraints and reports actual track settings.
+- `ConnectedRoom`, `SupabaseRoomTransport`, the room API and `20261011140359_headset_mode` migration persist and restore `connected | headset`; Headset Mode never starts the room microphone or transcription provider. `HeadsetHost` and `HeadsetParticipant` own the local gate/room-check protocol.
+- Host and phone UI includes Headset Mode (test), mode-specific invite/pre-join copy, speaking board, setup flow, room-check matrix and export controls. Wake Lock is best-effort.
+- Deviations: the Builder could not complete the requested three-Chromium fake-media protocol run because this checkout has no Playwright runner and the available browser surface cannot launch Chromium with fake-media flags; only a one-host local browser smoke room was created and ended. Physical acoustic, real-device, 390px/1280px measured viewport, network-instrumentation and Vercel deployment evidence remain pending or unverified. The implementation otherwise follows the exact 008.1 contracts and constants.
 
 ## Product decision
 

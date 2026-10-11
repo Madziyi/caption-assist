@@ -32,7 +32,7 @@ class FakeMicrophone {
 
 const host: Participant = { id: "host", role: "host", displayName: "You", accentIndex: null, removed: false };
 const guest: Participant = { id: "guest", role: "participant", displayName: "Alex", accentIndex: 0, removed: false };
-const snapshot = (self = host): RoomSnapshot => ({ roomId: "room", status: "open", expiresAt: new Date(Date.now() + 10000).toISOString(), self, participants: [host, guest], joinUrl: "https://caption.test/join/test" });
+const snapshot = (self = host): RoomSnapshot => ({ roomId: "room", mode: "connected", status: "open", expiresAt: new Date(Date.now() + 10000).toISOString(), self, participants: [host, guest], joinUrl: "https://caption.test/join/test" });
 const callbacks = () => mocks.callbacks as Callbacks;
 const transport = () => mocks.transports.at(-1) as Transport;
 const connection = () => mocks.providers.at(-1)!.connectionId;
@@ -80,7 +80,7 @@ describe("Connected room with one host room microphone", () => {
 
   it("a restored host room waits for an explicit room microphone start", async () => {
     const f = fixture(); mocks.request.mockResolvedValue(snapshot());
-    expect(await f.room.restore()).toBe(true); await vi.advanceTimersByTimeAsync(0);
+    expect(await f.room.restore()).toBe("connected"); await vi.advanceTimersByTimeAsync(0);
     expect(f.view.roomMicrophone).toBe("Off"); expect(f.mics).toHaveLength(0);
     await f.room.startRoomMicrophone();
     expect(f.view.roomMicrophone).toBe("Listening"); expect(f.mics).toHaveLength(1);

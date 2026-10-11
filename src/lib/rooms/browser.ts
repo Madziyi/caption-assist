@@ -1,5 +1,5 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { RoomSnapshot } from "./types";
+import type { RoomMode, RoomSnapshot } from "./types";
 
 let client: SupabaseClient | undefined;
 export function roomClient(): SupabaseClient {
@@ -28,3 +28,4 @@ export async function roomRequest<T = RoomSnapshot>(action: string, values: Reco
   if (!response.ok) throw new Error(data.message ?? "The conversation could not be reached.");
   return data as T;
 }
+export function normalizeRoomMode(value: unknown): RoomMode { return value === "headset" ? "headset" : "connected"; }

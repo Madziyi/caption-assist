@@ -20,14 +20,14 @@ export class MicrophoneCapture {
 
   constructor(private readonly onAudio: (chunk: ArrayBuffer) => void, private readonly onFailure?: () => void) {}
 
-  async start(): Promise<void> {
+  async start(options?: { constraints?: MediaStreamConstraints }): Promise<void> {
     const generation = ++this.generation;
     if (!navigator.mediaDevices?.getUserMedia) {
       throw new MicrophoneCaptureError("microphone_unavailable", "This browser does not provide microphone access.");
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia({
+      const stream = await navigator.mediaDevices.getUserMedia(options?.constraints ?? {
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
       if (generation !== this.generation) { stream.getTracks().forEach((track) => track.stop()); return; }
@@ -67,6 +67,8 @@ export class MicrophoneCapture {
       throw new MicrophoneCaptureError("microphone_unavailable", "The microphone could not be started. Check the selected input and try again.");
     }
   }
+
+  getTrack(): MediaStreamTrack | null { return this.stream?.getAudioTracks()[0] ?? null; }
 
   async stop(): Promise<void> {
     ++this.generation;

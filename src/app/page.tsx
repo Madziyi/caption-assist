@@ -7,6 +7,8 @@ import { captionReducer, initialCaptionState } from "@/lib/captions/reducer";
 import type { CaptionEvent, SessionStatus, SpeakerProfile } from "@/lib/captions/types";
 import { ConnectedRoom, idleRoomView, type RoomMicrophoneState } from "@/lib/rooms/controller";
 import { IdentificationBanner, InvitePanel, ParticipantsPanel } from "@/components/room-panels";
+import { HeadsetHostPanel, HeadsetSpeakingBoard } from "@/components/headset-panels";
+import { HeadsetSetup } from "@/components/headset-setup";
 
 const roomMicrophoneCopy: Record<RoomMicrophoneState, string> = {
   Off: "Room mic off",
@@ -33,7 +35,7 @@ export default function HomePage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editingSpeakerId, setEditingSpeakerId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
-  const [mode, setMode] = useState<"table" | "connected">("table");
+  const [mode, setMode] = useState<"table" | "connected" | "headset">("table");
   const [roomView, setRoomView] = useState(idleRoomView);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [participantsOpen, setParticipantsOpen] = useState(false);
@@ -71,7 +73,7 @@ export default function HomePage() {
     roomRef.current = room;
     let current = true;
     if (process.env.NEXT_PUBLIC_SUPABASE_URL) void room.restore().then((restored) => {
-      if (current && restored) setMode("connected");
+      if (current && restored) setMode(restored);
     }).catch(() => undefined).finally(() => { if (current) setRestoring(false); });
     return () => { current = false; void room.dispose(); };
   }, []);
@@ -111,10 +113,10 @@ export default function HomePage() {
 
   async function startConversation() {
     setRoomError(null);
-    if (mode === "connected") {
+    if (mode === "connected" || mode === "headset") {
       setRoomBusy(true);
-      try { await roomRef.current?.create(); setInviteOpen(true); }
-      catch (error) { setRoomError(error instanceof Error ? error.message : "Connected Mode could not start."); dispatch({ type: "ENDED" }); }
+      try { await roomRef.current?.create(mode); setInviteOpen(true); }
+      catch (error) { setRoomError(error instanceof Error ? error.message : "The conversation could not start."); dispatch({ type: "ENDED" }); }
       finally { setRoomBusy(false); }
       return;
     }
@@ -124,7 +126,7 @@ export default function HomePage() {
   }
 
   async function endConversation() {
-    if (mode === "connected") {
+    if (mode === "connected" || mode === "headset") {
       setRoomBusy(true); setRoomError(null);
       try { await roomRef.current?.end(); dispatch({ type: "ENDED" }); setInviteOpen(false); setParticipantsOpen(false); }
       catch (error) { setRoomError(error instanceof Error ? error.message : "Room end could not be confirmed. Try again."); }
@@ -183,9 +185,10 @@ export default function HomePage() {
   const isActive = ["requesting_permission", "connecting", "listening", "reconnecting", "stopping"].includes(state.status);
   const canStart = state.status === "idle" || state.status === "ended";
   const editingSpeaker = editingSpeakerId ? speakerMap.get(editingSpeakerId) : undefined;
-  const connectedActive = mode === "connected" && ["connecting", "joined", "disconnected"].includes(roomView.phase) && Boolean(roomView.snapshot);
+  const connectedActive = (mode === "connected" || mode === "headset") && ["connecting", "joined", "disconnected"].includes(roomView.phase) && Boolean(roomView.snapshot);
   const participantCount = roomView.snapshot?.participants.filter((p) => !p.removed).length ?? 0;
-  const waitingCopy = roomView.roomMicrophone !== "Listening" ? "The room microphone is off. Start it to caption the conversation."
+  const waitingCopy = mode === "headset" ? "Headset Mode shows speaking lights; it does not caption yet."
+    : roomView.roomMicrophone !== "Listening" ? "The room microphone is off. Start it to caption the conversation."
     : participantCount <= 1 ? "Listening. Invite participants, then ask each person to identify their voice." : "Listening for conversation…";
 
   async function openInvite() {
@@ -200,8 +203,8 @@ export default function HomePage() {
           <p className="eyebrow">Accessible Conversation Captions</p>
         </div>
         <div className="header-actions">
-          <label className="mode-label">Mode <select aria-label="Conversation mode" value={mode} disabled={isActive || connectedActive || roomBusy || restoring} onChange={(event) => { setMode(event.target.value as "table" | "connected"); setRoomError(null); }}>
-            <option value="table">Table Mode</option><option value="connected">Connected Mode</option>
+          <label className="mode-label">Mode <select aria-label="Conversation mode" value={mode} disabled={isActive || connectedActive || roomBusy || restoring} onChange={(event) => { setMode(event.target.value as "table" | "connected" | "headset"); setRoomError(null); }}>
+            <option value="table">Table Mode</option><option value="connected">Connected Mode</option><option value="headset">Headset Mode (test)</option>
           </select></label>
           {canStart ? (
             <button type="button" className="button button-primary header-button" onClick={startConversation} disabled={roomBusy || restoring}>
@@ -223,12 +226,13 @@ export default function HomePage() {
               <span aria-hidden="true">👥</span> {state.speakers.length}
             </button>
           )}
-          {connectedActive && <>
+          {connectedActive && mode === "connected" && <>
             {roomView.roomMicrophone === "Off"
               ? <button type="button" className="button button-primary header-button" disabled={roomBusy} onClick={() => void roomRef.current?.startRoomMicrophone()}>Start room microphone</button>
               : <span className={`room-mic-state room-mic-${roomView.roomMicrophone.toLowerCase()}`} role="status">{roomMicrophoneCopy[roomView.roomMicrophone]}</span>}
             <button className="speaker-control" aria-expanded={participantsOpen} onClick={() => setParticipantsOpen(true)}>Participants {participantCount}</button>
           </>}
+          {connectedActive && mode === "headset" && <button className="speaker-control" aria-expanded={participantsOpen} onClick={() => setParticipantsOpen(true)}>Participants {participantCount}</button>}
           <button
             ref={historyButtonRef}
             type="button"
@@ -264,7 +268,12 @@ export default function HomePage() {
       {mode === "connected" && roomView.phase === "disconnected" && roomView.snapshot && <button className="button button-secondary" disabled={roomBusy} onClick={async () => {
         setRoomBusy(true); try { await roomRef.current?.rejoin(); setRoomError(null); } catch (error) { setRoomError(error instanceof Error ? error.message : "Rejoin failed."); } finally { setRoomBusy(false); }
       }}>Rejoin Conversation</button>}
-      {connectedActive && roomRef.current && <IdentificationBanner view={roomView} room={roomRef.current} />}
+      {connectedActive && mode === "connected" && roomRef.current && <IdentificationBanner view={roomView} room={roomRef.current} />}
+      {connectedActive && mode === "headset" && roomRef.current && <>
+        <HeadsetSpeakingBoard view={roomView} />
+        <HeadsetHostPanel view={roomView} room={roomRef.current} />
+        <section className="headset-host-setup"><h2>Optional host headset</h2><p>The host microphone stays off unless you choose to set up your own headset.</p><HeadsetSetup view={roomView.headsetSelf} start={() => void roomRef.current?.startHeadsetSetup()} useAnyway={() => roomRef.current?.useCurrentHeadsetInput()} retry={() => void roomRef.current?.restartHeadsetMicrophone()} choose={(id) => void roomRef.current?.chooseHeadsetInput(id)} /></section>
+      </>}
 
       {speakerPanelOpen && nameableSpeakers.length > 0 && (
         <section className="speaker-panel" role="dialog" aria-labelledby="speakers-heading">

@@ -1,0 +1,3 @@
+import { describe, expect, it } from "vitest";
+import { headsetResultsExport } from "./export";
+describe("headset export", () => { it("uses anonymous refs and no names or ids", () => { const json = headsetResultsExport({ participants: [{ id: "owner-id", role: "participant", presence: { mic: "on", input: "headset", label: "Stan's AirPods", processing: { autoGainControl: false, noiseSuppression: false, echoCancellation: false }, setup: "ready", floorDb: -70, ownDb: -30, visible: true } }], check: null, preview: { durationMs: 1, participants: { "owner-id": { opens: 1, openMs: 100 } }, pairs: [] } }); expect(json).toContain("P1"); expect(json).not.toContain("owner-id"); expect(json).not.toContain("Stan"); }); });

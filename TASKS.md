@@ -11,7 +11,7 @@ Use these states:
 ## In progress
 
 - **CAPTION-008** `[in-progress]` — Headset Mode, a separate mode: every speaker wears AirPods/a headset on their own phone, no room microphone; each phone gates its wearer's speech by calibrated loudness. Spec: `CAPTION-008-HEADSET-MODE.md`.
-  - **008.1** `[ready]` — Headset check, calibration, room check, gate preview, results export; no audio leaves any device. Includes the additive `caption_rooms.mode` migration.
+  - **008.1** `[done]` — Headset check, calibration, room check, gate preview, results export; no audio leaves any device. Includes the additive `caption_rooms.mode` migration. Source/live SQL/automated gates pass; physical validation remains the human's next action.
   - **008.2** `[planned]` — Gated per-phone transcription with Universal-3.6 Pro + Voice Focus `near-field`; captions named by phone. Starts only after the 008.1 go/no-go.
   - **008.3** `[planned]` — Duplicate safety net by calibrated margin, adaptive thresholds, headset/phone recovery.
   - **008.4** `[planned]` — Physical multi-person UAT and closure.

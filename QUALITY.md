@@ -109,6 +109,14 @@ Status: **unverified**
 
 ## Per-task evidence
 
+### 2026-10-11 — CAPTION-008.1 source, live SQL and browser smoke
+- Environment/device: Windows Builder tooling; local Next.js app with configured environment; Codex in-app browser. One temporary Headset Mode host room was created and ended. No physical phone, headset or fake-media Chromium run was available.
+- Automated: 152 tests across 24 files passed; typecheck, lint and production build passed; `git diff --check` passed. Coverage includes headset levels/calibration/gate/room-check/input labels/messages/preview/export plus existing Table/Connected behavior.
+- Live SQL: Target ref `cqnyvevhuxwfzhqpmccn` confirmed; migration `20261011140359_headset_mode` applied; rollback-only `connected_rooms.sql` passed with mode persistence assertions.
+- Browser/accessibility: Headset Mode selector, mode-specific invite copy, no room-microphone control, speaking board with text `Not set up`, disabled room-check hint, optional host setup and end lifecycle were observed. No three-browser fake-media protocol run, 390px/1280px measured viewport check, keyboard traversal, network instrumentation, or Copy-results validation was completed in this environment.
+- Audio/provider: Headset Mode source path does not construct a transcription session or provider socket; no microphone was opened in the smoke room because optional host setup was not used. Synthetic protocol/acoustic numbers and physical separation are unverified.
+- Result: Source and live migration gates pass. Human must run the physical test script before any 008.2 decision.
+
 ### 2026-10-10 — CAPTION-001 source and browser verification
 - Environment/device: Codex in-app browser on the local Next.js development server; desktop viewport. Node.js `v22.15.0` for source gates.
 - Audio path: Builder-observed real microphone/provider path was not completed during that verification session; the browser remained at the microphone-permission state without a usable local provider credential. A later user-observed real UAT report is recorded below; no raw audio was stored.
