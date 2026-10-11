@@ -83,6 +83,7 @@ None expected initially. None verified.
 - Anonymous sign-in began failing after roughly 20 sign-ins in about 35 minutes from one IP. The configured Auth rate-limit value was not inspected.
 - Test rooms were ended through the app. One room from a rate-limited run may remain open with no connected host or microphone until its 24-hour expiry; it could not be listed because the available Supabase connector points at a different project (`kzyoptgjzxtitdkvdstr`).
 - Local only: this does not establish deployed behaviour, physical devices or real voices.
+- Publication: `9770a18` pushed to `main`; GitHub combined status reported Vercel success: [Deployment status](https://vercel.com/madziyis-projects/caption-assist/49hgxyRQ1BLbPFK5a4DVc22N6j6S). Existing Vercel Git integration; no hosting/provider configuration changed. Deployment status only; the deployed build was not exercised with devices.
 
 ## Reconciliation diagnostics publication - 2026-10-11
 

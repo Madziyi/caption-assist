@@ -267,3 +267,7 @@ Use this format:
 - Verification: 140 tests / 16 files, typecheck, lint, build. Live AssemblyAI check with synthetic voices and local live end-to-end runs (headless Chromium, WAV as microphone, live Supabase + AssemblyAI) — see QUALITY.md. Found and fixed lost taps right after joining; hardened acknowledgement after one unexplained false withdrawal.
 - Known issues: Similar voices can merge; short replies can be mislabelled before revisions; anonymous sign-in rate limit observed in testing; brief disabled "Start room microphone" button while ending.
 - Next action: Physical UAT with a host room microphone and two or three people identifying from their phones on the deployed build.
+
+### 2026-10-11 — CAPTION-003.4 publication verification
+- Implementation `9770a18` pushed to main. GitHub Vercel status reported success: https://vercel.com/madziyis-projects/caption-assist/49hgxyRQ1BLbPFK5a4DVc22N6j6S
+- Final gates: 140 tests / 16 files, typecheck, lint, production build and diff check passed. Final-code local live two-phone run passed (both identified, 13/15 named live, 15/15 after end-of-session revision, phones never opened a microphone). No physical-device UAT performed by Builder; CAPTION-003 remains open.
