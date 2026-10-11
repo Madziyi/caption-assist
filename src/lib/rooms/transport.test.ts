@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { SupabaseRoomTransport } from "./transport";
 import type { HeadsetPresence } from "../headset/messages";
+import type { TranscriptionEvent } from "../captions/types";
 const host = { id: "host", role: "host" as const, displayName: "You", accentIndex: null, removed: false };
 const guest = { id: "guest", role: "participant" as const, displayName: "Alex", accentIndex: 0, removed: false };
 class Channel {
@@ -16,7 +17,7 @@ class Channel {
 function setup(self: typeof host | typeof guest) {
   const channels = new Map<string, Channel>();
   const client = { channel: vi.fn((topic: string) => { const channel = new Channel(); channels.set(topic, channel); return channel; }), removeChannel: vi.fn().mockResolvedValue("ok") };
-  const callbacks = { identify: vi.fn(), identification: vi.fn(), registryChanged: vi.fn(), state: vi.fn(), control: vi.fn(), disconnected: vi.fn(), headsetPresence: vi.fn(), headsetSignal: vi.fn(), headsetControl: vi.fn() };
+  const callbacks = { identify: vi.fn(), identification: vi.fn(), registryChanged: vi.fn(), state: vi.fn(), control: vi.fn(), disconnected: vi.fn(), headsetPresence: vi.fn(), headsetSignal: vi.fn(), headsetControl: vi.fn(), caption: vi.fn() };
   const transport = new SupabaseRoomTransport(client as unknown as SupabaseClient, "room", self, callbacks);
   return { channels, client, callbacks, transport };
 }
@@ -182,5 +183,30 @@ describe("headset state transport under Presence limits", () => {
     own.listeners.get("presence:sync")!({});
     expect(callbacks.headsetPresence).toHaveBeenLastCalledWith("guest", null);
     await transport.disconnect();
+  });
+});
+
+describe("headset caption relay", () => {
+  beforeEach(() => { vi.useFakeTimers(); });
+  afterEach(() => { vi.useRealTimers(); });
+  const interim = (text: string): TranscriptionEvent => ({ type: "interim", caption: { id: "raw", sourceTurnId: "raw", text, speakerId: null, startedAt: 1, isFinal: false } });
+  const final = (text: string): TranscriptionEvent => ({ type: "final_turn", sourceTurnId: "raw", captions: [{ id: "raw", sourceTurnId: "raw", text, speakerId: null, startedAt: 1, isFinal: true }] });
+  it("coalesces interims, flushes finals and deduplicates host envelopes", async () => {
+    const guestSetup = setup(guest); const hostSetup = setup(host);
+    await guestSetup.transport.connect([host, guest]); await hostSetup.transport.connect([host, guest]);
+    const guestChannel = guestSetup.channels.get("caption-room:room:participant:guest")!;
+    const hostChannel = hostSetup.channels.get("caption-room:room:participant:guest")!;
+    await guestSetup.transport.sendCaption!(interim("one"), "11111111-1111-4111-8111-111111111111");
+    await guestSetup.transport.sendCaption!(interim("two"), "11111111-1111-4111-8111-111111111111");
+    expect(guestChannel.send).not.toHaveBeenCalledWith(expect.objectContaining({ event: "caption" }));
+    await vi.advanceTimersByTimeAsync(200);
+    expect(guestChannel.send).toHaveBeenCalledTimes(1);
+    const first = guestChannel.send.mock.calls[0][0] as { payload: { sequence: number } };
+    hostChannel.listeners.get("broadcast:caption")!({ payload: first.payload });
+    hostChannel.listeners.get("broadcast:caption")!({ payload: first.payload });
+    expect(hostSetup.callbacks.caption).toHaveBeenCalledTimes(1);
+    await guestSetup.transport.sendCaption!(final("done"), "11111111-1111-4111-8111-111111111111");
+    expect(guestChannel.send).toHaveBeenCalledTimes(2);
+    await guestSetup.transport.disconnect(); await hostSetup.transport.disconnect();
   });
 });

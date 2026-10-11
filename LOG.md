@@ -364,3 +364,9 @@ Use this format:
   - `devicechange` fails only for the phone's own lost device; a disconnected state keeps calibration on restart; a `micDrops` count is added.
   - The Builder checks Realtime logs for room disconnections first.
 - Both export rows become required test vectors.
+
+### 2026-10-11 — CAPTION-008.2 Builder implementation and pre-coding log check
+- Realtime check before coding: exact post-`d839f09` window contained 15 `realtime_logs` rows, 0 `ClientPresenceRateLimitReached`, and no participant channel/error failures; the only disconnect-like matches were normal informational tenant replication shutdown/restart entries.
+- Implemented plausible room-check threshold application with the supplied vectors, 2-frame attack, sensitivity control/validation, calibration-preserving rejoin and headset-drop state with memory-only `micDrops`; export v2 records participant drops and per-row application.
+- Implemented fixed near-field Universal-3.6 Pro headset transcription, 300 ms gated look-ahead silence frames, bounded reconnect, participant-topic caption relay with interim coalescing and sequence dedupe, exact host identity binding, host transcript/status UI and updated privacy/invite copy. Table and Connected paths remain unchanged.
+- Verification: 175 tests / 29 files, typecheck, lint, production build and diff check passed. No physical UAT or real browser/provider session performed by Builder; 008.4 remains the physical acceptance gate.

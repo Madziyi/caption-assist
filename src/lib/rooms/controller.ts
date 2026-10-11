@@ -9,6 +9,9 @@ import { VoiceIdentityRegistry, type VoicePhase } from "./voice-identity";
 import { HeadsetHost, type HeadsetHostView } from "../headset/headset-host";
 import { HeadsetParticipant, type HeadsetParticipantView } from "../headset/headset-participant";
 import type { HeadsetPresence, HeadsetSignal } from "../headset/messages";
+import type { Sensitivity } from "../headset/calibration";
+import { HeadsetTranscriber } from "../headset/headset-transcriber";
+import { exactIdentity } from "./types";
 
 export type RoomMicrophoneState = "Off" | "Starting" | "Listening" | "Reconnecting";
 export type RoomView = {
@@ -120,7 +123,7 @@ export class ConnectedRoom {
       state: (id, status) => {
         if (generation !== this.generation) return;
         this.update({ statuses: { ...this.view.statuses, [id]: status } });
-        if (status === "Connected" && this.isHost && id !== this.view.snapshot?.self.id) this.syncIdentity(true);
+        if (status === "Connected" && this.isHost && id !== this.view.snapshot?.self.id) { this.syncIdentity(true); this.headsetHostInstance?.syncSensitivity(); }
       },
       control: (event) => {
         if (generation !== this.generation) return;
@@ -133,6 +136,7 @@ export class ConnectedRoom {
       headsetPresence: (id, presence) => { if (generation === this.generation) this.headsetHostInstance?.presence(id, presence); },
       headsetSignal: (id, signal) => { if (generation === this.generation) this.headsetHostInstance?.signal(id, signal); },
       headsetControl: (control) => { if (generation === this.generation) this.headsetParticipantInstance?.receiveControl(control); },
+      caption: (participantId, event) => { if (generation === this.generation && snapshot.mode === "headset") this.dispatch?.({ type: "TRANSCRIPTION_EVENT", event: exactIdentity(event, participantId) }); },
     });
     this.transport = transport;
     try {
@@ -148,10 +152,13 @@ export class ConnectedRoom {
         if (snapshot.mode === "headset") {
           this.headsetHostInstance = new HeadsetHost({ sendControl: (control) => transport.sendControl(control) }, (view) => this.update({ headsetHost: view }));
           this.headsetHostInstance.setRoster(snapshot.participants);
+          if (this.headsetParticipantInstance) { this.headsetHostInstance.attachLocal(snapshot.self.id, this.headsetParticipantInstance); this.update({ headsetSelf: this.headsetParticipantInstance.currentView }); }
+          this.headsetHostInstance.syncSensitivity();
         } else if (startMicrophone) void this.startRoomMicrophone();
       } else if (snapshot.mode === "headset") {
-        this.headsetParticipantInstance = new HeadsetParticipant(snapshot.self.id, { setPresence: (presence) => transport.setHeadsetPresence?.(presence) ?? Promise.resolve(), sendSignal: (signal) => transport.sendHeadsetSignal?.(signal) ?? Promise.resolve() }, (view) => this.update({ headsetSelf: view }));
+        this.headsetParticipantInstance = new HeadsetParticipant(snapshot.self.id, { setPresence: (presence) => transport.setHeadsetPresence?.(presence) ?? Promise.resolve(), sendSignal: (signal) => transport.sendHeadsetSignal?.(signal) ?? Promise.resolve(), sendCaption: (event, streamId) => transport.sendCaption?.(event, streamId) ?? Promise.resolve() }, (view) => this.update({ headsetSelf: view }), { transcriberFactory: (publish, onState) => new HeadsetTranscriber(snapshot.roomId, publish, onState) });
         this.headsetParticipantInstance.setVisible(document.visibilityState === "visible");
+          this.update({ headsetSelf: this.headsetParticipantInstance.currentView });
         document.addEventListener("visibilitychange", this.visibilityHandler);
       }
     } catch (error) {
@@ -196,6 +203,11 @@ export class ConnectedRoom {
     this.identity.observe(event);
     this.dispatch?.({ type: "TRANSCRIPTION_EVENT", event });
     this.syncIdentity();
+  }
+  private headsetCaption(participantId: string, event: TranscriptionEvent, streamId: string) {
+    void streamId;
+    if (!this.isHost || this.view.mode !== "headset") return;
+    this.dispatch?.({ type: "TRANSCRIPTION_EVENT", event: exactIdentity(event, participantId) });
   }
   private async stopRoomMicrophone() {
     const session = this.roomMic;
@@ -307,9 +319,9 @@ export class ConnectedRoom {
     if (!this.headsetParticipantInstance) {
       const selfId = this.view.snapshot.self.id;
       const io = this.isHost
-        ? { setPresence: async (presence: HeadsetPresence) => this.headsetHostInstance?.presence(selfId, presence), sendSignal: async (signal: HeadsetSignal) => this.headsetHostInstance?.signal(selfId, signal) }
-        : { setPresence: async (presence: HeadsetPresence) => this.transport?.setHeadsetPresence?.(presence), sendSignal: async (signal: HeadsetSignal) => this.transport?.sendHeadsetSignal?.(signal) };
-      this.headsetParticipantInstance = new HeadsetParticipant(selfId, { setPresence: async (presence) => { await io.setPresence(presence); }, sendSignal: async (signal) => { await io.sendSignal(signal); } }, (view) => this.update({ headsetSelf: view }));
+        ? { setPresence: async (presence: HeadsetPresence) => this.headsetHostInstance?.presence(selfId, presence), sendSignal: async (signal: HeadsetSignal) => this.headsetHostInstance?.signal(selfId, signal), sendCaption: async (event: TranscriptionEvent, streamId: string) => this.headsetCaption(selfId, event, streamId) }
+        : { setPresence: async (presence: HeadsetPresence) => this.transport?.setHeadsetPresence?.(presence), sendSignal: async (signal: HeadsetSignal) => this.transport?.sendHeadsetSignal?.(signal), sendCaption: async (event: TranscriptionEvent, streamId: string) => this.transport?.sendCaption?.(event, streamId) };
+      this.headsetParticipantInstance = new HeadsetParticipant(selfId, { setPresence: async (presence) => { await io.setPresence(presence); }, sendSignal: async (signal) => { await io.sendSignal(signal); }, sendCaption: async (event, streamId) => { await io.sendCaption(event, streamId); } }, (view) => this.update({ headsetSelf: view }), { transcriberFactory: (publish, onState) => new HeadsetTranscriber(this.view.snapshot!.roomId, publish, onState) });
       if (this.isHost) this.headsetHostInstance?.attachLocal(selfId, this.headsetParticipantInstance);
     }
     await this.headsetParticipantInstance.startSetup(deviceId);
@@ -317,6 +329,8 @@ export class ConnectedRoom {
   useCurrentHeadsetInput() { this.headsetParticipantInstance?.useCurrentInput(); }
   async chooseHeadsetInput(deviceId: string) { await this.headsetParticipantInstance?.chooseInput(deviceId); }
   async restartHeadsetMicrophone() { await this.headsetParticipantInstance?.restartMicrophone(); }
+  async retryHeadsetCaptions() { await this.headsetParticipantInstance?.retryCaptions(); }
+  setHeadsetSensitivity(participantId: string, sensitivity: Sensitivity) { this.headsetHostInstance?.setSensitivity(participantId, sensitivity); }
 
   async remove(participantId: string) {
     if (!this.view.snapshot) return;
@@ -380,6 +394,8 @@ export class ConnectedRoom {
     this.aliasKey = "{}";
     this.dispatch?.({ type: "SPEAKER_ALIASES", aliases: {} });
     this.update({ identification: {}, identificationNotice: null });
+    this.headsetParticipantInstance = null;
+    this.headsetHostInstance = null;
   }
   private async release() {
     ++this.generation;

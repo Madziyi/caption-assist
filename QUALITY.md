@@ -4,6 +4,14 @@ This file records measured evidence about whether the product is actually usable
 
 Do not invent values. Mark unmeasured items `unverified`.
 
+### 2026-10-11 — CAPTION-008.2 Builder handoff
+
+- Realtime pre-coding check after `d839f09`: project `cqnyvevhuxwfzhqpmccn`, `realtime_logs` rows 15 in the exact post-deployment window; `ClientPresenceRateLimitReached` 0; no participant channel/error rows. Two matching rows were normal informational tenant replication shutdown/restart events, not room-client disconnects.
+- Automated: 175 tests / 29 files passed; typecheck, lint, production build and `git diff --check` passed.
+- Gate evidence: room-check rows are applied only when own level is present, at least calibrated own −12 dB, and above bleed; the supplied wired vector applies at open −31.7 / close −35.7 (less −30.3, more −34.7), while the Bluetooth vector is rejected and leaves −36.1 / −40.1 unchanged. Gate attack is two 100 ms frames. Export is v2 with per-participant `micDrops` and per-row `applied`.
+- Source path: each ready headset has a Universal-3.6 Pro stream with `voice_focus=near-field`, fixed balanced/16 kHz/formatted-turn settings, 300 ms gated look-ahead with silence frames, bounded reconnect, and sequence-deduped identity-bound relay. No real browser/provider session, physical phone/headset, or acoustic result was performed in this pass.
+- Provider/quota documentation checked 2026-10-11: Supabase documents five Presence calls/client/30 s, Free/Pro message limits 100/500 per second, Presence message limits 20/50 per second, and Broadcast payload limits 256 KB/3,000 KB; the live project's plan was not independently verified. AssemblyAI's current official pricing materials list Universal-3.6 Pro Realtime at $0.45/hour, Voice Focus at +$0.10/hour, and unlimited streaming concurrency; free accounts are limited to five new streaming connections/minute and pay-as-you-go accounts start at 100 sessions/minute. These are documentation facts, not account-specific billing verification.
+
 ## Bootstrap evidence — 2026-10-10
 
 The repository contains no application, browser surface, microphone path, speech-provider integration, or deployed environment. No product-quality measurements or UAT evidence were possible during bootstrap; all quality dimensions below remain `unverified`.

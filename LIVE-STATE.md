@@ -55,6 +55,12 @@ None expected initially. None verified.
 
 - None recorded.
 
+## CAPTION-008.2 pre-coding Realtime log check — 2026-10-11
+
+- Query window: `2026-10-11T17:29:27Z` (the `d839f09` commit time) through `2026-10-11T23:59:59Z`, project `cqnyvevhuxwfzhqpmccn`.
+- `realtime_logs` rows: 15. `ClientPresenceRateLimitReached`: **0**. Realtime channel/error matches (`error`, `channel`, `disconnect`, `rate`): **2 informational rows**, both the normal tenant replication shutdown/restart sequence (`Tenant has no connected users`, `Disconnecting broadcast changes handler`, followed by initialization); no participant channel error or room disconnection was observed.
+- No live schema, policy, quota, or provider configuration was changed during this check. This evidence did not require a room-disconnection fix before coding.
+
 ## CAPTION-008.1 participant Presence quota fix deployment — 2026-10-11
 
 - Source commit `d839f09` pushed to `main`; GitHub combined status reported Vercel `success`: [deployment status](https://vercel.com/madziyis-projects/caption-assist/FHhwJXAXyz9DUgNtT4Z1TRqLzB1H).

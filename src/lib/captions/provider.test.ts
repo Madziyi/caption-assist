@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AssemblyAIStreamingProvider, CONNECTED_ROOM_ASSEMBLYAI_OPTIONS, connectedAssemblyAIOptions, connectedVoiceFocusProfile, normalizeSpeakerId, TABLE_ASSEMBLYAI_OPTIONS } from "./provider";
+import { AssemblyAIStreamingProvider, CONNECTED_ROOM_ASSEMBLYAI_OPTIONS, connectedAssemblyAIOptions, connectedVoiceFocusProfile, HEADSET_ASSEMBLYAI_OPTIONS, normalizeSpeakerId, TABLE_ASSEMBLYAI_OPTIONS } from "./provider";
 import type { TranscriptionEvent } from "./types";
 
 class FakeWebSocket {
@@ -65,6 +65,17 @@ describe("AssemblyAIStreamingProvider", () => {
     expect(params.get("voice_focus")).toBe("far-field");
     expect(params.get("mode")).toBe("balanced");
     expect(params.has("voice-focus")).toBe(false);
+  });
+  it("configures the fixed near-field Headset Mode stream", async () => {
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    await new AssemblyAIStreamingProvider("temporary-token", "headset", HEADSET_ASSEMBLYAI_OPTIONS).connect();
+    const params = new URL(FakeWebSocket.lastUrl).searchParams;
+    expect(params.get("speech_model")).toBe("universal-3-6-pro");
+    expect(params.get("speaker_labels")).toBe("false");
+    expect(params.get("voice_focus")).toBe("near-field");
+    expect(params.get("mode")).toBe("balanced");
+    expect(params.get("format_turns")).toBe("true");
+    expect(params.get("sample_rate")).toBe("16000");
   });
   it("selects near-field only for the explicit valid profile and defaults safely", () => {
     expect(connectedVoiceFocusProfile("near-field")).toBe("near-field");

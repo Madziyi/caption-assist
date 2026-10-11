@@ -50,8 +50,8 @@ export default function ParticipantPage({ token }: { token: string }) {
         <p className="participant-status" role="status">● Connected</p>
         <h1>{view.snapshot?.self.displayName}</h1>
         {roomMode === "headset" ? <>
-          <p>Your phone measures how loud your headset hears you, so it can tell your voice from people nearby. In this test, no audio leaves your phone.</p>
-          <HeadsetSetup view={view.headsetSelf} start={() => void execute(() => room.current!.startHeadsetSetup())} useAnyway={() => room.current?.useCurrentHeadsetInput()} retry={() => void execute(() => room.current!.restartHeadsetMicrophone())} choose={(id) => void execute(() => room.current!.chooseHeadsetInput(id))} />
+          <p>Your headset microphone captions your voice. Audio is sent for transcription only while you&apos;re speaking, and nothing is recorded or stored.</p>
+          <HeadsetSetup view={view.headsetSelf} start={() => void execute(() => room.current!.startHeadsetSetup())} useAnyway={() => room.current?.useCurrentHeadsetInput()} retry={() => void execute(() => room.current!.restartHeadsetMicrophone())} retryCaptions={() => void execute(() => room.current!.retryHeadsetCaptions())} choose={(id) => void execute(() => room.current!.chooseHeadsetInput(id))} />
           {view.headsetSelf?.check && <p role="status" aria-live="polite">{view.headsetSelf.check.mine ? view.headsetSelf.check.phase === "reading" ? "Your turn — read out loud: “I'm checking my headset so the captions know when I'm talking.”" : "Get ready…" : `Stay quiet — someone else is reading (${view.headsetSelf.check.index + 1} of ${view.headsetSelf.check.total}).`}</p>}
           {view.headsetSelf?.speaking && <p className="participant-status" role="status">Speaking</p>}
         </> : <>

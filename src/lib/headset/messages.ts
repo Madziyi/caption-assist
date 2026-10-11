@@ -1,22 +1,24 @@
 import { roundDb } from "./levels";
+import type { Sensitivity } from "./calibration";
 export type HeadsetPresence = {
-  mic: "off" | "starting" | "on" | "stopped" | "denied";
+  mic: "off" | "starting" | "on" | "stopped" | "denied" | "disconnected";
   input: "headset" | "built-in" | "unknown" | null;
   label: string | null;
   processing: { autoGainControl: boolean | null; noiseSuppression: boolean | null; echoCancellation: boolean | null } | null;
   setup: "not_started" | "input" | "quiet" | "voice" | "ready" | "failed";
   floorDb: number | null; ownDb: number | null; visible: boolean;
+  sensitivity?: Sensitivity; openDb?: number | null; stt?: "off" | "connecting" | "on" | "reconnecting" | "failed"; micDrops?: number;
 };
 export type HeadsetPresenceUpdate = { sessionId: string; seq: number; presence: HeadsetPresence };
 export type HeadsetSignal = { kind: "gate"; seq: number; open: boolean; levelDb: number; openDb: number } | { kind: "check-result"; checkId: string; levels: Record<string, number | null> };
-export type HeadsetControl = { type: "headset-check"; checkId: string; order: string[]; slotMs: number; gapMs: number } | { type: "headset-check-cancel"; checkId: string };
+export type HeadsetControl = { type: "headset-check"; checkId: string; order: string[]; slotMs: number; gapMs: number } | { type: "headset-check-cancel"; checkId: string } | { type: "headset-sensitivity"; levels: Record<string, Sensitivity> };
 export const CHECK_ID = /^[A-Za-z0-9-]{8,64}$/;
-const presenceEnums = { mic: ["off", "starting", "on", "stopped", "denied"], input: ["headset", "built-in", "unknown", null], setup: ["not_started", "input", "quiet", "voice", "ready", "failed"] } as const;
+const presenceEnums = { mic: ["off", "starting", "on", "stopped", "denied", "disconnected"], input: ["headset", "built-in", "unknown", null], setup: ["not_started", "input", "quiet", "voice", "ready", "failed"] } as const;
 const validDb = (v: unknown) => v === null || (typeof v === "number" && Number.isFinite(v) && v >= -100 && v <= 0 && roundDb(v) === v);
 export function validHeadsetPresence(value: unknown): value is HeadsetPresence {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const p = value as HeadsetPresence;
-  return presenceEnums.mic.includes(p.mic) && presenceEnums.input.includes(p.input) && presenceEnums.setup.includes(p.setup) && (p.label === null || typeof p.label === "string" && p.label.length <= 60) && validDb(p.floorDb) && validDb(p.ownDb) && typeof p.visible === "boolean" && (p.processing === null || (typeof p.processing === "object" && [p.processing.autoGainControl, p.processing.noiseSuppression, p.processing.echoCancellation].every((v) => v === null || typeof v === "boolean")));
+  return presenceEnums.mic.includes(p.mic) && presenceEnums.input.includes(p.input) && presenceEnums.setup.includes(p.setup) && (p.label === null || typeof p.label === "string" && p.label.length <= 60) && validDb(p.floorDb) && validDb(p.ownDb) && typeof p.visible === "boolean" && (p.processing === null || (typeof p.processing === "object" && [p.processing.autoGainControl, p.processing.noiseSuppression, p.processing.echoCancellation].every((v) => v === null || typeof v === "boolean"))) && (p.sensitivity === undefined || ["lower", "normal", "higher"].includes(p.sensitivity)) && (p.openDb === undefined || validDb(p.openDb)) && (p.stt === undefined || ["off", "connecting", "on", "reconnecting", "failed"].includes(p.stt)) && (p.micDrops === undefined || Number.isSafeInteger(p.micDrops) && p.micDrops >= 0 && p.micDrops <= 1000);
 }
 export function validHeadsetPresenceUpdate(value: unknown): value is HeadsetPresenceUpdate {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -34,6 +36,7 @@ export function validHeadsetSignal(value: unknown): value is HeadsetSignal {
 export function validHeadsetControl(value: unknown): value is HeadsetControl {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
   const c = value as HeadsetControl;
+  if (c.type === "headset-sensitivity") return !!c.levels && typeof c.levels === "object" && !Array.isArray(c.levels) && Object.keys(c.levels).length <= 64 && Object.entries(c.levels).every(([id, sensitivity]) => id.length > 0 && id.length < 100 && ["lower", "normal", "higher"].includes(sensitivity));
   if (c.type === "headset-check-cancel") return CHECK_ID.test(c.checkId);
   return c.type === "headset-check" && CHECK_ID.test(c.checkId) && Array.isArray(c.order) && c.order.length >= 2 && c.order.length <= 12 && c.order.every((id) => typeof id === "string" && id.length > 0 && id.length < 100) && Number.isFinite(c.slotMs) && c.slotMs >= 3000 && c.slotMs <= 10000 && Number.isFinite(c.gapMs) && c.gapMs >= 500 && c.gapMs <= 3000;
 }

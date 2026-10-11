@@ -2,8 +2,8 @@
 
 **Initiative:** CAPTION-008 - Headset Mode (separate mode: every speaker wears AirPods/a headset on their own phone; no room microphone)
 **Active slice:** CAPTION-008.2 - Gate correction (room check tunes the gate, 2-frame attack, host sensitivity control, calibration survives rejoin), then gated per-phone transcription with Universal-3.6 Pro + Voice Focus `near-field`, captions relayed to the host and named by phone
-**Status:** Ready for Builder. 008.1 is deployed and the human tried it on real phones and headsets: "satisfied with the results, might need to calibrate for less sensitivity, but this could actually work". No exports or device models were returned. Planner go/no-go: **GO**. Planner review found that the room check never applies the measured bleed to the gate, so every gate keeps the provisional `ownDb - 10` threshold (a likely cause of over-sensitivity), and that calibration is lost on rejoin. Full specification: `CAPTION-008-HEADSET-MODE.md` ("Planner review of 008.1" and "CAPTION-008.2 specification").
-**Owner:** Builder implements 008.2 Part A, then Part B, verifies, updates durable context and pushes. The human then runs the 008.2 physical test script and returns exports and notes to the Planner.
+**Status:** Implemented locally by Builder. Automated/source gates pass; no post-`d839f09` participant-room Realtime errors were found. Live AssemblyAI browser-path and physical headset verification remain unverified. The human should run the 008.2 physical test script and return exports/notes to the Planner.
+**Owner:** Builder handoff is complete after commit/push. Planner reviews the published diff; the human then runs the 008.2 physical test script.
 
 ## Why
 
@@ -35,7 +35,7 @@ CAPTION-003.1-003.3 failed because phone microphones on a table hear neighbours 
 
 ## Next action
 
-Builder: sync `main`, read `CAPTION-008-HEADSET-MODE.md` (008.1 as built, Planner review, 008.2 specification) and implement 008.2.
+Planner/human: review the published 008.2 handoff, then run the physical multi-person headset script. Do not infer acoustic or mobile recovery acceptance from the automated gates.
 
 ## Paused
 

@@ -187,7 +187,7 @@ export default function HomePage() {
   const editingSpeaker = editingSpeakerId ? speakerMap.get(editingSpeakerId) : undefined;
   const connectedActive = (mode === "connected" || mode === "headset") && ["connecting", "joined", "disconnected"].includes(roomView.phase) && Boolean(roomView.snapshot);
   const participantCount = roomView.snapshot?.participants.filter((p) => !p.removed).length ?? 0;
-  const waitingCopy = mode === "headset" ? "Headset Mode shows speaking lights; it does not caption yet."
+  const waitingCopy = mode === "headset" ? "Captions appear here when someone with a ready headset speaks. Only people wearing a set-up headset are captioned."
     : roomView.roomMicrophone !== "Listening" ? "The room microphone is off. Start it to caption the conversation."
     : participantCount <= 1 ? "Listening. Invite participants, then ask each person to identify their voice." : "Listening for conversation…";
 
@@ -272,7 +272,7 @@ export default function HomePage() {
       {connectedActive && mode === "headset" && roomRef.current && <>
         <HeadsetSpeakingBoard view={roomView} />
         <HeadsetHostPanel view={roomView} room={roomRef.current} />
-        <section className="headset-host-setup"><h2>Optional host headset</h2><p>The host microphone stays off unless you choose to set up your own headset.</p><HeadsetSetup view={roomView.headsetSelf} start={() => void roomRef.current?.startHeadsetSetup()} useAnyway={() => roomRef.current?.useCurrentHeadsetInput()} retry={() => void roomRef.current?.restartHeadsetMicrophone()} choose={(id) => void roomRef.current?.chooseHeadsetInput(id)} /></section>
+        <section className="headset-host-setup"><h2>Optional host headset</h2><p>The host microphone stays off unless you choose to set up your own headset.</p><HeadsetSetup view={roomView.headsetSelf} start={() => void roomRef.current?.startHeadsetSetup()} useAnyway={() => roomRef.current?.useCurrentHeadsetInput()} retry={() => void roomRef.current?.restartHeadsetMicrophone()} retryCaptions={() => void roomRef.current?.retryHeadsetCaptions()} choose={(id) => void roomRef.current?.chooseHeadsetInput(id)} /></section>
       </>}
 
       {speakerPanelOpen && nameableSpeakers.length > 0 && (

@@ -2,6 +2,7 @@ import { percentile, roundDb } from "./levels";
 
 export type HeadsetCalibration = { floorDb: number; ownDb: number };
 export type GateThresholds = { openDb: number; closeDb: number };
+export type Sensitivity = "lower" | "normal" | "higher";
 export type SeparationBand = "clear" | "usable" | "weak";
 
 export function quietFloor(levels: readonly number[]): number {
@@ -22,6 +23,16 @@ export function gateThresholds(calibration: HeadsetCalibration, bleedDb: number 
     ? Math.max(floor, own - 10)
     : Math.max(floor, bleedDb + 6 <= own - 6 ? bleedDb + 6 : (bleedDb + own) / 2);
   return { openDb: roundDb(openDb), closeDb: roundDb(openDb - 4) };
+}
+
+export function applySensitivity(base: GateThresholds, sensitivity: Sensitivity, calibration: HeadsetCalibration): GateThresholds {
+  const offset = sensitivity === "lower" ? 4 : sensitivity === "higher" ? -3 : 0;
+  const openDb = Math.min(calibration.ownDb - 3, Math.max(calibration.floorDb + 6, base.openDb + offset));
+  return { openDb: roundDb(openDb), closeDb: roundDb(openDb - 4) };
+}
+
+export function plausibleRoomCheckRow(calibration: HeadsetCalibration, own: number | null, bleedDb: number | null): boolean {
+  return own !== null && own >= calibration.ownDb - 12 && (bleedDb === null || own - bleedDb > 0);
 }
 
 export function separationBand(db: number | null): SeparationBand | null {

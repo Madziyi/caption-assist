@@ -3,11 +3,14 @@ import type { GateThresholds } from "./calibration";
 export class HeadsetGate {
   private isOpen = false;
   private belowMs = 0;
-  constructor(private thresholds: GateThresholds, private readonly holdMs = 600) {}
-  setThresholds(thresholds: GateThresholds) { this.thresholds = thresholds; this.belowMs = 0; }
+  private aboveFrames = 0;
+  constructor(private thresholds: GateThresholds, private readonly holdMs = 600, private readonly attackFrames = 2) {}
+  setThresholds(thresholds: GateThresholds) { this.thresholds = thresholds; this.belowMs = 0; this.aboveFrames = 0; }
   push(levelDb: number, frameMs = 100): { open: boolean; changed: boolean } {
     if (!this.isOpen) {
-      if (levelDb >= this.thresholds.openDb) { this.isOpen = true; this.belowMs = 0; return { open: true, changed: true }; }
+      if (levelDb >= this.thresholds.openDb) this.aboveFrames += 1;
+      else this.aboveFrames = 0;
+      if (this.aboveFrames >= this.attackFrames) { this.isOpen = true; this.aboveFrames = 0; this.belowMs = 0; return { open: true, changed: true }; }
       return { open: false, changed: false };
     }
     if (levelDb < this.thresholds.closeDb) this.belowMs += frameMs;
@@ -16,5 +19,5 @@ export class HeadsetGate {
     return { open: true, changed: false };
   }
   get open() { return this.isOpen; }
-  reset() { this.isOpen = false; this.belowMs = 0; }
+  reset() { this.isOpen = false; this.belowMs = 0; this.aboveFrames = 0; }
 }

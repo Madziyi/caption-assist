@@ -1,5 +1,5 @@
 import { percentile, roundDb } from "./levels";
-import { separationBand, type SeparationBand } from "./calibration";
+import { plausibleRoomCheckRow, separationBand, type HeadsetCalibration, type SeparationBand } from "./calibration";
 
 export type RoomCheckPlan = { order: string[]; slotMs: number; gapMs: number };
 export type RoomCheckSlot = { index: number; phase: "gap" | "reading"; measuring: boolean } | null;
@@ -41,19 +41,22 @@ export type CheckMatrix = {
   levels: Record<string, Record<string, number | null>>;
   separationDb: Record<string, number | null>;
   band: Record<string, SeparationBand | null>;
+  applied: Record<string, boolean>;
 };
-export function checkMatrix(order: string[], results: Record<string, Record<string, number | null>>): CheckMatrix {
+export function checkMatrix(order: string[], results: Record<string, Record<string, number | null>>, calibrations: Record<string, HeadsetCalibration | null> = {}): CheckMatrix {
   const levels = Object.fromEntries(order.map((listener) => [listener, Object.fromEntries(order.map((speaker) => [speaker, results[listener]?.[speaker] ?? null]))]));
   const separationDb: Record<string, number | null> = {};
   const band: Record<string, SeparationBand | null> = {};
+  const applied: Record<string, boolean> = {};
   for (const listener of order) {
     const own = levels[listener]?.[listener] ?? null;
     const others = order.filter((speaker) => speaker !== listener).map((speaker) => levels[listener]?.[speaker]).filter((v): v is number => v !== null && Number.isFinite(v));
     const separation = own === null || !others.length ? null : Math.round((own - Math.max(...others)) * 10) / 10;
     separationDb[listener] = separation;
     band[listener] = separationBand(separation);
+    applied[listener] = plausibleRoomCheckRow(calibrations[listener] ?? { floorDb: -100, ownDb: -100 }, own, others.length ? Math.max(...others) : null);
   }
-  return { order: [...order], levels, separationDb, band };
+  return { order: [...order], levels, separationDb, band, applied };
 }
 export function bleedFromRow(selfId: string, row: Record<string, number | null>): number | null {
   const values = Object.entries(row).filter(([id, value]) => id !== selfId && value !== null).map(([, value]) => value as number);

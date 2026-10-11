@@ -32,7 +32,7 @@ export function InvitePanel({ view, close }: { view: RoomView; close(): void }) 
   const url = view.snapshot?.joinUrl;
   return <RoomDialog title="Invite participants" close={close}>
     {url ? <><div className="room-qr"><QRCodeSVG value={url} size={220} marginSize={4} title="Scan to join this conversation" /></div>
-      <p>{view.mode === "headset" ? "Everyone who will speak wears AirPods or a headset connected to their phone, scans this code, and sets up their headset. This test build shows who is speaking; it does not caption yet, and no audio leaves any phone." : "Scan to join, then tap Identify my voice. Phones do not record audio; this device&apos;s room microphone captions everyone."}</p><a className="room-link" href={url}>{url}</a>
+      <p>{view.mode === "headset" ? "Everyone who will speak wears AirPods or a headset connected to their phone, scans this code and sets up their headset. Each person's captions show their name. People without a set-up headset are not captioned." : "Scan to join, then tap Identify my voice. Phones do not record audio; this device&apos;s room microphone captions everyone."}</p><a className="room-link" href={url}>{url}</a>
       {view.mode === "connected" && <p>Room microphone — {view.roomMicrophone === "Listening" ? "on" : view.roomMicrophone === "Off" ? "off" : view.roomMicrophone.toLowerCase()}</p>}
       <p>{view.snapshot?.participants.filter((p) => !p.removed).length} participant(s)</p>
       <button className="button button-primary" onClick={async () => { try { await navigator.clipboard.writeText(url); setCopyStatus("Link copied."); } catch { setCopyStatus("Select the link to copy it."); } }}>Copy link</button>

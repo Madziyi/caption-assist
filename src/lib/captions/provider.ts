@@ -58,6 +58,7 @@ export function connectedVoiceFocusProfile(value = typeof process === "undefined
 export function connectedAssemblyAIOptions(profile = connectedVoiceFocusProfile()): Required<Omit<AssemblyAIStreamingOptions, "revisionIntervalMs">> {
   return { speechModel: "universal-3-6-pro", diarization: false, voiceFocus: profile, mode: "balanced" };
 }
+export const HEADSET_ASSEMBLYAI_OPTIONS = connectedAssemblyAIOptions("near-field");
 
 export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvider {
   private socket: WebSocket | null = null;
