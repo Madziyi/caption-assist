@@ -2,7 +2,7 @@
 
 **Initiative:** CAPTION-003 - Connected Mode / QR Participant Rooms
 **Active correction:** CAPTION-003.2 - Episode-based cross-microphone reconciliation
-**Status:** CAPTION-003.1 diagnostics identified strong negation-guard rejection and provider turn segmentation divergence in real-device evidence. Episode-based correction implemented locally; verification and publication pending. CAPTION-003 remains open; CAPTION-004 remains deferred.
+**Status:** CAPTION-003.1 diagnostics identified strong negation-guard rejection and provider turn segmentation divergence in real-device evidence. Episode-based correction `d342b1067f88371324386bd1d48d73a2ac5ffe14` is pushed to main; Vercel reports success. CAPTION-003 remains open pending physical acceptance; CAPTION-004 remains deferred.
 **Owner:** Builder until verified commit/push. CAPTION-004 planning/implementation is deferred by the current user instruction.
 
 ## Objective and contracts
