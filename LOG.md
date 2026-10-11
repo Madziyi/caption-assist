@@ -314,3 +314,7 @@ Use this format:
 - Changed: bind setTimeout/clearTimeout to the global; use actual track device IDs in the picker; classify generic headset routes as unknown and explain that listed routes need not indicate connected hardware. IDs remain local only.
 - Verification: browser reproduction fails before the timer fix and passes after for all four routes. Browser-simulated microphone through actual capture/worklet delivers level frames, advances calibration, restarts selected input and cancels on stop. 161 tests / 27 files, typecheck, lint, production build and diff check passed. Physical phones/Bluetooth remain unverified.
 - Next action: publish and retry Default/connected Bluetooth on the human's phones, then continue the 008.1 physical script.
+
+### 2026-10-11 — CAPTION-008.1 reproduced timer fix publication
+- Source commit `77efcef` pushed to `main`; GitHub combined status reported Vercel `success`: https://vercel.com/madziyis-projects/caption-assist/7ke58AMsU8NYNd51be4wpTuaExhu.
+- Next action: reload phone pages and retry Default/connected Bluetooth calibration. Physical audio/Bluetooth behavior still needs human confirmation.

@@ -135,6 +135,7 @@ Status: **unverified**
 - Audio verification: actual capture/PCM AudioWorklet with Chromium's fake microphone on a temporary loopback server delivered level frames; calibration advanced quiet → voice, chosen-ID capture restarted and stop kept its timer cancelled. This proves browser execution/lifecycle only; no physical Bluetooth/acoustic result or live multi-room protocol is claimed.
 - Automated: 161 tests / 27 files passed; typecheck, lint and production build passed. Added receiver-enforcing timer, device-ID selection, duplicate-label, missing-ID and generic-route tests. Diff check passed.
 - Correction: earlier claims that an awaited cleanup caused a confirmed mobile permission-window failure were unsupported and did not resolve the user's report. The native timer reproduction supersedes that diagnosis. Phone confirmation remains pending.
+- Publication: source commit `77efcef` pushed to `main`; Vercel reported `success`: [deployment status](https://vercel.com/madziyis-projects/caption-assist/7ke58AMsU8NYNd51be4wpTuaExhu). Physical mobile confirmation remains pending.
 
 ### 2026-10-10 — CAPTION-001 source and browser verification
 - Environment/device: Codex in-app browser on the local Next.js development server; desktop viewport. Node.js `v22.15.0` for source gates.

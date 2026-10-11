@@ -55,6 +55,12 @@ None expected initially. None verified.
 
 - None recorded.
 
+## CAPTION-008.1 calibration timer and input picker deployment — 2026-10-11
+
+- Source commit `77efcef` pushed to `main`; GitHub combined status reported Vercel `success`: [deployment status](https://vercel.com/madziyis-projects/caption-assist/7ke58AMsU8NYNd51be4wpTuaExhu).
+- Includes browser-global timer binding, active-track device-ID selection and generic headset-route guidance. No infrastructure/provider configuration changed.
+- Deployment completion verified; physical phone/Bluetooth retest remains pending.
+
 ## CAPTION-008.1 mobile fix deployment — 2026-10-11
 
 - Source commit `a1611bf` (preserve mobile microphone permission activation) was pushed to `main`.
