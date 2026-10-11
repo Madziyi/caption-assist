@@ -68,6 +68,14 @@ Table Mode uses the host as a room microphone with diarization ON. Mode selectio
 - State is memory-only and bounded to 128 recent turns, 256 comparison tokens per turn, 4 seconds inactivity and 15 seconds absolute cluster life. Oversized turns bypass comparison. Prune on events and existing 3-second room reconciliation ticks; reset on release/re-entry, discard removed sources. No transcript text is logged. In-memory diagnostics expose counts only.
 - Limitations: text/time cannot prove which physical person spoke; distinct people repeating the same longer sentence closely may be merged. Short speech, delayed duplicates, markedly different wording, oversized turns and insufficient common partials may remain duplicated. Already committed separate finals are never retrospectively deleted. Thresholds require real-device acceptance; CAPTION-003 is reopened until that acceptance. CAPTION-004 remains deferred.
 
+## CAPTION-003.2 episode reconciliation correction
+
+The deployed diagnostics showed two concrete CAPTION-003.1 failure modes: a 53-versus-55-word match at roughly 13 ms and 0.889 ordered similarity was rejected by the ordinary negation guard, and later provider segmentation produced 53-versus-14-word finals. The reconciler now retains a bounded SpeechEpisode association in host memory after strict evidence, rather than requiring every provider turn to remain the same turn ID.
+
+Initial episode evidence requires at least 8 words, at most 300 ms host receive delta, ordered similarity at least 0.85, and short-side LCS coverage at least 0.90. This tier may tolerate an isolated negation disagreement; numeral conflicts remain protected. Episode continuation uses at most 3000 ms, at least 5 words, and short-side coverage at least 0.70 or similarity at least 0.25 for an already-associated source. The existing ordinary 1800 ms / 0.85 matcher and short-speech policy remain unchanged for unrelated sources. Rolling source context is capped at 100 comparison tokens and episode inactivity remains bounded by the existing 4-second lifecycle.
+
+Episode members can receive new provider turn IDs and revisions without immediately splitting the episode. Accepted episode followers are suppressed or cleared using the existing reducer actions; no final text is fabricated and speaker attribution remains frozen after the first committed final. Episode diagnostics expose creation, joins, continuation, expiry, strong/partial evidence and the negation override as scalar metrics. Table Mode, Supabase transport/RLS, AssemblyAI configuration, persistence and CAPTION-004 remain unchanged.
+
 ## Planned technology stack
 
 These are architectural intentions until verified by repository implementation and live configuration.

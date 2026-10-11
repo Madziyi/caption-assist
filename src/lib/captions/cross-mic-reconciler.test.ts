@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { CROSS_MIC, CrossMicReconciler, comparisonTokens, tokenSimilarity } from "./cross-mic-reconciler";
+import { CROSS_MIC, CrossMicReconciler, comparisonTokens, shortSideCoverage, tokenSimilarity } from "./cross-mic-reconciler";
 import { captionReducer, initialCaptionState } from "./reducer";
 import type { TranscriptionEvent } from "./types";
 
@@ -41,6 +41,42 @@ describe("comparison-only normalization and similarity", () => {
 });
 
 describe("immediate cross-microphone reconciliation", () => {
+  it("establishes a strong speech episode despite one isolated negation disagreement", () => {
+    const f = fixture();
+    const long = `we should not leave ${"soon ".repeat(48)}`;
+    const revised = `we should leave ${"soon ".repeat(50)}`;
+    expect(comparisonTokens(long).length).toBeGreaterThanOrEqual(CROSS_MIC.strongMinWords);
+    expect(tokenSimilarity(comparisonTokens(long), comparisonTokens(revised))).toBeGreaterThanOrEqual(CROSS_MIC.strongSimilarity);
+    expect(shortSideCoverage(comparisonTokens(long), comparisonTokens(revised))).toBeGreaterThanOrEqual(CROSS_MIC.strongCoverage);
+    f.send("a", "1", long, true); f.advance(13); f.send("b", "1", revised, true);
+    expect(f.state.finalized).toHaveLength(1);
+  });
+  it("keeps a committed episode through a later provider segmentation revision", () => {
+    const f = fixture();
+    const long = `we should not leave ${"soon ".repeat(48)}`;
+    const revised = `we should leave ${"soon ".repeat(50)}`;
+    f.send("a", "1", long, true); f.send("b", "1", revised, true);
+    f.advance(1200); f.send("b", "2", "we should leave around soon soon soon soon soon soon soon soon soon soon", true);
+    expect(f.state.finalized).toHaveLength(1);
+  });
+  it("suppresses several shorter provider turns within one established episode", () => {
+    const f = fixture();
+    const long = `we should not leave ${"soon ".repeat(48)}`;
+    const revised = `we should leave ${"soon ".repeat(50)}`;
+    f.send("a", "1", long, true); f.send("b", "1", revised, true);
+    f.advance(500); f.send("b", "2", "we should leave around soon soon soon soon soon", true);
+    f.advance(500); f.send("b", "3", "soon soon soon soon soon soon soon", true);
+    expect(f.state.finalized).toHaveLength(1);
+  });
+  it("expires an episode before later independent speech", () => {
+    const f = fixture();
+    const long = `we should not leave ${"soon ".repeat(48)}`;
+    const revised = `we should leave ${"soon ".repeat(50)}`;
+    f.send("a", "1", long, true); f.send("b", "1", revised, true);
+    f.advance(CROSS_MIC.inactiveMs + 1);
+    f.send("a", "2", "Did anybody call Michael?", true); f.send("b", "2", "Did Michael send report?", true);
+    expect(f.state.finalized).toHaveLength(3);
+  });
   it("displays the first final immediately and suppresses the second final using host time", () => {
     const f = fixture(); f.send("a", "1", phrase, true);
     expect(f.state.finalized).toHaveLength(1); expect(f.state.finalized[0].text).toBe(phrase);

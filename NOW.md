@@ -1,8 +1,8 @@
 # Active Initiative
 
 **Initiative:** CAPTION-003 - Connected Mode / QR Participant Rooms
-**Active correction:** CAPTION-003.1 - Temporary observation-only reconciliation diagnostics
-**Status:** User real-device suppression acceptance failed: duplicates still observed. Observation-only diagnostics implemented; 109 tests / 15 files, typecheck, lint and production build passed. Matching constants and suppression behavior unchanged. Diff check passed; diagnostics implementation a308e231b3c14a6f319cb4096692d64ad0d2da77 pushed to main and GitHub Vercel status reported success. Physical-device diagnostic test pending.
+**Active correction:** CAPTION-003.2 - Episode-based cross-microphone reconciliation
+**Status:** CAPTION-003.1 diagnostics identified strong negation-guard rejection and provider turn segmentation divergence in real-device evidence. Episode-based correction implemented locally; verification and publication pending. CAPTION-003 remains open; CAPTION-004 remains deferred.
 **Owner:** Builder until verified commit/push. CAPTION-004 planning/implementation is deferred by the current user instruction.
 
 ## Objective and contracts
@@ -24,10 +24,10 @@ CAPTION-003.1 adds deterministic application-owned CrossMicReconciler after auth
 
 No provider/model/Voice Focus migration, room authorization change, transcript persistence, Hybrid Mode or room microphone. Algorithm thresholds need deployed UAT, with two/three physical phones: each owner speaking, different simultaneous sentences, simultaneous Yes, duplicate before/after counts, false/missed suppression, speaker switching and perceived latency. Do not infer accuracy percentages or device results from synthetic tests. CAPTION-003 remains open until user accepts duplicate suppression.
 
-## Current diagnostic task
+## Current episode correction task
 
-Add an opt-in host-local bounded metrics ledger and temporary panel only at ?captionDebug=1. Record comparison reasons, actual timing/similarity/length gates and metadata-only expired-cluster hints. Copy metrics only, no text/tokens/credentials/invitations. Keep all matching constants, actions, receive-clock sampling, provider, Table Mode and network traffic unchanged. Compute optional diagnostic similarity after reducer dispatch; panel refresh runs independently. Verify disabled default, behavioral equivalence, privacy, bounds, controls and UI.
+Preserve the opt-in host-local diagnostics panel and use the evidence to add a bounded SpeechEpisode layer. A strict 8+ word / 300 ms / 0.85 similarity / 0.90 short-side coverage match may override an isolated negation disagreement and create an episode. Associated sources can continue across new provider turn IDs for up to 3000 ms using conservative 5-word partial coverage/similarity evidence. Keep numeric conflicts, short responses, unrelated speech, Table Mode, actions, provider, receive clock and network behavior intact. Add regression tests and episode metrics without transcript text.
 
 ## Next action
 
-Publish diagnostics, then reproduce the two/three-phone duplicate issue with captionDebug=1 and copy metrics for evidence-based investigation.
+Run all verification gates, publish the episode correction, then reproduce the two/three-phone duplicate issue with captionDebug=1 and copy metrics for evidence-based validation.

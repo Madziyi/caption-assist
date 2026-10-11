@@ -27,6 +27,8 @@ export function ReconciliationDebugPanel({ room, participants }: { room: Diagnos
       <div><dt>4+ words</dt><dd>Window: {CROSS_MIC.windowMs} ms · Similarity: {CROSS_MIC.similarity}</dd></div>
       <div><dt>3 words</dt><dd>Window: {CROSS_MIC.threeWordWindowMs} ms · Exact only</dd></div>
       <div><dt>1–2 words</dt><dd>Preserved</dd></div>
+      <div><dt>Strong episode</dt><dd>{CROSS_MIC.strongMinWords}+ words · ≤ {CROSS_MIC.strongWindowMs} ms · similarity {CROSS_MIC.strongSimilarity} · coverage {CROSS_MIC.strongCoverage}</dd></div>
+      <div><dt>Continuation</dt><dd>≤ {CROSS_MIC.continuationWindowMs} ms · coverage {CROSS_MIC.continuationCoverage} or similarity {CROSS_MIC.continuationSimilarity}</dd></div>
     </dl>
     <div className="reconciliation-debug-actions">
       <button type="button" className="button button-quiet" onClick={() => { room.clearDiagnostics(); setRecords([]); setCopyStatus(""); }}>Clear</button>
@@ -38,12 +40,14 @@ export function ReconciliationDebugPanel({ room, participants }: { room: Diagnos
         <strong>{name(record.sourceA)} ↔ {name(record.sourceB)}</strong>
         <div>{record.eventA === "final" ? "Final" : "Interim"} ↔ {record.eventB === "final" ? "Final" : "Interim"} · Words {record.wordCountA} / {record.wordCountB}</div>
         <div>Δ {record.receiveDeltaMs.toFixed(0)} ms · Similarity {record.similarityEvaluated ? record.similarity.toFixed(2) : "not evaluated"}
-          {record.containmentScore !== undefined && ` · Length/containment ${record.containmentScore.toFixed(2)}`}</div>
+          {record.containmentScore !== undefined && ` · Length/containment ${record.containmentScore.toFixed(2)}`}
+          {record.shortSideCoverage !== undefined && ` · Short-side coverage ${record.shortSideCoverage.toFixed(2)}`}</div>
         <div>{record.windowMs !== undefined && `Limit ${record.windowMs} ms · Threshold ${record.similarityThreshold}`}
           {record.exactMatch !== undefined && ` · Exact ${record.exactMatch ? "yes" : "no"}`}
           {record.windowApplied === false && " · Timing gate not applied"}
           {record.timeBasis === "committed_final" && " · Final commitment time"}</div>
         <strong>{record.decision.toUpperCase()}</strong> · {record.reason}
+        {record.episodeEvent && <div>Episode: {record.episodeEvent.replaceAll("_", " ")}{record.episodeAgeMs !== undefined && ` · Age ${record.episodeAgeMs.toFixed(0)} ms`}</div>}
         {record.skippedGate && <div>Matching skipped: {record.skippedGate}</div>}
         {record.reason === "cluster_expired" && <div>Prior final with similar word count expired. Metadata hint only; old text was not compared.</div>}
       </li>)}

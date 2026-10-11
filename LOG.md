@@ -235,6 +235,12 @@ Use this format:
 - Verification: 109 tests / 15 files, typecheck, lint and production build passed. Local IAB showed opt-in panel, default hiding and no overflow at 1280/391 CSS pixels. No real speech/device UAT performed by Builder. Diff and publication checked before handoff.
 - Next action: Publish through existing Vercel Git integration, then physical two/three-mic diagnostic test; collect metrics promptly and observed device/mic/switching/latency context before targeted changes. CAPTION-003 stays open, CAPTION-004 deferred.
 
+### 2026-10-11 - CAPTION-003.2 evidence-based episode correction
+- Trigger: User supplied deployed diagnostic export showing a 53/55-word duplicate at ~13 ms and ~0.889 similarity rejected by `negation_conflict`, plus later 53/14-word provider segmentation divergence. Do not lower global thresholds.
+- Changed: Added bounded SpeechEpisode association to the application-owned reconciler. Strict initial evidence is 8+ words, <=300 ms, similarity >=0.85 and short-side LCS coverage >=0.90; an isolated negation mismatch may be overridden in that tier, while numeral conflicts remain independent. Existing associated sources can continue across provider turn IDs within <=3000 ms using >=5 words and coverage >=0.70 or similarity >=0.25. Rolling context is capped at 100 comparison tokens; episode expiry remains bounded.
+- Behavior: First useful captions remain immediate. Matching followers are suppressed/cleared through existing reducer actions; no final is fabricated and committed speaker attribution remains stable. Different speech after expiry and short simultaneous acknowledgements remain independent. Table Mode, provider, transport, persistence and CAPTION-004 unchanged.
+- Diagnostics: Existing opt-in panel now exposes episode events, short-side coverage and episode age as metrics only. No caption text/tokens/logging/network. Verification and deployment follow after the full gate run.
+
 ## Reconciliation diagnostics publication - 2026-10-11
 
 - Implementation `a308e231b3c14a6f319cb4096692d64ad0d2da77` pushed to main. GitHub Vercel check reported success: [Deployment status](https://vercel.com/madziyis-projects/caption-assist/Hy8PjJApogR2SvEXk9oX8m9yfY2u). Existing Git workflow used; no hosting/provider configuration changes.

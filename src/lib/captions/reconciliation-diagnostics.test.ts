@@ -26,6 +26,17 @@ describe("opt-in observation-only reconciliation diagnostics", () => {
       receiveDeltaMs: 274, similarity: 1, containmentScore: 1, matched: true, decision: "suppressed", reason: "matched", windowMs: 1800, similarityThreshold: .85 });
     expect(f.clock).toHaveBeenCalledTimes(2);
   });
+  it("records a strong episode and negation override with directional coverage", () => {
+    const f = fixture(); const a = `we should not leave ${"soon ".repeat(48)}`; const b = `we should leave ${"soon ".repeat(50)}`;
+    f.send("a", a); f.at(13); f.send("b", b);
+    expect(f.last).toMatchObject({ matched: true, episodeEvent: "negation_override_strong_match", episodeAgeMs: 13 });
+    expect(f.last.shortSideCoverage).toBeGreaterThanOrEqual(.9);
+  });
+  it("records episode continuation after a provider turn changes", () => {
+    const f = fixture(); const a = `we should not leave ${"soon ".repeat(48)}`; const b = `we should leave ${"soon ".repeat(50)}`;
+    f.send("a", a); f.send("b", b); f.at(1200); f.send("b", "we should leave around soon soon soon soon soon soon soon soon soon soon", true, "2");
+    expect(f.r.diagnosticRecords.some(row => row.episodeEvent === "suppressed_duplicate")).toBe(true);
+  });
   it("records clustered partials", () => {
     const f = fixture(); f.send("a", text, false); f.send("b", text, false);
     expect(f.last).toMatchObject({ eventA: "interim", eventB: "interim", decision: "clustered", reason: "matched" });
@@ -83,6 +94,8 @@ describe("opt-in observation-only reconciliation diagnostics", () => {
       expect(debug.r.diagnostics).toEqual(plain.r.diagnostics); debug.r.clearDiagnostics();
     }
     expect(debug.clock.mock.calls).toEqual(plain.clock.mock.calls);
-    expect(CROSS_MIC).toEqual({ windowMs: 1800, threeWordWindowMs: 600, similarity: .85, confidenceMargin: .15, inactiveMs: 4000, maxLifetimeMs: 15000, maxTurns: 128, maxTokens: 256 });
+    expect(CROSS_MIC).toMatchObject({ windowMs: 1800, threeWordWindowMs: 600, similarity: .85, confidenceMargin: .15, inactiveMs: 4000, maxLifetimeMs: 15000, maxTurns: 128, maxTokens: 256,
+      strongMinWords: 8, strongWindowMs: 300, strongSimilarity: .85, strongCoverage: .9, continuationWindowMs: 3000, continuationMinWords: 5,
+      continuationSimilarity: .25, continuationCoverage: .7 });
   });
 });
