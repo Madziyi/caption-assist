@@ -292,3 +292,9 @@ Use this format:
 ### 2026-10-11 — CAPTION-008.1 publication verification
 - Verification: Commit `48c500e` pushed to `main`; GitHub combined status reported Vercel `success`: https://vercel.com/madziyis-projects/caption-assist/HB2d5DWWUejGoiP34iW1naeiiKTy. Deployment status does not establish physical audio behavior.
 - Next action: Human runs the physical test script; Planner decides the 008.2 go/no-go from the returned exports and observations.
+
+### 2026-10-11 — CAPTION-008.1 mobile `Illegal invocation` hardening
+- Trigger: Human reported `Illegal invocation` on mobile phones; no exact device, browser, action or stack was supplied.
+- Changed: Preserved owning receivers for Wake Lock, microphone, media-device listener and clipboard Web API methods; caught clipboard permission failures and exposed a status message.
+- Verification: typecheck, lint, 152 tests / 24 files, production build and diff check passed. No physical mobile reproduction was available.
+- Decision: Keep scope limited to CAPTION-008.1 compatibility; do not start 008.2–008.4. Ask for exact device/browser/action only if the deployed patch still fails.

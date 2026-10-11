@@ -22,12 +22,13 @@ export class MicrophoneCapture {
 
   async start(options?: { constraints?: MediaStreamConstraints }): Promise<void> {
     const generation = ++this.generation;
-    if (!navigator.mediaDevices?.getUserMedia) {
+    const mediaDevices = navigator.mediaDevices;
+    if (!mediaDevices || typeof mediaDevices.getUserMedia !== "function") {
       throw new MicrophoneCaptureError("microphone_unavailable", "This browser does not provide microphone access.");
     }
 
     try {
-      const stream = await navigator.mediaDevices.getUserMedia(options?.constraints ?? {
+      const stream = await mediaDevices.getUserMedia.call(mediaDevices, options?.constraints ?? {
         audio: { channelCount: 1, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       });
       if (generation !== this.generation) { stream.getTracks().forEach((track) => track.stop()); return; }

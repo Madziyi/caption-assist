@@ -1,4 +1,5 @@
 "use client";
+import { useState } from "react";
 import type { ConnectedRoom, RoomView } from "@/lib/rooms/controller";
 
 export function HeadsetSpeakingBoard({ view }: { view: RoomView }) {
@@ -9,6 +10,20 @@ export function HeadsetSpeakingBoard({ view }: { view: RoomView }) {
 export function HeadsetHostPanel({ view, room }: { view: RoomView; room: ConnectedRoom }) {
   const host = view.headsetHost;
   const matrix = host?.check?.matrix;
+  const [copyStatus, setCopyStatus] = useState("");
   if (!host) return null;
-  return <section className="headset-controls" aria-labelledby="headset-check-heading"><h2 id="headset-check-heading">Headset room check</h2><p>{host.canStartCheck ? "Each ready headset will read in turn while every phone measures." : "Needs at least two people with a ready headset."}</p><button className="button button-primary" disabled={!host.canStartCheck || host.check?.status === "running"} onClick={() => void room.headsetHost?.startCheck()}>Start room check</button>{host.check?.status === "running" && <button className="button button-quiet" onClick={() => void room.headsetHost?.cancelCheck()}>Cancel</button>}<button className="button button-secondary" onClick={() => void navigator.clipboard?.writeText(room.headsetHost?.exportResults() ?? "")}>Copy results</button><button className="button button-quiet" onClick={() => room.headsetHost?.resetPreview()}>Reset speaking stats</button>{matrix && <table className="headset-matrix"><caption>Room check results in dB</caption><thead><tr><th scope="col">Listener</th>{matrix.order.map((id) => <th scope="col" key={id}>{view.snapshot?.participants.find((p) => p.id === id)?.displayName ?? "Participant"}</th>)}</tr></thead><tbody>{matrix.order.map((id) => <tr key={id}><th scope="row">{view.snapshot?.participants.find((p) => p.id === id)?.displayName ?? "Participant"}</th>{matrix.order.map((speaker) => <td key={speaker}>{matrix.levels[id]?.[speaker] ?? "—"}</td>)}</tr>)}</tbody></table>}</section>;
+  const copyResults = async () => {
+    const clipboard = navigator.clipboard;
+    if (!clipboard || typeof clipboard.writeText !== "function") {
+      setCopyStatus("Copy is unavailable on this browser.");
+      return;
+    }
+    try {
+      await clipboard.writeText.call(clipboard, room.headsetHost?.exportResults() ?? "");
+      setCopyStatus("Results copied.");
+    } catch {
+      setCopyStatus("Copy was blocked. Select and copy the results manually.");
+    }
+  };
+  return <section className="headset-controls" aria-labelledby="headset-check-heading"><h2 id="headset-check-heading">Headset room check</h2><p>{host.canStartCheck ? "Each ready headset will read in turn while every phone measures." : "Needs at least two people with a ready headset."}</p><button className="button button-primary" disabled={!host.canStartCheck || host.check?.status === "running"} onClick={() => void room.headsetHost?.startCheck()}>Start room check</button>{host.check?.status === "running" && <button className="button button-quiet" onClick={() => void room.headsetHost?.cancelCheck()}>Cancel</button>}<button className="button button-secondary" onClick={() => void copyResults()}>Copy results</button>{copyStatus && <p role="status">{copyStatus}</p>}<button className="button button-quiet" onClick={() => room.headsetHost?.resetPreview()}>Reset speaking stats</button>{matrix && <table className="headset-matrix"><caption>Room check results in dB</caption><thead><tr><th scope="col">Listener</th>{matrix.order.map((id) => <th scope="col" key={id}>{view.snapshot?.participants.find((p) => p.id === id)?.displayName ?? "Participant"}</th>)}</tr></thead><tbody>{matrix.order.map((id) => <tr key={id}><th scope="row">{view.snapshot?.participants.find((p) => p.id === id)?.displayName ?? "Participant"}</th>{matrix.order.map((speaker) => <td key={speaker}>{matrix.levels[id]?.[speaker] ?? "—"}</td>)}</tr>)}</tbody></table>}</section>;
 }

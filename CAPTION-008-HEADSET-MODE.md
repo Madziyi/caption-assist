@@ -1,6 +1,6 @@
 # CAPTION-008 — Headset Mode
 
-**Status:** CAPTION-008.1 implemented by Builder on 2026-10-11; physical test script and go/no-go remain with the human/Planner. Later slices are not started.
+**Status:** CAPTION-008.1 implemented by Builder on 2026-10-11; mobile Web API invocation hardening was added after a reported phone error. Physical test script and go/no-go remain with the human/Planner. Later slices are not started.
 
 ## As built (008.1)
 
@@ -8,6 +8,7 @@
 - `ConnectedRoom`, `SupabaseRoomTransport`, the room API and `20261011140359_headset_mode` migration persist and restore `connected | headset`; Headset Mode never starts the room microphone or transcription provider. `HeadsetHost` and `HeadsetParticipant` own the local gate/room-check protocol.
 - Host and phone UI includes Headset Mode (test), mode-specific invite/pre-join copy, speaking board, setup flow, room-check matrix and export controls. Wake Lock is best-effort.
 - Deviations: the Builder could not complete the requested three-Chromium fake-media protocol run because this checkout has no Playwright runner and the available browser surface cannot launch Chromium with fake-media flags; only a one-host local browser smoke room was created and ended. Physical acoustic, real-device, 390px/1280px measured viewport and network-instrumentation evidence remain pending or unverified. Vercel Git deployment for commit `48c500e` succeeded. The implementation otherwise follows the exact 008.1 contracts and constants.
+- Mobile compatibility fix: Wake Lock request/release and sentinel event binding, microphone/device event binding, and clipboard export now call browser APIs with their owning object preserved. Clipboard permission failures are caught and announced in the UI instead of surfacing as an unhandled mobile rejection.
 
 ## Product decision
 

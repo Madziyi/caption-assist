@@ -15,12 +15,14 @@ export class HeadsetMicrophone implements HeadsetMicrophoneLike {
   private deviceChange: (() => void) | null = null;
   constructor(private readonly onLevel: (levelDb: number) => void, private readonly onFailure: (error?: unknown) => void, private readonly factory: HeadsetCaptureFactory = (onAudio, onFailed) => new MicrophoneCapture(onAudio, onFailed)) {}
   async inputs(): Promise<HeadsetInput[]> {
-    if (!navigator.mediaDevices?.enumerateDevices) return [];
-    return (await navigator.mediaDevices.enumerateDevices()).filter((device) => device.kind === "audioinput").map((device) => ({ deviceId: device.deviceId, label: sanitizeInputLabel(device.label || "Default") }));
+    const mediaDevices = navigator.mediaDevices;
+    if (!mediaDevices || typeof mediaDevices.enumerateDevices !== "function") return [];
+    return (await mediaDevices.enumerateDevices.call(mediaDevices)).filter((device) => device.kind === "audioinput").map((device) => ({ deviceId: device.deviceId, label: sanitizeInputLabel(device.label || "Default") }));
   }
   async start(deviceId?: string) {
     await this.stop();
-    if (!navigator.mediaDevices?.getUserMedia) throw new Error("This browser does not provide microphone access.");
+    const mediaDevices = navigator.mediaDevices;
+    if (!mediaDevices || typeof mediaDevices.getUserMedia !== "function") throw new Error("This browser does not provide microphone access.");
     const capture = this.factory((chunk) => this.onLevel(frameLevelDb(new Int16Array(chunk))), () => this.onFailure());
     this.capture = capture;
     try {
@@ -32,10 +34,20 @@ export class HeadsetMicrophone implements HeadsetMicrophoneLike {
       this.trackInfo = { label, sanitizedLabel: sanitizeInputLabel(label), inputClass: classifyInput(label), processing: { autoGainControl: booleanOrNull(settings.autoGainControl), noiseSuppression: booleanOrNull(settings.noiseSuppression), echoCancellation: booleanOrNull(settings.echoCancellation) } };
       this.track.onended = () => this.onFailure();
       this.deviceChange = () => this.onFailure(new Error("Microphone changed — check again."));
-      navigator.mediaDevices.addEventListener?.("devicechange", this.deviceChange);
+      if (typeof mediaDevices.addEventListener === "function") mediaDevices.addEventListener.call(mediaDevices, "devicechange", this.deviceChange);
     } catch (error) { await this.stop(); this.onFailure(error); throw error; }
   }
-  async stop() { if (this.deviceChange) navigator.mediaDevices?.removeEventListener?.("devicechange", this.deviceChange); this.deviceChange = null; if (this.track) this.track.onended = null; this.track = null; this.trackInfo = null; const capture = this.capture; this.capture = null; await capture?.stop(); }
+  async stop() {
+    const mediaDevices = navigator.mediaDevices;
+    if (this.deviceChange && mediaDevices && typeof mediaDevices.removeEventListener === "function") mediaDevices.removeEventListener.call(mediaDevices, "devicechange", this.deviceChange);
+    this.deviceChange = null;
+    if (this.track) this.track.onended = null;
+    this.track = null;
+    this.trackInfo = null;
+    const capture = this.capture;
+    this.capture = null;
+    await capture?.stop();
+  }
   info() { return this.trackInfo; }
 }
 function booleanOrNull(value: unknown) { return typeof value === "boolean" ? value : null; }
