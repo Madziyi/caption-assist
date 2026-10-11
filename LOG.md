@@ -169,3 +169,12 @@ Use this format:
 - **Live state:** Unchanged; no live system was inspected.
 - **Known issues:** The active-state swap requires a real or controlled session transition to verify in the browser.
 - **Next action:** Run final repository checks and browser smoke verification, then push the Builder handoff; do not start CAPTION-003.
+
+### 2026-10-10 — CAPTION-002 — live speaker label color refinement
+- **Changed:** Changed live caption-area speaker label text to a lighter neutral gray while retaining accent dots; history speaker colors are unchanged.
+- **Decisions:** Apply the color change only to `.live-caption-line .speaker-identity` so the chat-style history keeps its existing speaker color cues.
+- **Verification:** Typecheck, lint, tests, build, diff check, and browser idle-state smoke verification passed; no audio/provider behavior was changed.
+- **Quality:** This is a user-requested readability adjustment. No new latency, accuracy, audio, session, reconnect, or device/browser evidence was produced.
+- **Live state:** Unchanged; no live system was inspected.
+- **Known issues:** Live provider-backed speaker labels were not exercised in this check.
+- **Next action:** Run normal repository checks and browser smoke verification, then push the Builder handoff; do not start CAPTION-003.

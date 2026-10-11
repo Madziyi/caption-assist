@@ -144,6 +144,7 @@ h1 { margin: 0.1rem 0 0; font-size: clamp(2rem, 4vw, 3.25rem); }
 .speaker-identity-someone { color: var(--muted); cursor: default; }
 .live-caption-scroll { width: 100%; min-height: 0; flex: 1 1 auto; align-self: stretch; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: flex-start; gap: 1.25rem; padding: 0.5rem 0.75rem; }
 .live-caption-line { display: flex; flex: 0 0 auto; flex-direction: column; align-items: center; gap: 0.25rem; width: min(100%, 66rem); }
+.live-caption-line .speaker-identity { color: #6b7280; }
 
 .history { display: flex; flex-direction: column; gap: 1.2rem; min-height: 5rem; }
 .history-group { display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: start; gap: 0.6rem; min-width: 0; max-width: 72%; }

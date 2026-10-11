@@ -208,6 +208,18 @@ Record measured provider billing/configuration or carefully calculated cost from
 - Cost evidence: Not measured.
 - Result: User-requested control-placement refinement implemented. Idle browser smoke verification showed the header Start Conversation action and no footer; the active End Conversation swap is source-verified but was not exercised without starting a microphone session. Provider, audio, caption event, history retention, full-screen, and speaker identity behavior are unchanged.
 
+### 2026-10-10 — CAPTION-002 — live speaker label color refinement
+- Environment/device: Codex in-app browser on the local Next.js development server; source-level visual refinement, no new provider session performed.
+- Audio path: No new microphone or AssemblyAI verification performed.
+- Session length: Not measured.
+- Latency observations/measurements: Not measured.
+- Accuracy observations/measurements: Not measured.
+- Speaker observations: No physical speaker result was inferred.
+- Failure/recovery tests: Not performed.
+- Accessibility observations: Set live caption-area speaker label text to a lighter neutral gray while retaining colored speaker dots as visual indicators. Caption-history speaker colors remain unchanged.
+- Cost evidence: Not measured.
+- Result: User-requested live label readability refinement implemented; provider, audio, caption event, history retention, and speaker identity behavior are unchanged. Browser/provider-backed live speaker review remains pending.
+
 Append concise entries:
 
 ```text
