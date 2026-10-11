@@ -409,3 +409,8 @@ Use this format:
 - Failed/variable evidence retained: initial harness calibration timeout unproven cause; isolated capture subsequently ready. Earlier comparison escaped one duplicate; diagnostic and final comparison passed without changing arbiter/provider parameters. Synthetic pipeline verification is not sustained real-acoustic acceptance.
 - Supabase final comparison window 19:27–19:44 UTC: 15 Realtime rows, zero Presence rate-limit events; no live infrastructure change. Rooms ended, browsers/server closed, temporary synthetic audio deleted; no secrets/storage states/transcripts committed.
 - Missing As built (008.2) and new As built (008.3) added. Status: source/live pipeline verified; publication and physical acceptance pending. Next: publish, verify Vercel status, then human six-step 008.3 script and Planner review; 008.4/008.5 not started.
+
+### 2026-10-11 — CAPTION-008.3 publication
+
+- Implementation `6695c60e823f655714db9ae09933a11c2b88e811` pushed to `main`; GitHub combined status reported Vercel success: https://vercel.com/madziyis-projects/caption-assist/8p9jzqvjnmnT8pqpFFKQBf8dua7P.
+- Source/live-local pipeline checks are complete; deployment status only, no physical or deployed-device UAT inferred. No infrastructure/configuration change. Next owner: human physical script and Planner resync/review; 008.3 remains active until acceptance.

@@ -32,6 +32,7 @@ Do not invent values. Mark unmeasured items `unverified`.
 - Infrastructure: read-only Supabase project check ACTIVE_HEALTHY. Exact final-comparison log window 19:27–19:44 UTC contained 15 Realtime rows and 0 `ClientPresenceRateLimitReached`. An initial log query failed; simplified count query succeeded. Supabase guidance kept the existing immediate Broadcast + 12 s Presence snapshot design unchanged; no quota/schema/policy changes.
 - Cleanup/privacy: all test rooms ended through the app, browsers closed and owned dev server stopped. Synthetic temporary WAVs deleted; no storage-state files created, identities reused in memory across active/bypass. No secrets, invitations, actual conversation transcripts or audio committed. Repeat runner and synthetic speech generator are committed, not their output.
 - Unverified: physical iPhone/Android/Bluetooth/wired behavior, background/lock or headset swaps, real soft/overlapping speech, 20–30 min stability/battery, word accuracy and actual billed cost. Result: source/live pipeline verified, physical duplicate-control acceptance pending; no 008.4/008.5 implementation.
+- Publication: source `6695c60e823f655714db9ae09933a11c2b88e811` pushed to `main`, Vercel success observed: [deployment status](https://vercel.com/madziyis-projects/caption-assist/8p9jzqvjnmnT8pqpFFKQBf8dua7P). Deployment status is not deployed-device UAT.
 
 ### 2026-10-11 — CAPTION-008.2 Builder handoff
 

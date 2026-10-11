@@ -15,7 +15,7 @@ Use these states:
   - **008.2** `[done]` — Implemented Part A plausible room-check gating, 2-frame attack, host sensitivity control, calibration-preserving rejoin/drop handling, mic-drop export state, and Part B gated near-field Universal-3.6 Pro transcription, 300 ms look-ahead silence frames, bounded reconnect, sequence/deduped caption relay, identity-bound host captions, status strip and privacy/invite copy. Automated gates pass. Live provider/browser-path verification and the missing as-built summary were completed during 008.3; remaining physical recovery/UAT belongs to 008.5.
   - **008.2 setup follow-up** `[done]` — Restored Start headset check for the non-null initialized guest view introduced in `aac146a`, permission-pending feedback and stopped-mic restart. 179 tests/29 files and source gates pass; isolated Chromium with real capture/worklet and simulated media verified input listing/selection and restart at 390/1280 px without overflow. Physical-phone confirmation remains pending.
   - **008.2 physical trial** — The human ran it on two phones: captions work and are named by phone, but bleed opens gates when people sit close, and the delay is about 2 s. The export shows separation of 4.4 and 6.9 dB and 16 s of overlapping gates in 160 s. "Kind of working."
-  - **008.3** `[in-progress]` — Duplicate control implemented and locally verified; publication, physical acceptance and Planner review pending:
+  - **008.3** `[in-progress]` — Duplicate control implemented, locally verified and published as `6695c60` (Vercel success); physical acceptance and Planner review pending:
     - continuous per-person sensitivity slider (−15 to +6 dB);
     - visible room-check tuning state;
     - robust own-level estimator;

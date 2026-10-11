@@ -1,6 +1,6 @@
 # CAPTION-008 — Headset Mode
 
-**Status:** CAPTION-008.1 and 008.2 were physically tried by the human on 2026-10-11: captions work and are named by phone, but close seating causes duplicates and roughly 2 s perceived delay. Active slice **CAPTION-008.3** is implemented and verified in source and a final local synthetic live-provider comparison; publication and physical acceptance remain pending. An earlier run escaped one duplicate. No 008.4 latency optimization or 008.5 recovery expansion has started. See the as-built summaries, QUALITY.md and the physical script below.
+**Status:** CAPTION-008.1 and 008.2 were physically tried by the human on 2026-10-11: captions work and are named by phone, but close seating causes duplicates and roughly 2 s perceived delay. Active slice **CAPTION-008.3** is implemented, locally verified and published as `6695c60` (Vercel success); physical acceptance and Planner review remain pending. An earlier run escaped one duplicate. No 008.4 latency optimization or 008.5 recovery expansion has started. See the as-built summaries, QUALITY.md and the physical script below.
 
 ## As built (008.2)
 

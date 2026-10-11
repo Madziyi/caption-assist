@@ -63,6 +63,11 @@ None expected initially. None verified.
 - Read-only exact window `2026-10-11T19:27:00Z` through `2026-10-11T19:44:00Z`: 15 `realtime_logs` rows, 0 `ClientPresenceRateLimitReached`. Initial aggregate query failed; simplified query succeeded. Browser traces also observed zero quota errors. This is window-limited evidence, not a global guarantee against disconnections.
 - Temporary rooms ended, browsers closed, synthetic audio removed and owned dev server stopped. Anonymous fixture auth sessions stayed in memory and were reused across comparison runs; no audio, invitations, tokens, storage states or transcripts persisted in the repository. Physical-phone UAT remains pending.
 
+## CAPTION-008.3 deployment status — 2026-10-11
+
+- Implementation `6695c60e823f655714db9ae09933a11c2b88e811` pushed to GitHub `main`; combined commit status reported Vercel **success**: [deployment status](https://vercel.com/madziyis-projects/caption-assist/8p9jzqvjnmnT8pqpFFKQBf8dua7P).
+- Existing Git integration used, no hosting/environment/provider configuration changes. This confirms deployment completion only, not a deployed browser/audio session or physical headset acceptance. Source/live-local verification and limitations are in QUALITY.md.
+
 ## CAPTION-008.2 phone setup regression deployment — 2026-10-11
 
 - Source commit `df89148` pushed to `main`; GitHub combined status reported Vercel `success`: [deployment status](https://vercel.com/madziyis-projects/caption-assist/HB68pZaVw5LLj1toww39zMweRqEA).
