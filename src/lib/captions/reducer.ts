@@ -17,6 +17,7 @@ export type CaptionAction =
   | { type: "CONNECTED_SPEAKERS"; speakers: SpeakerProfile[] }
   | { type: "SPEAKER_ALIASES"; aliases: Record<string, string> }
   | { type: "CLEAR_INTERIM"; sourceId: string }
+  | { type: "REMOVE_TURN"; sourceTurnId: string }
   | { type: "CONNECTING" }
   | { type: "LISTENING" }
   | { type: "TRANSCRIPTION_EVENT"; event: TranscriptionEvent }
@@ -46,6 +47,8 @@ export function captionReducer(state: CaptionState, action: CaptionAction): Capt
     }
     case "CONNECTING":
       return { ...state, status: "connecting", error: null };
+    case "REMOVE_TURN":
+      return { ...state, finalized: state.finalized.filter((caption) => caption.sourceTurnId !== action.sourceTurnId && caption.id !== action.sourceTurnId) };
     case "LISTENING":
       return { ...state, status: "listening", error: null, reconnectAttempt: 0 };
     case "TRANSCRIPTION_EVENT":

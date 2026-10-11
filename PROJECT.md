@@ -37,7 +37,7 @@ One host laptop/tablet/phone captures the room and produces live captions. Speak
 One host room microphone with live diarization captions everyone (CAPTION-003.4). The host joins as `You` with the reserved navy identity, and the room microphone starts with the conversation. Participants scan a QR/link and enter a display name; their phones are identity/control devices only and never record audio. Each person taps **Identify my voice** once and speaks normally; the host binds the next stable diarized speaker to that participant for this conversation only, so captions show their name. The host can also identify itself, identify anyone from Participants, or name unidentified voices directly.
 
 ### Headset Mode
-CAPTION-008.1 is implemented; physical validation and later slices remain outstanding. A separate, opt-in mode for groups where every speaker wears AirPods or a headset connected to their own phone. There is no room microphone. Each phone calibrates its wearer's level and the bleed from neighbours (room check), and gates its wearer's speech locally by loudness. Captions are attributed by whose phone produced them, without diarization or voice identification. People without a headset are not captioned in this mode, and the UI says so. CAPTION-008.1 measures headset separation and gate behaviour with no audio leaving any device. Transcription (008.2) uses one AssemblyAI Universal-3.6 Pro stream per phone with Voice Focus `near-field`; it has not started. Specification: `CAPTION-008-HEADSET-MODE.md`.
+CAPTION-008.1–008.3 are implemented; physical duplicate-control acceptance and later slices remain outstanding. A separate, opt-in mode for groups where every speaker wears AirPods or a headset connected to their own phone. There is no room microphone. Each phone calibrates its wearer's level and the bleed from neighbours (room check), and gates its wearer's speech locally by loudness. Captions are attributed by whose phone produced them, without diarization or voice identification. People without a headset are not captioned in this mode, and the UI says so. CAPTION-008.1 measures headset separation without sending audio; 008.2 adds one AssemblyAI Universal-3.6 Pro stream per phone with Voice Focus `near-field`. 008.3 adds manual sensitivity sliders, visible tuning state, relative-level duplicate arbitration and latency measurements. Local synthetic live-provider checks passed, but an earlier run escaped one duplicate; this is not proof of reliable physical suppression. Specification: `CAPTION-008-HEADSET-MODE.md`.
 
 ### Hybrid Mode
 Future CAPTION-004 only; not implemented. The host room microphone would remain active alongside headsets/personal microphones in acoustically isolated settings, reusing the dormant CAPTION-003.1–003.3 personal-microphone and reconciliation modules.
@@ -100,9 +100,9 @@ Supersedes the personal-microphone parts of the CAPTION-003 source contracts (pa
 - Privacy: no voiceprints, embeddings, audio or biometric templates are created or stored by the application; the mapping is ordinary in-memory association between provider labels and participants for one conversation and is discarded when the room ends, changes or the host refreshes. Caption text remains memory-only and is not sent to Supabase.
 - Limitations: diarization can merge similar voices, short replies can be mislabelled before revisions, overlapping speech gets one label, and people speaking during someone else's window can mis-bind it (re-identification replaces it).
 
-## CAPTION-008 Headset Mode contract (planned)
+## CAPTION-008 Headset Mode source contracts
 
-These are planned contracts, not repository facts, until the Builder implements and verifies each slice. `CAPTION-008-HEADSET-MODE.md` holds the exact specification.
+008.1–008.3 exist in source. `CAPTION-008-HEADSET-MODE.md` holds the specification and as-built summaries; QUALITY.md distinguishes source, synthetic live checks and outstanding physical acceptance.
 
 - Rooms persist `mode` (`connected` | `headset`) through an additive migration and a `create_headset` operation, with no function-signature or policy change. Every snapshot and `check` returns the mode; clients treat a missing mode as `connected`.
 - Headset rooms never start the host room microphone or voice identification. Phones open the headset microphone on a user gesture, with automatic gain control, noise suppression and echo cancellation requested off, and report what the browser actually applied.
@@ -113,10 +113,13 @@ These are planned contracts, not repository facts, until the Builder implements 
   - Room-check bleed sets each phone's gate thresholds, adjusted by a host-set per-person sensitivity (memory-only, clamped).
   - A phone streams gated audio only after setup is ready: a 300 ms look-ahead, with silence frames while the gate is closed and throughout calibration and room checks.
   - Phones relay sequence-numbered caption events on their own participant topic. The host validates them, binds identity and dispatches them. There are no relay-acks, and interims are coalesced to at most 5 per second per phone.
-- 008.3 (planned):
+- 008.3 (implemented):
   - Sensitivity becomes a continuous per-person integer offset (−15 to +6 dB).
   - Each caption envelope may carry memory-only evidence (level relative to the wearer's calibrated own level, open ratio, capture span). This is loudness statistics, not audio and not a voiceprint.
   - In headset rooms the host arbitrates overlapping captions between phones and may hide a weaker duplicate. Hidden duplicates are memory-only and visible to the host only through a testing toggle.
+  - Own level uses speech frames above `max(floor + 6, p95 − 15)`; the phone reports whether room-check tuning is still current. Slider thresholds use the higher calibrated/applied own reference and warn about quiet-speech loss.
+  - The first interim relays immediately, subsequent interims at most once per 200 ms. Only overlapping unfinished turns can hold a final, for at most 800 ms. Table and Connected bypass the arbiter.
+  - Provider latency uses signed `receivedAt − audioEndAt`; clock-aligned relay extra delay is measured separately. Synthetic provider endpoints sometimes lead receipt, so negative samples and the resulting on-screen estimate are not human end-to-end latency guarantees. Export v3 contains numerical diagnostics, no names, IDs, audio or caption text.
 
 ## Verified repository baseline — 2026-10-10
 

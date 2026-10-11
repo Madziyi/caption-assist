@@ -29,6 +29,14 @@ class FakeWebSocket {
 }
 
 describe("AssemblyAIStreamingProvider", () => {
+  it("preserves last-word audio end on both interims and finals", async () => {
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    const events: TranscriptionEvent[] = []; const provider = new AssemblyAIStreamingProvider("temporary-token", "audio-timing", HEADSET_ASSEMBLYAI_OPTIONS);
+    provider.onEvent((event) => events.push(event)); await provider.connect();
+    for (const end_of_turn of [false, true]) FakeWebSocket.lastSocket?.onmessage?.({ data: JSON.stringify({ type: "Turn", turn_order: 1, end_of_turn, words: [{ text: "Hello", start: 100, end: 800 }, { text: "there", start: 810, end: 1600 }] }) });
+    for (const event of events) { const caption = event.type === "interim" ? event.caption : event.captions[0]; expect(caption.audioEndAt! - caption.startedAt).toBe(1500); }
+    expect(events[0].type === "interim" && events[0].caption.endedAt).toBeUndefined();
+  });
   it("preserves separate mean recognition confidence per segment, excluding invalid values", async () => {
     vi.stubGlobal("WebSocket", FakeWebSocket);
     const provider = new AssemblyAIStreamingProvider("temporary-token", "confidence");

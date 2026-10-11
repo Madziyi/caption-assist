@@ -1,4 +1,5 @@
 "use client";
+import { HeadsetDelay } from "./headset-panels";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { QRCodeSVG } from "qrcode.react";
 import type { ConnectedRoom, RoomView } from "@/lib/rooms/controller";
@@ -54,6 +55,7 @@ export function ParticipantsPanel({ view, room, close, invite }: { view: RoomVie
           {active ? "Cancel" : identifyLabel(p, phase)}
         </button>}
         {view.mode === "headset" && !p.removed && <span className="voice-phase">{view.headsetHost?.people[p.id]?.presence?.setup === "ready" ? "Headset ready" : "Headset not set up"}</span>}
+        {view.mode === "headset" && !p.removed && <HeadsetDelay view={view} id={p.id} />}
         {p.role !== "host" && !p.removed && <button className="button button-quiet speaker-edit" disabled={busy !== null} onClick={async () => {
           setBusy(p.id); setError(null); try { await room.remove(p.id); } catch { setError("Removal could not be confirmed. Try again."); } finally { setBusy(null); }
         }}>{busy === p.id ? "Removing…" : `Remove ${p.displayName}`}</button>}

@@ -1,0 +1,21 @@
+import { afterEach, beforeEach, expect, it, vi } from "vitest";
+import { HeadsetHost } from "./headset-host";
+beforeEach(() => vi.useFakeTimers());
+afterEach(() => vi.useRealTimers());
+it("throttles slider drags to 250 ms, preserves latest values, commits final and cancels disposal", async () => {
+  const sendControl = vi.fn(async () => undefined);
+  const host = new HeadsetHost({ sendControl }, () => undefined);
+  host.setRoster([{ id: "a", role: "participant", displayName: "A", accentIndex: 0, removed: false }]);
+  host.setSensitivity("a", -1, false);
+  host.setSensitivity("a", -2, false);
+  expect(sendControl).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(249); expect(sendControl).toHaveBeenCalledTimes(1);
+  await vi.advanceTimersByTimeAsync(1); expect(sendControl).toHaveBeenLastCalledWith({ type: "headset-sensitivity", levels: { a: -2 } });
+  host.setSensitivity("a", -6, false); host.setSensitivity("a", -6, true);
+  expect(sendControl).toHaveBeenLastCalledWith({ type: "headset-sensitivity", levels: { a: -6 } });
+  const count = sendControl.mock.calls.length;
+  await vi.advanceTimersByTimeAsync(250); expect(sendControl).toHaveBeenCalledTimes(count);
+  host.setSensitivity("a", -7, false); host.setSensitivity("a", -8, false); host.dispose();
+  const before = sendControl.mock.calls.length;
+  await vi.advanceTimersByTimeAsync(1000); expect(sendControl).toHaveBeenCalledTimes(before);
+});

@@ -1,6 +1,7 @@
 import type { SpeakerProfile, TranscriptionEvent } from "../captions/types";
 import { VOICE_PHASES, type VoicePhase } from "./voice-identity";
 import type { HeadsetControl } from "../headset/messages";
+import { validEvidence, type CaptionEvidence } from "../headset/evidence";
 
 export const ROOM_LIFETIME_MS = 24 * 60 * 60 * 1000;
 export const HOST_ACCENT_INDEX = 6;
@@ -29,7 +30,7 @@ export type RoomControl = { type: "room-ended" } | { type: "participant-removed"
   | HeadsetControl;
 export const IDENTIFY_REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
 // Personal-microphone caption relay envelope, retained for a future Hybrid Mode.
-export type CaptionEnvelope = { event: TranscriptionEvent; sequence: number; readyAt: number; streamId: string };
+export type CaptionEnvelope = { event: TranscriptionEvent; sequence: number; readyAt: number; streamId: string; evidence?: CaptionEvidence };
 
 export function validIdentificationPhases(value: unknown): value is Record<string, VoicePhase> {
   if (!value || typeof value !== "object" || Array.isArray(value)) return false;
@@ -72,6 +73,7 @@ export function exactIdentity(event: TranscriptionEvent, participantId: string):
 export function validEnvelope(value: unknown): value is CaptionEnvelope {
   if (!value || typeof value !== "object") return false;
   const envelope = value as CaptionEnvelope;
+  if (envelope.evidence !== undefined && !validEvidence(envelope.evidence)) return false;
   if (!Number.isSafeInteger(envelope.sequence) || envelope.sequence < 1 || !Number.isFinite(envelope.readyAt)
     || typeof envelope.streamId !== "string" || !/^[\da-f-]{36}$/i.test(envelope.streamId)) return false;
   const event = envelope.event;
@@ -81,5 +83,6 @@ export function validEnvelope(value: unknown): value is CaptionEnvelope {
     && (event.type === "interim" || (typeof event.sourceTurnId === "string" && event.sourceTurnId.length < 300))
     && captions.every((caption) => caption && typeof caption.text === "string" && caption.text.length <= 8000
       && typeof caption.id === "string" && caption.id.length < 300 && Number.isFinite(caption.startedAt)
+      && (caption.audioEndAt === undefined || Number.isFinite(caption.audioEndAt)) && (caption.endedAt === undefined || Number.isFinite(caption.endedAt))
       && (caption.sourceTurnId === undefined || (typeof caption.sourceTurnId === "string" && caption.sourceTurnId.length < 300)));
 }

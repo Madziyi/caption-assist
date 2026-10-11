@@ -1,5 +1,6 @@
 "use client";
 import type { HeadsetParticipantView } from "@/lib/headset/headset-participant";
+import { sensitivityLabel } from "@/lib/headset/calibration";
 export function HeadsetSetup({ view, start, useAnyway, retry, retryCaptions, choose }: { view: HeadsetParticipantView | null; start(): void; useAnyway(): void; retry(): void; retryCaptions?: () => void; choose(deviceId: string): void }) {
   // Joining now publishes an initialized view before the user grants mic access.
   if (!view || (view.setup === "not_started" && view.mic === "off")) return <button type="button" className="button button-secondary" onClick={start}>Start headset check</button>;
@@ -20,7 +21,7 @@ export function HeadsetSetup({ view, start, useAnyway, retry, retryCaptions, cho
     {view.setup === "quiet" && <p>Stay quiet for 3 seconds…</p>}
     {view.setup === "voice" && <p>Now read this out loud at your normal volume: “I&apos;m checking my headset so the captions know when I&apos;m talking.”</p>}
     {view.setup === "ready" && view.mic === "on" && <p>✓ Headset ready. Keep this page open with the screen on. <strong>{view.speaking ? "Speaking" : "Quiet"}</strong></p>}
-    {view.sensitivity && <p> Sensitivity: {view.sensitivity === "lower" ? "Less sensitive" : view.sensitivity === "higher" ? "More sensitive" : "Normal"} (set by the host)</p>}
+    {(view.sensitivityDb !== undefined || view.sensitivity !== undefined) && <p>Sensitivity: {sensitivityLabel(view.sensitivityDb ?? view.sensitivity ?? 0)}, set by the host</p>}
     {view.stt && view.stt !== "off" && <p role="status">{view.stt === "on" ? "Captioning your voice" : view.stt === "connecting" ? "Connecting captions…" : view.stt === "reconnecting" ? "Captions reconnecting…" : "Captions stopped."}{view.stt === "failed" && retryCaptions && <button type="button" className="button button-secondary" onClick={retryCaptions}>Retry captions</button>}</p>}
     {view.mic === "disconnected" && <div className="notice notice-warning"><p>Your headset disconnected.</p><div className="notice-actions"><button type="button" className="button button-primary" onClick={retry}>Turn microphone back on</button><button type="button" className="button button-secondary" onClick={retry}>Check again</button></div></div>}
     {view.notice && view.setup !== "failed" && view.mic !== "disconnected" && <div className="notice notice-warning"><p role="alert">{view.notice}</p><button type="button" className="button button-secondary" onClick={retry}>Check again</button></div>}

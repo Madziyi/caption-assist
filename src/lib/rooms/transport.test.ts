@@ -17,7 +17,7 @@ class Channel {
 function setup(self: typeof host | typeof guest) {
   const channels = new Map<string, Channel>();
   const client = { channel: vi.fn((topic: string) => { const channel = new Channel(); channels.set(topic, channel); return channel; }), removeChannel: vi.fn().mockResolvedValue("ok") };
-  const callbacks = { identify: vi.fn(), identification: vi.fn(), registryChanged: vi.fn(), state: vi.fn(), control: vi.fn(), disconnected: vi.fn(), headsetPresence: vi.fn(), headsetSignal: vi.fn(), headsetControl: vi.fn(), caption: vi.fn() };
+  const callbacks = { identify: vi.fn(), identification: vi.fn(), registryChanged: vi.fn(), state: vi.fn(), control: vi.fn(), disconnected: vi.fn(), deliveryError: vi.fn(), headsetPresence: vi.fn(), headsetSignal: vi.fn(), headsetControl: vi.fn(), caption: vi.fn() };
   const transport = new SupabaseRoomTransport(client as unknown as SupabaseClient, "room", self, callbacks);
   return { channels, client, callbacks, transport };
 }
@@ -191,6 +191,34 @@ describe("headset caption relay", () => {
   afterEach(() => { vi.useRealTimers(); });
   const interim = (text: string): TranscriptionEvent => ({ type: "interim", caption: { id: "raw", sourceTurnId: "raw", text, speakerId: null, startedAt: 1, isFinal: false } });
   const final = (text: string): TranscriptionEvent => ({ type: "final_turn", sourceTurnId: "raw", captions: [{ id: "raw", sourceTurnId: "raw", text, speakerId: null, startedAt: 1, isFinal: true }] });
+  it("reports a queued caption send failure without disconnecting a healthy room", async () => {
+    const f = setup(guest); await f.transport.connect([host, guest]);
+    const channel = f.channels.get("caption-room:room:participant:guest")!;
+    const stream = "11111111-1111-4111-8111-111111111111";
+    await f.transport.sendCaption!(interim("first"), stream);
+    channel.send.mockResolvedValueOnce("error");
+    await f.transport.sendCaption!(interim("queued"), stream);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(f.callbacks.deliveryError).toHaveBeenCalledWith("Caption delivery was interrupted. Retry captions.");
+    expect(f.callbacks.disconnected).not.toHaveBeenCalled();
+    await f.transport.disconnect();
+  });
+  it("replaces a queued interim with a final and cancels all queued delivery on disconnect", async () => {
+    const f = setup(guest); await f.transport.connect([host, guest]);
+    const channel = f.channels.get("caption-room:room:participant:guest")!;
+    const stream = "11111111-1111-4111-8111-111111111111";
+    const evidence = { relDb: -5, openRatio: 1, startAt: 0, endAt: 1000 };
+    await f.transport.sendCaption!(interim("first"), stream, evidence);
+    await f.transport.sendCaption!(interim("pending"), stream, evidence);
+    await f.transport.sendCaption!(final("final"), stream, evidence);
+    await vi.advanceTimersByTimeAsync(200);
+    expect(channel.send).toHaveBeenCalledTimes(2);
+    expect(channel.send.mock.calls[1][0].payload).toMatchObject({ event: { type: "final_turn" }, evidence });
+    await f.transport.sendCaption!(interim("next"), stream); await f.transport.sendCaption!(interim("queued"), stream);
+    const before = channel.send.mock.calls.length;
+    await f.transport.disconnect(); await vi.advanceTimersByTimeAsync(200);
+    expect(channel.send).toHaveBeenCalledTimes(before);
+  });
   it("coalesces interims, flushes finals and deduplicates host envelopes", async () => {
     const guestSetup = setup(guest); const hostSetup = setup(host);
     await guestSetup.transport.connect([host, guest]); await hostSetup.transport.connect([host, guest]);
@@ -198,15 +226,15 @@ describe("headset caption relay", () => {
     const hostChannel = hostSetup.channels.get("caption-room:room:participant:guest")!;
     await guestSetup.transport.sendCaption!(interim("one"), "11111111-1111-4111-8111-111111111111");
     await guestSetup.transport.sendCaption!(interim("two"), "11111111-1111-4111-8111-111111111111");
-    expect(guestChannel.send).not.toHaveBeenCalledWith(expect.objectContaining({ event: "caption" }));
+    expect(guestChannel.send).toHaveBeenCalledTimes(1); // Leading edge is immediate.
     await vi.advanceTimersByTimeAsync(200);
-    expect(guestChannel.send).toHaveBeenCalledTimes(1);
+    expect(guestChannel.send).toHaveBeenCalledTimes(2);
     const first = guestChannel.send.mock.calls[0][0] as { payload: { sequence: number } };
     hostChannel.listeners.get("broadcast:caption")!({ payload: first.payload });
     hostChannel.listeners.get("broadcast:caption")!({ payload: first.payload });
     expect(hostSetup.callbacks.caption).toHaveBeenCalledTimes(1);
     await guestSetup.transport.sendCaption!(final("done"), "11111111-1111-4111-8111-111111111111");
-    expect(guestChannel.send).toHaveBeenCalledTimes(2);
+    expect(guestChannel.send).toHaveBeenCalledTimes(3);
     await guestSetup.transport.disconnect(); await hostSetup.transport.disconnect();
   });
 });

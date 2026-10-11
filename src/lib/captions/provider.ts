@@ -276,6 +276,7 @@ function normalizeTurn(message: AssemblyAIMessage, sourceTurnId: string, connect
           speakerId,
           startedAt,
           endedAt: finalized ? sessionStartedAt + (lastWord?.end ?? 0) : undefined,
+          audioEndAt: lastWord?.end === undefined ? undefined : sessionStartedAt + lastWord.end,
           isFinal: finalized,
           confidence: message.end_of_turn_confidence,
           recognitionConfidence: meanWordConfidence(words),
@@ -307,6 +308,7 @@ function normalizeTurn(message: AssemblyAIMessage, sourceTurnId: string, connect
       segment.text = joinWords(current.words.map((item) => item.text?.trim() ?? ""));
       segment.recognitionConfidence = meanWordConfidence(current.words);
       segment.endedAt = finalized ? sessionStartedAt + (word.end ?? word.start ?? 0) : undefined;
+      segment.audioEndAt = word.end === undefined ? undefined : sessionStartedAt + word.end;
     }
   }
   return segments.filter((segment) => segment.text);

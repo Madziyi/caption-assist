@@ -5,6 +5,8 @@ import type { CaptionAction } from "../captions/reducer";
 import { captionReducer, initialCaptionState } from "../captions/reducer";
 import type { VoicePhase } from "./voice-identity";
 import { CONNECTED_ROOM_ASSEMBLYAI_OPTIONS } from "../captions/provider";
+import type { TranscriptionEvent } from "../captions/types";
+import type { CaptionEnvelope } from "./types";
 
 const mocks = vi.hoisted(() => ({ request: vi.fn(), callbacks: null as unknown, transports: [] as unknown[], providers: [] as Array<{ connectionId: string; options: unknown }> }));
 vi.mock("./browser", () => ({ roomRequest: mocks.request, roomClient: () => ({ realtime: { setAuth: async () => undefined } }), technicalSession: async () => ({ access_token: "test" }) }));
@@ -22,6 +24,7 @@ type Transport = { sendControl: ReturnType<typeof vi.fn>; setIdentifyRequest: Re
 type Callbacks = {
   identify(id: string, requestId: string | null): void; identification(phases: Record<string, VoicePhase>, requests: Record<string, string>): void;
   state(id: string, status: string): void; disconnected(): void; control(event: unknown): void;
+  caption(id: string, event: TranscriptionEvent, envelope?: CaptionEnvelope): void;
 };
 class FakeMicrophone {
   start = vi.fn(async () => { this.dispatch({ type: "START" }); this.providerFactory("token"); this.dispatch({ type: "LISTENING" }); });
@@ -76,6 +79,24 @@ describe("Connected room with one host room microphone", () => {
     expect(g.view.phase).toBe("joined"); expect(g.mics).toHaveLength(0); expect(g.view.roomMicrophone).toBe("Off");
     await g.room.startRoomMicrophone(); expect(g.mics).toHaveLength(0);
     await f.room.dispose(); expect(f.mics[0].stop).toHaveBeenCalled();
+  });
+  it("arbitrates only authorized headset captions, removes held turns on end and leaves Connected untouched", async () => {
+    const f = fixture(); mocks.request.mockResolvedValue({ ...snapshot(), mode: "headset" });
+    await f.room.create("headset"); await vi.advanceTimersByTimeAsync(0);
+    const cb = callbacks();
+    const event: TranscriptionEvent = { type: "final_turn", sourceTurnId: "raw", captions: [{ id: "raw", text: "synthetic caption", speakerId: "claimed", startedAt: 1, endedAt: 1000, isFinal: true }] };
+    cb.caption("guest", event, { event, readyAt: Date.now(), sequence: 1, streamId: crypto.randomUUID(), evidence: { relDb: 0, openRatio: 1, startAt: 1, endAt: 1000 } });
+    expect(f.state.finalized[0].speakerId).toBe("guest"); expect(f.mics).toHaveLength(0);
+    cb.caption("unknown", event); expect(f.state.finalized).toHaveLength(1);
+    await f.room.dispose();
+    const c = await hostRoom(); callbacks().caption("guest", event); expect(c.state.finalized).toHaveLength(0); await c.room.dispose();
+  });
+  it("reuses the guest headset participant across rejoin while keeping the microphone stopped", async () => {
+    const f = fixture(); mocks.request.mockResolvedValue({ ...snapshot(guest), mode: "headset" });
+    await f.room.join("token", "Alex"); const participant = f.room.headsetParticipant;
+    expect(f.view.headsetSelf?.mic).toBe("off");
+    await f.room.rejoin(); expect(f.room.headsetParticipant).toBe(participant); expect(f.view.headsetSelf?.mic).toBe("stopped");
+    await f.room.dispose();
   });
 
   it("a restored host room waits for an explicit room microphone start", async () => {

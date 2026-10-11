@@ -4,6 +4,7 @@ export type CaptionEvent = {
   speakerId: string | null;
   startedAt: number;
   endedAt?: number;
+  audioEndAt?: number;
   isFinal: boolean;
   confidence?: number;
   recognitionConfidence?: number;

@@ -1,5 +1,11 @@
 import { describe, expect, it } from "vitest";
 import { GatedAudio } from "./gated-audio";
+it("silences queued speech immediately during a calibration or room-check block without changing cadence", () => {
+  const gated = new GatedAudio(); const frame = new Int16Array([123, 456]).buffer;
+  for (let i = 0; i < 3; i++) gated.push(frame, true);
+  expect([...new Int16Array(gated.push(frame, false, true)!)]).toEqual([0, 0]);
+  expect([...new Int16Array(gated.push(frame, false, true)!)]).toEqual([0, 0]);
+});
 
 const frame = (value: number) => new Uint8Array([value, value]).buffer;
 

@@ -43,5 +43,7 @@ describe("Connected identity and caption state", () => {
     expect(validEnvelope({ event: event("turn"), sequence: 1, readyAt: 10, streamId: crypto.randomUUID() })).toBe(true);
     expect(validEnvelope({ event: event("turn"), sequence: -1, readyAt: 10 })).toBe(false);
     expect(validEnvelope({ event: { type: "final_turn", captions: "invalid" }, sequence: 1, readyAt: 10, streamId: crypto.randomUUID() })).toBe(false);
+    const envelope = { event: event("turn"), sequence: 1, readyAt: 10, streamId: crypto.randomUUID(), evidence: { relDb: -5, openRatio: 0.5, startAt: 0, endAt: 1000 } };
+    expect(validEnvelope(envelope)).toBe(true); expect(validEnvelope({ ...envelope, evidence: { ...envelope.evidence, relDb: NaN } })).toBe(false);
   });
 });

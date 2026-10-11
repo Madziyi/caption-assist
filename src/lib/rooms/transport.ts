@@ -1,6 +1,7 @@
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
 import { IDENTIFY_REQUEST_ID, validIdentificationPhases, validIdentifyRequests, type Participant, type ParticipantStatus, type RoomControl } from "./types";
 import type { VoicePhase } from "./voice-identity";
+import { INTERIM_THROTTLE_MS } from "../headset/relay-constants";
 import type { TranscriptionEvent } from "../captions/types";
 import { validEnvelope, type CaptionEnvelope } from "./types";
 import { validHeadsetControl, validHeadsetPresence, validHeadsetPresenceUpdate, validHeadsetSignal, type HeadsetControl, type HeadsetPresence, type HeadsetPresenceUpdate, type HeadsetSignal } from "../headset/messages";
@@ -20,7 +21,8 @@ type TransportCallbacks = {
   headsetPresence?(participantId: string, presence: HeadsetPresence | null): void;
   headsetSignal?(participantId: string, signal: HeadsetSignal): void;
   headsetControl?(control: HeadsetControl): void;
-  caption?(participantId: string, event: TranscriptionEvent): void;
+  caption?(participantId: string, event: TranscriptionEvent, envelope?: CaptionEnvelope): void;
+  deliveryError?(message: string): void;
 };
 export interface RoomTransport {
   connect(participants: Participant[]): Promise<void>;
@@ -28,7 +30,7 @@ export interface RoomTransport {
   setIdentifyRequest(requestId: string | null): Promise<void>;
   setHeadsetPresence?(presence: HeadsetPresence): Promise<void>;
   sendHeadsetSignal?(signal: HeadsetSignal): Promise<void>;
-  sendCaption?(event: TranscriptionEvent, streamId: string): Promise<void>;
+  sendCaption?(event: TranscriptionEvent, streamId: string, evidence?: CaptionEnvelope["evidence"]): Promise<void>;
   sendControl(event: RoomControl): Promise<void>;
   disconnect(): Promise<void>;
 }
@@ -49,6 +51,7 @@ export class SupabaseRoomTransport implements RoomTransport {
   private captionSequences = new Map<string, number>();
   private captionTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private pendingCaptions = new Map<string, CaptionEnvelope>();
+  private readonly lastInterimAt = new Map<string, number>();
   private readonly receivedCaptions = new Map<string, number>();
 
   constructor(private readonly client: SupabaseClient, private readonly roomId: string, private readonly self: Participant, private readonly callbacks: TransportCallbacks) {}
@@ -194,22 +197,28 @@ export class SupabaseRoomTransport implements RoomTransport {
     if (envelope.sequence <= previous) return;
     this.receivedCaptions.delete(key); this.receivedCaptions.set(key, envelope.sequence);
     if (this.receivedCaptions.size > 512) this.receivedCaptions.delete(this.receivedCaptions.keys().next().value!);
-    this.callbacks.caption?.(participantId, envelope.event);
+    this.callbacks.caption?.(participantId, envelope.event, envelope);
   }
   async sendHeadsetSignal(signal: HeadsetSignal): Promise<void> {
     if (this.stopped || this.self.role === "host") return;
     if (await this.channels.get(this.self.id)?.send({ type: "broadcast", event: "headset", payload: signal }) !== "ok") throw new Error("Your headset signal could not reach the host.");
   }
-  async sendCaption(event: TranscriptionEvent, streamId: string): Promise<void> {
+  async sendCaption(event: TranscriptionEvent, streamId: string, evidence?: CaptionEnvelope["evidence"]): Promise<void> {
     if (this.stopped || this.self.role === "host") return;
     const channel = this.channels.get(this.self.id);
     if (!channel || !/^[\da-f-]{36}$/i.test(streamId)) throw new Error("Caption delivery is unavailable.");
     const key = streamId;
-    const envelope: CaptionEnvelope = { event, sequence: (this.captionSequences.get(key) ?? 0) + 1, readyAt: Date.now(), streamId };
+    const envelope: CaptionEnvelope = { event, sequence: (this.captionSequences.get(key) ?? 0) + 1, readyAt: Date.now(), streamId, ...(evidence ? { evidence } : {}) };
     this.captionSequences.set(key, envelope.sequence);
     if (event.type === "interim") {
+      const elapsed = Date.now() - (this.lastInterimAt.get(key) ?? -Infinity);
+      if (elapsed >= INTERIM_THROTTLE_MS) {
+        const prior = this.captionTimers.get(key); if (prior) clearTimeout(prior);
+        this.captionTimers.delete(key); this.pendingCaptions.delete(key);
+        this.lastInterimAt.set(key, Date.now()); await this.sendCaptionEnvelope(channel, envelope); return;
+      }
       this.pendingCaptions.set(key, envelope);
-      if (!this.captionTimers.has(key)) this.captionTimers.set(key, setTimeout(() => { this.captionTimers.delete(key); const pending = this.pendingCaptions.get(key); this.pendingCaptions.delete(key); if (pending) void this.sendCaptionEnvelope(channel, pending); }, 200));
+      if (!this.captionTimers.has(key)) this.captionTimers.set(key, setTimeout(() => { this.captionTimers.delete(key); const pending = this.pendingCaptions.get(key); this.pendingCaptions.delete(key); if (pending) { this.lastInterimAt.set(key, Date.now()); void this.sendCaptionEnvelope(channel, pending).catch(() => this.callbacks.deliveryError?.("Caption delivery was interrupted. Retry captions.")); } }, INTERIM_THROTTLE_MS - elapsed));
       return;
     }
     const timer = this.captionTimers.get(key);
@@ -231,6 +240,7 @@ export class SupabaseRoomTransport implements RoomTransport {
     this.headsetVersions.clear();
     for (const timer of this.captionTimers.values()) clearTimeout(timer);
     this.captionTimers.clear(); this.pendingCaptions.clear(); this.captionSequences.clear(); this.receivedCaptions.clear();
+    this.lastInterimAt.clear();
     const channels = [...this.channels.values(), ...(this.controlChannel ? [this.controlChannel] : []), ...(this.presenceChannel ? [this.presenceChannel] : [])];
     this.channels.clear(); this.controlChannel = null;
     this.presenceChannel = null;

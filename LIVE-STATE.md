@@ -43,7 +43,7 @@ The Builder inspected repository source only; no deployed system, provider accou
 
 | Provider | Purpose | Model/config | Credential secret name | Live verified |
 |---|---|---|---|---|
-| AssemblyAI | initial streaming STT candidate | unverified | `ASSEMBLYAI_API_KEY` (planned name only; not verified in live configuration) | no |
+| AssemblyAI | Table/Connected and per-phone headset STT | Headset: universal-3-6-pro / near-field / balanced / 16 kHz / no diarization / formatted turns | `ASSEMBLYAI_API_KEY` (local token route exercised; value never recorded) | yes, local live browser path; deployed physical acceptance unverified |
 | Deepgram | benchmark candidate | unverified | not established | no |
 | Speechmatics | benchmark candidate | unverified | not established | no |
 
@@ -54,6 +54,14 @@ None expected initially. None verified.
 ## Known live-state drift
 
 - None recorded.
+
+## CAPTION-008.3 local live browser/provider verification — 2026-10-11
+
+- Verified local browser path, not deployed device behavior: host + two independent fake-media Chromium phones, live Supabase project `cqnyvevhuxwfzhqpmccn`, real AssemblyAI streaming v3 sessions using temporary tokens from the local API. The project connector reported ACTIVE_HEALTHY, ca-central-1, Postgres 17.11. No new project, migration, policy, quota or live provider configuration.
+- Observed options on every tested phone: `speech_model=universal-3-6-pro`, `voice_focus=near-field`, `mode=balanced`, `speaker_labels=false`, `format_turns=true`, `sample_rate=16000`. Final arbitration comparison: phone Begin/Turn/Termination counts 1/17/1 and 1/22/1; bypass 1/16/1 and 1/21/1. No provider Error. Host made no capture request and opened no provider session.
+- Actual gated PCM and private participant caption/state Broadcasts reached the host. Four synthetic targets appeared once under the correct owners with arbitration; bypass exposed two duplicates/two wrong-name lines; no target misses. An earlier run escaped one duplicate; no sustained or physical reliability claim. Detailed counts and signed endpoint-latency limitations are in QUALITY.md.
+- Read-only exact window `2026-10-11T19:27:00Z` through `2026-10-11T19:44:00Z`: 15 `realtime_logs` rows, 0 `ClientPresenceRateLimitReached`. Initial aggregate query failed; simplified query succeeded. Browser traces also observed zero quota errors. This is window-limited evidence, not a global guarantee against disconnections.
+- Temporary rooms ended, browsers closed, synthetic audio removed and owned dev server stopped. Anonymous fixture auth sessions stayed in memory and were reused across comparison runs; no audio, invitations, tokens, storage states or transcripts persisted in the repository. Physical-phone UAT remains pending.
 
 ## CAPTION-008.2 phone setup regression deployment — 2026-10-11
 

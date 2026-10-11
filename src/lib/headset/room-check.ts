@@ -1,5 +1,5 @@
 import { percentile, roundDb } from "./levels";
-import { plausibleRoomCheckRow, separationBand, type HeadsetCalibration, type SeparationBand } from "./calibration";
+import { plausibleRoomCheckRow, separationBand, speechLevels, type HeadsetCalibration, type SeparationBand } from "./calibration";
 
 export type RoomCheckPlan = { order: string[]; slotMs: number; gapMs: number };
 export type RoomCheckSlot = { index: number; phase: "gap" | "reading"; measuring: boolean } | null;
@@ -22,14 +22,13 @@ export class RoomCheckRecorder {
     const speaker = this.plan.order[slot.index];
     if (!speaker) return;
     const values = this.frames.get(speaker) ?? [];
-    if (speaker === this.selfId) {
-      if (levelDb >= this.floorDb + 6) values.push(levelDb);
-    } else values.push(levelDb);
+    values.push(levelDb);
     this.frames.set(speaker, values);
   }
   result(): Record<string, number | null> {
     return Object.fromEntries(this.plan.order.map((speaker) => {
-      const values = this.frames.get(speaker) ?? [];
+      const all = this.frames.get(speaker) ?? [];
+      const values = speaker === this.selfId ? speechLevels(all, this.floorDb) : all;
       const value = speaker === this.selfId ? (values.length < 5 ? null : percentile(values, 50)) : percentile(values, 90);
       return [speaker, value === null ? null : roundDb(value)];
     }));

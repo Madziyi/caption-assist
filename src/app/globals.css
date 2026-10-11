@@ -265,3 +265,6 @@ select:focus-visible { outline: 4px solid #f1bd4b; outline-offset: 3px; }
 @media (min-width: 1200px) {
   .header-actions .room-mic-state { font-size: clamp(0.875rem, 0.75vw, 1rem); padding: 0.45rem 0.6rem; }
 }
+.headset-range-labels { display: flex; justify-content: space-between; }
+.headset-hidden-caption { opacity: 0.65; }
+.headset-sensitivity-list input[type="range"] { display: block; width: 100%; min-width: 0; }

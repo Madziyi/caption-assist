@@ -4,6 +4,35 @@ This file records measured evidence about whether the product is actually usable
 
 Do not invent values. Mark unmeasured items `unverified`.
 
+### 2026-10-11 — CAPTION-008.3 duplicate-control Builder verification
+
+- Baseline: clean local `HEAD == origin/main == da7d3802eb928c5be8a9a57bdc3533ce7da59d8c` before implementation; last Builder handoff was an ancestor. No reset or checkpoint restore used.
+- Automated: `npm test` **213 tests / 33 files passed**; `npm run typecheck`, `npm run lint`, `npm run build` and `git diff --check` passed. Build changed generated next-env imports; only that generated drift was restored. Existing Vite future-config warning and Next.js external parent lockfile warning remain non-fatal.
+- Coverage: integer/legacy sensitivity math and allowed clamps (including positive threshold ceiling), validation/coalescing/final commits, tuned/restart/recalibration, noisy/digitally silenced estimator vectors, leading/trailing relay/final/disconnect, queued-send warning without false room disconnect, effective-gate history/windows, signed bounded latency samples, +2 s phone clock, all nine required arbiter scenarios, tie/revision/removal/cache/timer behavior, exact membership/headset-only controller dispatch and rejoin, hidden-final opt-in, export v3 anonymity.
+- Environment/audio: local Next.js app on Windows, native Chromium, host 1280×844 and two independent fake-media phones 390×844, actual `getUserMedia` → AudioWorklet → calibrated gated PCM → live AssemblyAI → private live Supabase → host reducer. Synthetic David/Zira speech; 76 s fixture per phone, four target sentences and calibration/check phases, other wearer's speech mixed 5 dB quieter. Sliders manually set to +6 dB to deliberately admit bleed. Room-check separation was 2.0/2.7 dB in the final active run (bleed p90 differs from own speech median); not a physical headset model.
+
+| Final comparison | Target occurrences (four sentences) | Wrong-name target lines | Missed targets | Extra duplicate target lines | Shown finals P2/P3 | Suppressed text P2/P3 | Suppressed level P2/P3 |
+|---|---|---|---|---|---|---|---|
+| Arbiter | 1 / 1 / 1 / 1 | 0 | 0 | 0 | 2 / 2 | 0 / 2 | 1 / 0 |
+| Development-only bypass | 2 / 1 / 2 / 1 | 2 | 0 | 2 | 2 / 4 | 0 / 0 | 0 / 0 |
+
+- Replaced/restored counters were 0 for both phones in both final live runs; their branches are unit-tested, not acoustically exercised here. P1 was the host with no headset: zero captions, zero latency samples, zero microphone/provider sessions. Counts refer to target phrase presence/owner, not a full word-error-rate evaluation.
+- Provider lifecycle, arbiter run: P2 Begin 1 / Turn 17 / Termination 1, P3 Begin 1 / Turn 22 / Termination 1. Bypass: P2 1 / 16 / 1, P3 1 / 21 / 1. No provider Error, page errors or observed Presence-quota errors. One capture request per phone, none on host. Arbiter-run outbound PCM: P2 139 non-silent / 437 silent frames; P3 143 / 433. Bypass: P2 139 / 435; P3 139 / 434. Config observed: Universal-3.6 Pro, near-field, balanced, `speaker_labels=false`, `format_turns=true`, 16 kHz. No provider parameter changes.
+
+| Run / anonymous phone | STT interim p50/p90 (ms) | STT final p50/p90 (ms) | STT interim/final samples | Relay extra p50/p90 (ms) | Relay samples |
+|---|---|---|---|---|---|
+| Arbiter P2 | −144 / 505 | −219 / −180 | 12 / 2 | 8 / 127 | 17 |
+| Arbiter P3 | −147 / −92 | −158 / −125 | 10 / 3 | 8 / 27 | 22 |
+| Bypass P2 | −23 / 539 | −163 / −163 | 11 / 1 | 6 / 92 | 14 |
+| Bypass P3 | −97 / −51 | −66 / −36 | 10 / 3 | 5 / 33 | 21 |
+
+- Latency limits: these are signed `receivedAt − audioEndAt` measurements, not onset-to-readable-caption measurements. Some provider word endpoints led receipt by roughly 100–300 ms; negative values are retained, not dropped/clamped. The specified formula yields 164/161 ms for the final arbiter snapshots, which is **not** evidence that human-perceived ~2 s latency is fixed. Phone snapshots publish at most every 10 s; their sample counts can lag received events. Relay estimates remove minimum observed clock/network offset; conditional final hold/render time are not separately included. Do not choose 008.4 levers from these synthetic numbers alone.
+- Variability/failures: first live harness timed out awaiting ready calibration; cause not established. Isolated real capture/worklet then passed (floor −83.5, own −25.5, quiet 25 and voice 61 frames). An earlier full comparison had target occurrences 1/2/1/1 (one escaped duplicate), versus bypass 2/2/1/1 (two duplicates). A diagnostic active run and the final comparison each had zero target misses/duplicates/wrong names. No arbiter constants/provider options were tuned to get the final pass. Provider wording/segmentation and evidence windows are plausible contributors to the earlier escape, not proven causes; retain it for physical acceptance/Planner review.
+- Accessibility: no horizontal overflow at 390 or 1280 px; keyboard End/Left/Right adjusted sliders and Space enabled the testing checkbox. Native range labels, value text, threshold/quiet-speech feedback and current tuning are unit-tested. Full screen-reader/text-scaling audit is unverified.
+- Infrastructure: read-only Supabase project check ACTIVE_HEALTHY. Exact final-comparison log window 19:27–19:44 UTC contained 15 Realtime rows and 0 `ClientPresenceRateLimitReached`. An initial log query failed; simplified count query succeeded. Supabase guidance kept the existing immediate Broadcast + 12 s Presence snapshot design unchanged; no quota/schema/policy changes.
+- Cleanup/privacy: all test rooms ended through the app, browsers closed and owned dev server stopped. Synthetic temporary WAVs deleted; no storage-state files created, identities reused in memory across active/bypass. No secrets, invitations, actual conversation transcripts or audio committed. Repeat runner and synthetic speech generator are committed, not their output.
+- Unverified: physical iPhone/Android/Bluetooth/wired behavior, background/lock or headset swaps, real soft/overlapping speech, 20–30 min stability/battery, word accuracy and actual billed cost. Result: source/live pipeline verified, physical duplicate-control acceptance pending; no 008.4/008.5 implementation.
+
 ### 2026-10-11 — CAPTION-008.2 Builder handoff
 
 - Realtime pre-coding check after `d839f09`: project `cqnyvevhuxwfzhqpmccn`, `realtime_logs` rows 15 in the exact post-deployment window; `ClientPresenceRateLimitReached` 0; no participant channel/error rows. Two matching rows were normal informational tenant replication shutdown/restart events, not room-client disconnects.
