@@ -133,7 +133,7 @@ h1 { margin: 0.1rem 0 0; font-size: clamp(2rem, 4vw, 3.25rem); }
 .speaker-accent-2 { --speaker-accent: #147d64; }
 .speaker-accent-3 { --speaker-accent: #a34b00; }
 .speaker-accent-4 { --speaker-accent: #b4235a; }
-.speaker-accent-5 { --speaker-accent: #476a1e; }
+.speaker-accent-5 { --speaker-accent: #41611d; }
 .speaker-accent-0, .speaker-accent-1, .speaker-accent-2, .speaker-accent-3, .speaker-accent-4, .speaker-accent-5 { color: var(--speaker-accent); }
 .speaker-accent-0 .speaker-dot, .speaker-accent-1 .speaker-dot, .speaker-accent-2 .speaker-dot, .speaker-accent-3 .speaker-dot, .speaker-accent-4 .speaker-dot, .speaker-accent-5 .speaker-dot, .speaker-dot.speaker-accent-0, .speaker-dot.speaker-accent-1, .speaker-dot.speaker-accent-2, .speaker-dot.speaker-accent-3, .speaker-dot.speaker-accent-4, .speaker-dot.speaker-accent-5 { background: var(--speaker-accent); }
 .speaker-accent-border-0 { border-left-color: #1769aa; }
