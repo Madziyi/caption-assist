@@ -117,6 +117,15 @@ Status: **unverified**
 
 ## Per-task evidence
 
+### 2026-10-11 — CAPTION-008.2 joining-phone setup entry regression
+- User evidence: after `aac146a`, joining phones no longer show microphone options and remain at Using: no microphone selected. Exact device/browser not supplied.
+- Reproduced: controller now publishes `currentView` immediately on join (`not_started`, `off`, null input, no inputs), while HeadsetSetup only offered Start headset check for a null view. Three new pre-fix component tests failed for idle start, stopped restart and starting feedback. This blocks the permission tap before enumeration; it is not evidence of missing physical hardware.
+- Fix: explicit idle/start, starting/permission and stopped/restart UI; ready text only while mic is on. No capture constraints, enumeration, provider, transport, privacy or acoustic threshold changes.
+- Automated: 179 tests / 29 files passed; typecheck, lint, production build and diff check passed. Participant-page regression uses the actual participant initial state with a mocked controller to verify join makes no permission request and the start tap reaches the setup action; existing input-ID picker tests remain green.
+- Native browser: isolated actual HeadsetSetup + HeadsetParticipant + MicrophoneCapture/worklet in headless Chromium 1208, fake media. No microphone calls before the tap; keyboard Tab/Enter starts capture; frames arrive; three routes exposed; picker matches active track ID; selecting it restarts capture; stopped state offers restart and capture resumes (three total getUserMedia calls). No page errors; no horizontal overflow at 390×844 and 1280×844. All non-localhost network requests blocked. No live room, Supabase, STT or physical microphone session in this test.
+- Harness limitation: first run failed because the isolated Vite page omitted the React preamble; transformIndexHtml corrected the test server, and the rerun passed. Browser/server closed afterward; no audio or storage-state files created.
+- Known limits/next action: reload/rejoin physical phones and confirm setup/input selection, then continue the 008.2 physical script. No Bluetooth routing, real acoustics or live AssemblyAI browser-path acceptance inferred.
+
 ### 2026-10-11 — CAPTION-008.1 human physical trial (Planner record)
 - **Human-observed, on real phones with headsets after the Presence fix deployed:** "I am satisfied with the results, might need to calibrate for less sensitivity, but this could actually work."
 - **Not supplied:** device, browser and headset models; results exports; separation numbers; seating distances; counts of wrong or missed lights. Acoustic separation therefore remains unquantified.

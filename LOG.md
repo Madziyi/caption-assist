@@ -370,3 +370,10 @@ Use this format:
 - Implemented plausible room-check threshold application with the supplied vectors, 2-frame attack, sensitivity control/validation, calibration-preserving rejoin and headset-drop state with memory-only `micDrops`; export v2 records participant drops and per-row application.
 - Implemented fixed near-field Universal-3.6 Pro headset transcription, 300 ms gated look-ahead silence frames, bounded reconnect, participant-topic caption relay with interim coalescing and sequence dedupe, exact host identity binding, host transcript/status UI and updated privacy/invite copy. Table and Connected paths remain unchanged.
 - Verification: 175 tests / 29 files, typecheck, lint, production build and diff check passed. No physical UAT or real browser/provider session performed by Builder; 008.4 remains the physical acceptance gate.
+
+### 2026-10-11 — CAPTION-008.2 joining-phone setup regression
+- Trigger: human reports no microphone options after the captions implementation. Synced clean `main` at `aac146a`.
+- Root cause reproduced: immediate non-null initial headset view bypassed the UI's null-only start button, so joining phones had no tap to request capture/enumeration. Pre-fix idle/start, stopped/restart and starting-feedback tests failed.
+- Changed: explicit microphone-state entry/restart/permission feedback; no ready claim with a stopped mic. Input picker/constraints/transport/provider/thresholds unchanged. Debugging skill used inline with a persistent evidence checkpoint; no subagent requested.
+- Verification: 179 tests/29 files, typecheck, lint, build and diff check passed. Isolated native Chromium UI + real worklet/fake media verified keyboard start, three input routes, selected track ID, selection/restart, stopped restart, zero page errors and no overflow at 390/1280 px. External network blocked; no live room/provider session or physical phone UAT. Initial harness lacked React preamble; corrected test server then passed. Browser/server closed, no audio/storage artifacts.
+- Next action: publish and reload/rejoin phones; verify Start headset check and inputs, then continue the physical 008.2 script. No 008.3 work.

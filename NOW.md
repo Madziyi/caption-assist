@@ -2,8 +2,8 @@
 
 **Initiative:** CAPTION-008 - Headset Mode (separate mode: every speaker wears AirPods/a headset on their own phone; no room microphone)
 **Active slice:** CAPTION-008.2 - Gate correction (room check tunes the gate, 2-frame attack, host sensitivity control, calibration survives rejoin), then gated per-phone transcription with Universal-3.6 Pro + Voice Focus `near-field`, captions relayed to the host and named by phone
-**Status:** Implemented locally by Builder. Automated/source gates pass; no post-`d839f09` participant-room Realtime errors were found. Live AssemblyAI browser-path and physical headset verification remain unverified. The human should run the 008.2 physical test script and return exports/notes to the Planner.
-**Owner:** Builder handoff is complete after commit/push. Planner reviews the published diff; the human then runs the 008.2 physical test script.
+**Status:** 008.2 published as `aac146a`; joining-phone setup regression fixed in this follow-up. Initialized idle views now offer Start headset check, starting states show permission feedback, and stopped microphones offer Turn microphone back on. 179 tests/29 files and all source gates pass; isolated native Chromium UI + simulated capture/worklet verified start, input selection, restart and 390/1280 px overflow. Live AssemblyAI browser-path and physical headset verification remain unverified.
+**Owner:** Builder publishes the scoped setup fix and deployment evidence; then Planner/human resume the 008.2 physical script.
 
 ## Why
 
@@ -35,7 +35,7 @@ CAPTION-003.1-003.3 failed because phone microphones on a table hear neighbours 
 
 ## Next action
 
-Planner/human: review the published 008.2 handoff, then run the physical multi-person headset script. Do not infer acoustic or mobile recovery acceptance from the automated gates.
+Human: reload host/phone pages, rejoin and tap Start headset check; confirm input selection is restored, then run the 008.2 physical multi-person script. Do not infer acoustic or mobile recovery acceptance from the automated or isolated browser gates.
 
 ## Paused
 
