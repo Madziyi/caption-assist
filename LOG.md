@@ -353,3 +353,14 @@ Use this format:
   - New privacy and invite copy.
 - **Deferred to 008.3:** the duplicate safety net with margin data, adaptive thresholds and recovery.
 - **Next action:** Builder implements 008.2 per `CAPTION-008-HEADSET-MODE.md`.
+
+### 2026-10-11 — Planner: first headset export, 008.2 Part A amended
+- **Evidence:**
+  - The wired headset room check separated by 8.8 dB (usable).
+  - The Bluetooth headset's room-check own reading was −66.2 dB against a calibrated −26.1 dB. The human reports connecting and disconnecting during the test (it is unclear whether the headset or the room connection), so that row is invalid.
+- **Risk found:** the planned "room check feeds the gate" step would have pulled that phone's open threshold down to about −69 dB.
+- **Amendments:**
+  - A plausibility guard: the own reading must be present, ≥ calibrated own − 12 dB, and above bleed; otherwise thresholds are unchanged and the phone and host ask for a rerun.
+  - `devicechange` fails only for the phone's own lost device; a disconnected state keeps calibration on restart; a `micDrops` count is added.
+  - The Builder checks Realtime logs for room disconnections first.
+- Both export rows become required test vectors.

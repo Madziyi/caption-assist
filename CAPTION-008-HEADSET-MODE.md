@@ -422,18 +422,32 @@ Turn Headset Mode into a working caption mode. Each ready phone transcribes only
 
 ### Part A — gate correction (land and test first; may be its own commit)
 
-1. **Room check feeds the gate.** On check completion the phone computes `bleedDb = bleedFromRow(selfId, row)` and `own = row[selfId] ?? calibration.ownDb`. It then sets `thresholds = applySensitivity(gateThresholds({ floorDb, ownDb: own }, bleedDb), sensitivity, { floorDb, ownDb: own })` and calls `gate.setThresholds(thresholds)`, updating `view.thresholds`. A cancelled or incomplete check leaves thresholds unchanged. The phone keeps the latest applied bleed until recalibration.
+1. **Room check feeds the gate, but only when the row is plausible.** On check completion the phone computes `bleedDb = bleedFromRow(selfId, row)` and `own = row[selfId]`.
+   - **Plausible** means all of: `own` is not null; `own ≥ calibration.ownDb − 12`; and `own − bleedDb > 0` (or `bleedDb` is null).
+   - **If plausible:** set `thresholds = applySensitivity(gateThresholds({ floorDb, ownDb: own }, bleedDb), sensitivity, { floorDb, ownDb: own })`, call `gate.setThresholds(thresholds)`, update `view.thresholds`, and keep the applied bleed and own until recalibration.
+   - **If not plausible:** leave the thresholds unchanged and show "The room check didn't hear you clearly. Check your headset is connected, then ask the host to run the room check again." The host's room-check result marks that person "Not heard — run the room check again". The export records `applied: false` for that row.
+   - A cancelled or incomplete check changes nothing.
+   - **Why the guard:** the first physical export had a Bluetooth phone whose own reading was −66.2 dB against a calibrated −26.1 dB, with "bleed" at −36.1 dB. The human reports the headset kept connecting and disconnecting. Applying that row unguarded would drop the phone's open threshold to the `ownDb − 3` clamp (−69.2 dB), so it would open on almost any sound.
+   - **Required test vectors from that export:**
+     - floor −41, own −22.6, row `{self: −27.3, other: −36.1}`: applied; Normal gives open −31.7 / close −35.7, Less sensitive −30.3 (clamped), More sensitive −34.7.
+     - floor −85.3, own −26.1, row `{self: −66.2, other: −36.1}`: rejected, thresholds unchanged at −36.1 / −40.1.
 2. **Attack:** the gate opens only after **2 consecutive frames** (200 ms) at or above `openDb` (`ATTACK_FRAMES = 2`). Close and hold are unchanged (`closeDb = openDb − 4`, 600 ms). The 300 ms look-ahead in Part B means the first syllable is still sent.
 3. **Sensitivity (host-controlled, memory-only):** `type Sensitivity = "lower" | "normal" | "higher"`, default `normal`. Add pure `applySensitivity(base: GateThresholds, sensitivity: Sensitivity, calibration: HeadsetCalibration): GateThresholds` to `calibration.ts`. It shifts `openDb` by `lower +4 dB`, `normal 0`, `higher −3 dB`, then clamps it to `[floorDb + 6, ownDb − 3]`; `closeDb = openDb − 4`. Apply it every time thresholds are computed: after calibration, after a room check, and when the sensitivity changes. The host sets it per person, including its own headset, in the Participants panel: a radio group labelled "Sensitivity" with options "Less sensitive", "Normal", "More sensitive". New host control: `{ type: "headset-sensitivity"; levels: Record<participantId, Sensitivity> }`, validated (at most 64 entries, ids under 100 characters, values in the enum). The host broadcasts the full map on every change, whenever a participant's status becomes Connected, and after the host (re)enters. Each phone applies its own entry; a missing entry means `normal`. The phone shows "Sensitivity: Less sensitive (set by the host)" and so on.
 4. **Calibration survives rejoin:** reuse the guest's `HeadsetParticipant` for the same room ID, discarding it only in `resetRoom`, and route its `io` through the current transport (`this.transport`) instead of a captured one. The microphone still stops on release, and "Turn microphone back on" keeps calibration.
 5. **Presence/export additions** (optional fields in validators, so stale pages are tolerated):
    - `HeadsetPresence` gains `sensitivity?: Sensitivity`, `openDb?: number | null` and `stt?: "off" | "connecting" | "on" | "reconnecting" | "failed"`.
-   - The export becomes `version: 2` and adds `sensitivity`, `openDb` and `stt` per participant.
-6. **Tests:**
+   - The export becomes `version: 2` and adds `sensitivity`, `openDb`, `stt` and `micDrops` per participant, plus `applied` per room-check row.
+6. **Headset drop resilience** (minimal; full recovery stays in 008.3):
+   - `devicechange` fails the microphone only if the current track has ended or its `deviceId` is no longer listed by `enumerateDevices()`. Changes to unrelated devices are ignored.
+   - A failure after setup was `ready` shows "Your headset disconnected." with **Turn microphone back on**, which keeps calibration (the existing `restartMicrophone` path), alongside **Check again**.
+   - The phone counts drops in `micDrops` (memory-only, sent in presence). The host strip shows "Headset disconnected" for that person.
+   - From Part B, the phone's transcriber stops with the microphone and restarts with it.
+7. **Connection check before coding:** read the Supabase Realtime logs since the `d839f09` deployment for `ClientPresenceRateLimitReached` or other channel errors and record the counts. The human's report of "connecting and disconnecting" may mean the room connection rather than the headset. If room disconnections persist, fix and verify that first, and say so in the handoff.
+8. **Tests:**
    - gate: attack (one frame does not open, two do); hysteresis; hold reset on re-crossing; `setThresholds`.
    - `gateThresholds`: candidate path, midpoint path, floor minimum.
    - `applySensitivity`: offsets and both clamps.
-   - participant: room-check completion applies bleed thresholds and cancel leaves them unchanged; check-result content; gate signals on transitions plus the 2 s repeat; a sensitivity control changes thresholds; calibration persists across controller rejoin.
+    - participant: room-check completion applies bleed thresholds for a plausible row and rejects an implausible one (both export vectors), and cancel leaves them unchanged; unrelated `devicechange` is ignored, and a lost track shows the disconnected state and keeps calibration on restart; check-result content; gate signals on transitions plus the 2 s repeat; a sensitivity control changes thresholds; calibration persists across controller rejoin.
    - host: results collection, timeout with missing rows, sensitivity map broadcast on change and on participant Connected.
    - validators for the new control and fields.
 

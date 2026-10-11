@@ -114,6 +114,12 @@ Status: **unverified**
 - **Not supplied:** device, browser and headset models; results exports; separation numbers; seating distances; counts of wrong or missed lights. Acoustic separation therefore remains unquantified.
 - **Planner review:** a defect in the as-built source means room-check bleed never updates any phone's gate thresholds (they stay at the provisional `ownDb − 10`). This plausibly contributes to the over-sensitivity. It will be fixed in 008.2 Part A.
 - **Result:** qualitative pass; GO for 008.2. Exports are required from the 008.2 physical run.
+- **First results export** (human-supplied, version 1, host not set up):
+  - **P2, wired headset** (processing off as applied): floor −41.0, calibrated own −22.6. Room check: own −27.3, bleed −36.1, separation **8.8 dB (usable)**.
+  - **P3, Bluetooth headset** (processing off): floor −85.3, which suggests the headset gates noise on-device; calibrated own −26.1. Room check: own **−66.2** (40 dB below calibration), "bleed" −36.1, separation −30.1 (weak). **Invalid row:** the human reports "I kept connecting and disconnecting" during the test, and the own reading is implausible.
+  - **Preview over 23.1 s:** P2 opened 5 times for 10.4 s; P3 opened 2 times for 1.9 s; 0 co-onsets; 1.3 s overlap.
+  - **Planner reading:** the wired headset is usable but its margin is thin (it hears neighbour bleed only about 5 dB above its own noise floor). The Bluetooth separation cannot be judged from this run.
+  - **Spec change:** 008.2 Part A now applies room-check rows only when plausible, ignores unrelated device changes, and counts headset drops. Both rows are fixed test vectors.
 
 ### 2026-10-11 — CAPTION-008.1 participant Presence quota disconnection
 - User evidence: host completes input selection/calibration; joining phones display levels briefly then report room-connection interruption. Calibration tuning is deferred. Exact physical phone/browser not supplied.

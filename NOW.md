@@ -12,7 +12,9 @@ CAPTION-003.1-003.3 failed because phone microphones on a table hear neighbours 
 ## Contracts for 008.2 (summary; the specification governs)
 
 - Part A first:
-  - Room-check bleed sets each phone's thresholds.
+  - Check the Realtime logs for room disconnections and fix them first if they persist.
+  - Room-check bleed sets each phone's thresholds, but only from a plausible row (own reading present, at least calibrated own − 12 dB, and above bleed). Otherwise the thresholds stay unchanged and the phone and host ask for a rerun.
+  - An unrelated `devicechange` no longer fails the microphone. A headset drop shows "Your headset disconnected." and keeps calibration on restart; drops are counted.
   - The gate opens after 2 consecutive frames above `openDb`.
   - The host sets sensitivity per person (Less / Normal / More: `+4 / 0 / -3 dB`, clamped to `[floor + 6, own - 3]`) through a new validated `headset-sensitivity` control.
   - The guest's `HeadsetParticipant` is reused across rejoins of the same room.
