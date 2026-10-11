@@ -160,3 +160,12 @@ Use this format:
 - **Live state:** Unchanged; no live system was inspected.
 - **Known issues:** Full-screen behavior may depend on browser support or user-agent restrictions.
 - **Next action:** Run final repository checks and browser smoke verification, then push the Builder handoff; do not start CAPTION-003.
+
+### 2026-10-10 — CAPTION-002 — header conversation action refinement
+- **Changed:** Removed the footer control bar and made the header conversation control swap between Start Conversation and End Conversation in the same position.
+- **Decisions:** Keep the active end action adjacent to the history/full-screen/status controls; preserve the existing recoverable-error End Conversation action.
+- **Verification:** Typecheck, lint, tests, build, diff check, and idle browser smoke verification passed. The browser showed Start Conversation in the header and no footer; the active End Conversation swap is source-verified but was not exercised without starting a microphone session.
+- **Quality:** The page no longer renders a footer control region. Deeper provider and responsive quality measurements remain pending.
+- **Live state:** Unchanged; no live system was inspected.
+- **Known issues:** The active-state swap requires a real or controlled session transition to verify in the browser.
+- **Next action:** Run final repository checks and browser smoke verification, then push the Builder handoff; do not start CAPTION-003.

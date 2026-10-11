@@ -196,6 +196,18 @@ Record measured provider billing/configuration or carefully calculated cost from
 - Cost evidence: Not measured.
 - Result: User-requested presentation refinement implemented. Browser smoke verification showed Start Conversation and Full Screen in the header, the 85vh caption stage, successful full-screen entry/exit, and the side-by-side history pane. Audio, provider, caption event, history retention, and speaker identity behavior are unchanged; narrow/mobile review remains pending.
 
+### 2026-10-10 — CAPTION-002 — header conversation action refinement
+- Environment/device: Codex in-app browser on the local Next.js development server; source-level UI refinement, no new provider session performed.
+- Audio path: No new microphone or AssemblyAI verification performed.
+- Session length: Not measured.
+- Latency observations/measurements: Not measured.
+- Accuracy observations/measurements: Not measured.
+- Speaker observations: No physical speaker result was inferred.
+- Failure/recovery tests: Not performed.
+- Accessibility observations: Removed the footer control bar and made the header conversation action swap between Start Conversation and End Conversation in the same position according to session state.
+- Cost evidence: Not measured.
+- Result: User-requested control-placement refinement implemented. Idle browser smoke verification showed the header Start Conversation action and no footer; the active End Conversation swap is source-verified but was not exercised without starting a microphone session. Provider, audio, caption event, history retention, full-screen, and speaker identity behavior are unchanged.
+
 Append concise entries:
 
 ```text

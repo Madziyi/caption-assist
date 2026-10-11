@@ -162,7 +162,6 @@ h1 { margin: 0.1rem 0 0; font-size: clamp(2rem, 4vw, 3.25rem); }
 .notice-error { color: #6b1c1c; background: #fff0f0; border: 1px solid #e2a5a5; }
 .notice-actions { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 0.9rem; }
 
-.conversation-controls { display: flex; justify-content: flex-end; margin-top: auto; padding-top: 1rem; }
 .button { min-height: 3.25rem; border: 2px solid transparent; border-radius: 0.65rem; padding: 0.65rem 1.2rem; cursor: pointer; font-weight: 700; }
 .button:focus-visible { outline: 4px solid #f1bd4b; outline-offset: 3px; }
 .button:disabled { cursor: wait; opacity: 0.65; }
@@ -178,7 +177,7 @@ h1 { margin: 0.1rem 0 0; font-size: clamp(2rem, 4vw, 3.25rem); }
   .header-actions { margin-left: auto; justify-content: flex-end; }
   .header-actions .header-button { width: auto; }
   .status { white-space: normal; }
-  .conversation-controls, .button { width: 100%; }
+  .button { width: 100%; }
   .button { min-height: 3.5rem; }
   .speaker-panel { position: fixed; right: 0; bottom: 0; left: 0; margin: 0; border-radius: 1rem 1rem 0 0; max-height: min(80svh, 36rem); overflow-y: auto; }
   .conversation-workspace-history-open { grid-template-columns: 1fr; }

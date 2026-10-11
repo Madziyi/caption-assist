@@ -134,11 +134,15 @@ export default function HomePage() {
           <p className="eyebrow">Accessible Conversation Captions</p>
         </div>
         <div className="header-actions">
-          {canStart && (
+          {canStart ? (
             <button type="button" className="button button-primary header-button" onClick={startConversation}>
               {state.status === "ended" ? "Start New Conversation" : "Start Conversation"}
             </button>
-          )}
+          ) : isActive ? (
+            <button type="button" className="button button-end header-button" onClick={endConversation} disabled={state.status === "stopping"}>
+              {state.status === "stopping" ? "Ending Conversation…" : "End Conversation"}
+            </button>
+          ) : null}
           {state.speakers.length > 0 && (
             <button
               type="button"
@@ -285,13 +289,6 @@ export default function HomePage() {
             </div>
           )}
 
-          {isActive && (
-            <footer className="conversation-controls">
-              <button type="button" className="button button-end" onClick={endConversation} disabled={state.status === "stopping"}>
-                {state.status === "stopping" ? "Ending Conversation…" : "End Conversation"}
-              </button>
-            </footer>
-          )}
         </div>
       </div>
     </main>

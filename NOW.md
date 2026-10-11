@@ -19,6 +19,7 @@ Extend the working one-device captioning path with AssemblyAI streaming diarizat
 - Render newest-first finalized history as separate accessible left/right chat bubbles with derived consecutive-speaker grouping.
 - Keep caption history out of the default page flow and expose it through a header control that opens a left-side pane beside the live caption area, with speaker names above each caption group.
 - Keep conversation start and full-screen controls available in the header; use the expanded 85vh live caption stage for focused viewing.
+- Keep the active conversation action in the same header position, swapping Start Conversation for End Conversation; do not render a footer control bar.
 - Add responsive Speakers management and fast naming/renaming/removal without transcript or name persistence.
 - Add focused provider, registry/reducer, grouping, and UI tests plus normal typecheck, lint, test, build, and diff checks.
 
