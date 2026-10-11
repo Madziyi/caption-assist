@@ -15,6 +15,10 @@ export type RoomView = {
   relay: RelayObservation | null;
 };
 export const idleRoomView: RoomView = { phase: "idle", snapshot: null, statuses: {}, microphone: "Muted", error: null, relay: null };
+// CAPTION-003.3 Voice Focus A/B: Connected captions bypass text reconciliation
+// so acoustic/STT behavior can be measured independently. The reconciler remains
+// available for a future experiment and for its existing tests/history.
+export const CONNECTED_TEXT_RECONCILIATION_ENABLED = false;
 
 export class ConnectedRoom {
   private view: RoomView = idleRoomView;
@@ -31,7 +35,7 @@ export class ConnectedRoom {
 
   constructor(private readonly onView: (view: RoomView) => void, private readonly dispatch?: (action: CaptionAction) => void) {}
   private update(values: Partial<RoomView>) { this.view = { ...this.view, ...values }; this.onView(this.view); }
-  setDiagnosticsEnabled(enabled: boolean) { this.reconciler.setDiagnosticsEnabled(enabled); }
+  setDiagnosticsEnabled(enabled: boolean) { this.reconciler.setDiagnosticsEnabled(enabled && CONNECTED_TEXT_RECONCILIATION_ENABLED); }
   get diagnosticRecords() { return this.reconciler.diagnosticRecords; }
   clearDiagnostics() { this.reconciler.clearDiagnostics(); }
 
@@ -117,18 +121,13 @@ export class ConnectedRoom {
   }
   private caption(id: string, event: TranscriptionEvent) {
     if (!this.accepting || this.view.phase !== "joined" || !this.view.snapshot?.participants.some((p) => p.id === id && !p.removed)) return;
-    // Authorized transport already bound microphone identity. Reconcile only here,
-    // on the Connected host path; Table events never pass through this class.
-    for (const action of this.reconciler.process(`participant:${id}`, event)) {
-      if (action.type !== "TRANSCRIPTION_EVENT" || action.event.type === "interim") this.dispatch?.(action);
-      else {
-        const ingestOrder = ++this.ingest;
-        this.dispatch?.({ ...action, event: { ...action.event, captions: action.event.captions.map((caption) => ({ ...caption, ingestOrder })) } });
-      }
-    }
-    // Optional diagnostics are completed after caption actions, without another
-    // clock read, state dispatch, network call or caption buffering.
-    this.reconciler.flushDiagnostics();
+    // Authorized transport already bound microphone identity. During the Voice
+    // Focus A/B, pass Connected events directly to the reducer so no hidden text
+    // suppression affects the acoustic experiment.
+    const ingestOrder = ++this.ingest;
+    this.dispatch?.({ type: "TRANSCRIPTION_EVENT", event: event.type === "interim"
+      ? { ...event, caption: { ...event.caption, ingestOrder } }
+      : { ...event, captions: event.captions.map((caption) => ({ ...caption, ingestOrder })) } });
   }
   async toggleMicrophone() {
     if (this.view.phase !== "joined") return;

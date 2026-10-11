@@ -54,6 +54,7 @@ h1, h2, h3 { font-family: Inter, system-ui, sans-serif; letter-spacing: -0.02em;
 
 .reconciliation-debug { padding: 1rem; border: 2px dashed var(--line); border-radius: 0.65rem; background: var(--panel); font-size: 1rem; }
 .reconciliation-debug h2 { margin: 0; font-size: 1.25rem; }
+.reconciliation-debug-stt { display: grid; gap: 0.2rem; margin: 0.8rem 0; padding: 0.7rem; border-radius: 0.45rem; background: var(--surface); }
 .reconciliation-debug-constants { display: flex; flex-wrap: wrap; gap: 1rem; }
 .reconciliation-debug-constants dt { font-weight: 700; }
 .reconciliation-debug-constants dd { margin: 0; }

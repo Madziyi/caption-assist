@@ -1,8 +1,8 @@
 # Active Initiative
 
 **Initiative:** CAPTION-003 - Connected Mode / QR Participant Rooms
-**Active correction:** CAPTION-003.2 - Episode-based cross-microphone reconciliation
-**Status:** CAPTION-003.1 diagnostics identified strong negation-guard rejection and provider turn segmentation divergence in real-device evidence. Episode-based correction `d342b1067f88371324386bd1d48d73a2ac5ffe14` is pushed to main; Vercel reports success. CAPTION-003 remains open pending physical acceptance; CAPTION-004 remains deferred.
+**Active correction:** CAPTION-003.3 - Connected Voice Focus acoustic A/B experiment
+**Status:** Transcript-side reconciliation and episode continuity both failed real co-located microphone acceptance. Connected personal streams are being isolated with Universal-3.6 Pro + Voice Focus while Table Mode remains unchanged. Verification and publication pending; CAPTION-003 remains open and CAPTION-004 remains deferred.
 **Owner:** Builder until verified commit/push. CAPTION-004 planning/implementation is deferred by the current user instruction.
 
 ## Objective and contracts
@@ -28,6 +28,10 @@ No provider/model/Voice Focus migration, room authorization change, transcript p
 
 Preserve the opt-in host-local diagnostics panel and use the evidence to add a bounded SpeechEpisode layer. A strict 8+ word / 300 ms / 0.85 similarity / 0.90 short-side coverage match may override an isolated negation disagreement and create an episode. Associated sources can continue across new provider turn IDs for up to 3000 ms using conservative 5-word partial coverage/similarity evidence. Keep numeric conflicts, short responses, unrelated speech, Table Mode, actions, provider, receive clock and network behavior intact. Add regression tests and episode metrics without transcript text.
 
+## Current experiment
+
+Connected personal microphones use `universal-3-6-pro`, `speaker_labels=false`, `voice_focus` with the valid public profile (`near-field` or `far-field`, default `far-field`), and `mode=balanced`. Connected host caption events bypass CrossMicReconciler so Voice Focus can be measured alone. The existing v3 Turn normalization, authorized channel identity, temporary-token flow, diagnostics panel and provider error path remain in use. Table keeps `universal-streaming-english` and diarization.
+
 ## Next action
 
-Run all verification gates, publish the episode correction, then reproduce the two/three-phone duplicate issue with captionDebug=1 and copy metrics for evidence-based validation.
+Run all verification gates, publish the Voice Focus A/B, then test far-field with the same two/three-phone arrangement that produced duplicates. Try near-field only when the physical setup warrants it or far-field is inadequate. Record whether neighboring voices become meaningful transcripts, owner accuracy, interims and perceived latency.

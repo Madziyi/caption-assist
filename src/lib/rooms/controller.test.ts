@@ -73,18 +73,20 @@ describe("Connected room lifecycle", () => {
     expect(f.view.phase).toBe("idle"); expect(f.view.microphone).toBe("Muted");
     expect((mocks.transports[0] as { disconnect: ReturnType<typeof vi.fn> }).disconnect).toHaveBeenCalled();
   });
-  it("reconciles authorized guest and You captions before the reducer and resets on re-entry", async () => {
+  it("passes authorized Connected captions directly during the Voice Focus A/B", async () => {
     const f = fixture(); mocks.request.mockResolvedValue(snapshot()); await f.room.create();
+    f.room.setDiagnosticsEnabled(true);
     const turn = { ...caption("shared"), captions: [{ ...caption("shared").captions[0], text: "We should leave around seven." }] };
     callbacks().caption("guest", exactIdentity(turn, "guest"));
     callbacks().caption("host", exactIdentity(turn, "host"));
-    expect(f.state.finalized).toHaveLength(1); expect(f.state.finalized[0].speakerId).toBe("guest");
+    expect(f.state.finalized).toHaveLength(2);
+    expect(f.room.diagnosticRecords).toEqual([]);
     const oldCallbacks = callbacks();
     await f.room.rejoin();
     oldCallbacks.caption("guest", exactIdentity({ ...turn, sourceTurnId: "stale", captions: [{ ...turn.captions[0], sourceTurnId: "stale", id: "stale" }] }, "guest"));
-    expect(f.state.finalized).toHaveLength(1);
-    callbacks().caption("host", exactIdentity({ ...turn, sourceTurnId: "new", captions: [{ ...turn.captions[0], sourceTurnId: "new", id: "new" }] }, "host"));
     expect(f.state.finalized).toHaveLength(2);
+    callbacks().caption("host", exactIdentity({ ...turn, sourceTurnId: "new", captions: [{ ...turn.captions[0], sourceTurnId: "new", id: "new" }] }, "host"));
+    expect(f.state.finalized).toHaveLength(3);
     await f.room.dispose();
   });
 });

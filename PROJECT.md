@@ -78,6 +78,12 @@ Episode members can receive new provider turn IDs and revisions without immediat
 
 ## Planned technology stack
 
+## CAPTION-003.3 Voice Focus acoustic A/B experiment
+
+Transcript-side CAPTION-003.1 and CAPTION-003.2 reconciliation both failed real co-located microphone acceptance. CAPTION-003.3 therefore tests the acoustic/STT layer independently. Table Mode remains `universal-streaming-english` with `speaker_labels=true`. Connected personal streams, including host `You`, use `universal-3-6-pro`, `speaker_labels=false`, `voice_focus` with the profile from `NEXT_PUBLIC_CONNECTED_VOICE_FOCUS_PROFILE`, `mode=balanced`, `sample_rate=16000`, `format_turns=true`, and the existing v3 WebSocket. The valid profile values are `near-field` and `far-field`; invalid or missing values default to `far-field`.
+
+The Connected host path bypasses text reconciliation for this experiment. `CrossMicReconciler` and its episode/diagnostic history remain in the repository for future comparison, but no hidden text suppression runs while measuring Voice Focus. Authorized participant channel identity remains authoritative and provider speaker labels are not used for Connected identity. The temporary debug panel reports the Connected STT model, Voice Focus profile, balanced mode and `Text reconciliation: OFF`; it remains hidden during normal product use. The server-generated temporary token path and server-only `ASSEMBLYAI_API_KEY` remain unchanged. No fallback to Universal Streaming is permitted after a Pro/Voice Focus configuration rejection.
+
 These are architectural intentions until verified by repository implementation and live configuration.
 
 ## Verified repository baseline — 2026-10-10

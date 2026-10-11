@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { CROSS_MIC } from "@/lib/captions/cross-mic-reconciler";
+import { connectedVoiceFocusProfile } from "@/lib/captions/provider";
 import type { ReconciliationDiagnostic } from "@/lib/captions/reconciliation-diagnostics";
 import type { Participant } from "@/lib/rooms/types";
 
@@ -23,6 +24,13 @@ export function ReconciliationDebugPanel({ room, participants }: { room: Diagnos
   return <section className="reconciliation-debug" aria-labelledby="cross-mic-debug-title">
     <h2 id="cross-mic-debug-title">Cross-mic diagnostics</h2>
     <p>Temporary host-local metrics only. No caption text or tokens retained in this ledger or copied.</p>
+    <div className="reconciliation-debug-stt" aria-label="Connected STT configuration">
+      <strong>Connected STT</strong>
+      <div>Model: universal-3-6-pro</div>
+      <div>Voice Focus: {connectedVoiceFocusProfile()}</div>
+      <div>Mode: balanced</div>
+      <div>Text reconciliation: OFF</div>
+    </div>
     <dl className="reconciliation-debug-constants">
       <div><dt>4+ words</dt><dd>Window: {CROSS_MIC.windowMs} ms · Similarity: {CROSS_MIC.similarity}</dd></div>
       <div><dt>3 words</dt><dd>Window: {CROSS_MIC.threeWordWindowMs} ms · Exact only</dd></div>

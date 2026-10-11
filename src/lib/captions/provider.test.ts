@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AssemblyAIStreamingProvider, normalizeSpeakerId } from "./provider";
+import { AssemblyAIStreamingProvider, connectedAssemblyAIOptions, connectedVoiceFocusProfile, normalizeSpeakerId, TABLE_ASSEMBLYAI_OPTIONS } from "./provider";
 import type { TranscriptionEvent } from "./types";
 
 class FakeWebSocket {
@@ -55,6 +55,31 @@ describe("AssemblyAIStreamingProvider", () => {
     vi.stubGlobal("WebSocket", FakeWebSocket);
     await new AssemblyAIStreamingProvider("temporary-token", "personal-stream", false).connect();
     expect(new URL(FakeWebSocket.lastUrl).searchParams.get("speaker_labels")).toBe("false");
+  });
+  it("configures Connected Voice Focus with the Pro model and exact parameter spelling", async () => {
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    await new AssemblyAIStreamingProvider("temporary-token", "connected", connectedAssemblyAIOptions("far-field")).connect();
+    const params = new URL(FakeWebSocket.lastUrl).searchParams;
+    expect(params.get("speech_model")).toBe("universal-3-6-pro");
+    expect(params.get("speaker_labels")).toBe("false");
+    expect(params.get("voice_focus")).toBe("far-field");
+    expect(params.get("mode")).toBe("balanced");
+    expect(params.has("voice-focus")).toBe(false);
+  });
+  it("selects near-field only for the explicit valid profile and defaults safely", () => {
+    expect(connectedVoiceFocusProfile("near-field")).toBe("near-field");
+    expect(connectedVoiceFocusProfile("near_field")).toBe("far-field");
+    expect(connectedVoiceFocusProfile("unexpected")).toBe("far-field");
+    expect(TABLE_ASSEMBLYAI_OPTIONS).toEqual({ speechModel: "universal-streaming-english", diarization: true });
+  });
+  it("surfaces a non-secret Voice Focus rejection category without fallback", async () => {
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    const statuses: string[] = []; const provider = new AssemblyAIStreamingProvider("temporary-token", "connected", connectedAssemblyAIOptions());
+    provider.onStatus(status => { if (status.type === "error") statuses.push(status.message); });
+    await provider.connect();
+    FakeWebSocket.lastSocket?.onmessage?.({ data: JSON.stringify({ type: "Error", error: "configuration rejected" }) });
+    expect(statuses.at(-1)).toContain("connected_voice_focus_configuration_rejected");
+    expect(statuses.at(-1)).not.toContain("temporary-token");
   });
   afterEach(() => {
     vi.unstubAllGlobals();

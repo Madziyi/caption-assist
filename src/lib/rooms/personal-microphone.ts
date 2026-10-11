@@ -1,5 +1,5 @@
 import { MicrophoneCapture } from "../audio/microphone";
-import { AssemblyAIStreamingProvider, type StreamingTranscriptionProvider } from "../captions/provider";
+import { AssemblyAIStreamingProvider, connectedAssemblyAIOptions, type StreamingTranscriptionProvider } from "../captions/provider";
 import type { TranscriptionEvent } from "../captions/types";
 import { technicalSession } from "./browser";
 
@@ -13,7 +13,7 @@ export class PersonalMicrophone {
 
   constructor(private readonly roomId: string, private readonly publish: (event: TranscriptionEvent) => Promise<void>,
     private readonly onState: (state: PersonalMicrophoneState) => void, private readonly onError: (message: string) => void,
-    private readonly providerFactory = (token: string): StreamingTranscriptionProvider => new AssemblyAIStreamingProvider(token, undefined, false),
+    private readonly providerFactory = (token: string): StreamingTranscriptionProvider => new AssemblyAIStreamingProvider(token, undefined, connectedAssemblyAIOptions()),
     private readonly captureFactory = (onAudio: (chunk: ArrayBuffer) => void, onFailure: () => void) => new MicrophoneCapture(onAudio, onFailure)) {}
 
   async unmute(): Promise<void> {

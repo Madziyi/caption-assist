@@ -28,7 +28,25 @@ type AssemblyAIMessage = {
 };
 
 const ASSEMBLYAI_WS_URL = "wss://streaming.assemblyai.com/v3/ws";
-const ASSEMBLYAI_MODEL = "universal-streaming-english";
+export const TABLE_ASSEMBLYAI_OPTIONS = {
+  speechModel: "universal-streaming-english",
+  diarization: true,
+} as const;
+export type VoiceFocusProfile = "near-field" | "far-field";
+export type AssemblyAIStreamingOptions = {
+  diarization?: boolean;
+  speechModel?: string;
+  voiceFocus?: VoiceFocusProfile;
+  mode?: "min_latency" | "balanced" | "max_accuracy";
+};
+
+export function connectedVoiceFocusProfile(value = typeof process === "undefined" ? undefined : process.env.NEXT_PUBLIC_CONNECTED_VOICE_FOCUS_PROFILE): VoiceFocusProfile {
+  return value === "near-field" ? "near-field" : "far-field";
+}
+
+export function connectedAssemblyAIOptions(profile = connectedVoiceFocusProfile()): Required<AssemblyAIStreamingOptions> {
+  return { speechModel: "universal-3-6-pro", diarization: false, voiceFocus: profile, mode: "balanced" };
+}
 
 export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvider {
   private socket: WebSocket | null = null;
@@ -39,8 +57,14 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
   private readonly connectionId: string;
   private fallbackTurnCounter = 0;
 
-  constructor(private readonly token: string, connectionId = createProviderConnectionId(), private readonly diarization = true) {
+  private readonly options: Required<Pick<AssemblyAIStreamingOptions, "speechModel" | "diarization">> & Pick<AssemblyAIStreamingOptions, "voiceFocus" | "mode">;
+
+  constructor(private readonly token: string, connectionId = createProviderConnectionId(), options: AssemblyAIStreamingOptions | boolean = TABLE_ASSEMBLYAI_OPTIONS) {
     this.connectionId = connectionId;
+    this.options = typeof options === "boolean"
+      ? { speechModel: TABLE_ASSEMBLYAI_OPTIONS.speechModel, diarization: options }
+      : { speechModel: options.speechModel ?? TABLE_ASSEMBLYAI_OPTIONS.speechModel, diarization: options.diarization ?? TABLE_ASSEMBLYAI_OPTIONS.diarization,
+          voiceFocus: options.voiceFocus, mode: options.mode };
   }
 
   connect(): Promise<void> {
@@ -49,10 +73,12 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
     const params = new URLSearchParams({
       token: this.token,
       sample_rate: "16000",
-      speech_model: ASSEMBLYAI_MODEL,
+      speech_model: this.options.speechModel,
       format_turns: "true",
-      speaker_labels: String(this.diarization),
+      speaker_labels: String(this.options.diarization),
     });
+    if (this.options.voiceFocus) params.set("voice_focus", this.options.voiceFocus);
+    if (this.options.mode) params.set("mode", this.options.mode);
 
     return new Promise((resolve, reject) => {
       const socket = new WebSocket(`${ASSEMBLYAI_WS_URL}?${params.toString()}`);
@@ -136,7 +162,8 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
     }
 
     if (message.type === "Error") {
-      this.emitStatus({ type: "error", message: "The speech service reported an error." });
+      const category = this.options.voiceFocus ? "connected_voice_focus_configuration_rejected" : "provider_configuration_rejected";
+      this.emitStatus({ type: "error", message: `AssemblyAI rejected the streaming configuration (${category}).` });
       return;
     }
     if (message.type === "Termination") {

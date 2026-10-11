@@ -10,7 +10,7 @@ Use these states:
 
 ## In progress
 
-- **CAPTION-003** `[in-progress]` - Reopened for CAPTION-003.1 cross-microphone duplicate suppression after deployed user testing revealed duplicate speech on nearby personal microphones. Diagnostics identified negation-guard rejection and provider turn segmentation divergence; CAPTION-003.2 adds bounded episode continuity. Current UI refinements remain accepted; closure awaits user acceptance of suppression.
+- **CAPTION-003** `[in-progress]` - Reopened after deployed user testing revealed duplicate speech on nearby personal microphones. CAPTION-003.1 text reconciliation and CAPTION-003.2 episode continuity failed real acceptance; CAPTION-003.3 tests Connected AssemblyAI Universal-3.6 Pro Voice Focus with text reconciliation bypassed. Current UI refinements remain accepted; closure awaits acoustic A/B evidence and user acceptance.
 
 ## Ready
 
