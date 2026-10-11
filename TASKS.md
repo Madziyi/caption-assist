@@ -10,7 +10,7 @@ Use these states:
 
 ## In progress
 
-- **CAPTION-003** `[in-progress]` — Connected Mode / QR participant rooms source implemented; automated and live infrastructure/security checks passed. Configured host creation/end passed; pending full host/phone audio/UAT acceptance; see CAPTION-003-HANDOFF.md.
+- **CAPTION-003** `[in-progress]` — Connected Mode / QR participant rooms source implemented; automated and live infrastructure/security checks passed. Configured host creation/end and one-row desktop header refinement passed; pending full host/phone audio/UAT acceptance; see CAPTION-003-HANDOFF.md.
 
 ## Ready
 

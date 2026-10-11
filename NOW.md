@@ -22,6 +22,10 @@ The user supplied local environment values; all four required names are nonempty
 
 Typecheck/lint passed; 51 tests across 12 files passed; production build passed; diff check passed. Live rollback-only SQL verified identity/rejoin/duplicate names/rename/end/expiry/removal, application RLS, topic authorization and service-only RPC. Direct anonymous Realtime smoke verified private delivery, unrelated-user rejection, participant impersonation rejection and guest control publication rejection. One synthetic same-process relay sample was ~169.9 ms; the first authorized subscription failed without diagnostic detail, the second attempt passed. Fixtures cleaned up. No phone microphone, simultaneous speech, sustained session, background app-switch or Wake Lock UAT was performed. See CAPTION-003-HANDOFF.md and QUALITY.md.
 
+## Requested header refinement
+
+Fit the desktop title, controls and status on one line using available screen width and compact control spacing; preserve readable wrapping on narrow screens. Verified Table idle and Connected active/ended at 1280 CSS pixels: controls aligned on one row without overflow. At 391 CSS pixels controls wrap without overflow. Typecheck, lint and production build passed. CAPTION-003 remains the active initiative.
+
 ## Next action
 
 Run host + guest-phone UAT from CAPTION-003-HANDOFF.md. Keep CAPTION-003 active until Planner/user acceptance; do not start CAPTION-004.
