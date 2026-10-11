@@ -117,6 +117,7 @@ Status: **unverified**
 - Test-runner issue: early attempts filled the phone's name before its asynchronous invitation check/React hydration completed, leaving Join disabled. Waiting for confirmed headset invitation before typing fixed the harness. Those attempts did not reproduce an audio failure; their temporary rooms were ended.
 - Automated: 168 tests / 27 files passed; typecheck, lint, production build and diff check passed. Added connection-quota simulation, state burst coalescing/deduplication, identify preservation, stale/new/retired-session filtering, late-subscriber recovery, queued-write cancellation and rejection handling tests.
 - Cleanup/limits: all temporary test rooms ended; synthesized WAVs removed by the runner. No physical phone/Bluetooth capture, real acoustic separation, measured overflow or keyboard traversal claimed. Re-test deployed joining phones before acoustic go/no-go.
+- Publication: source commit `d839f09` pushed to main; GitHub combined status reported Vercel success: [deployment status](https://vercel.com/madziyis-projects/caption-assist/FHhwJXAXyz9DUgNtT4Z1TRqLzB1H). Deployment status is not physical-device acceptance.
 
 ### 2026-10-11 — CAPTION-008.1 source, live SQL and browser smoke
 - Environment/device: Windows Builder tooling; local Next.js app with configured environment; Codex in-app browser. One temporary Headset Mode host room was created and ended. No physical phone, headset or fake-media Chromium run was available.

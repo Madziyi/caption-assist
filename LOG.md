@@ -325,3 +325,8 @@ Use this format:
 - Verification: 168 tests/27 files, typecheck, lint, build and diff check pass. Live local host + two simulated phones calibrated, produced a room-check matrix, and first phone refreshed/rejoined/recalibrated without Presence-limit errors/disconnection/page errors. No host mic, STT request or AssemblyAI socket. Early harness attempts typed before hydration; corrected by waiting for the invitation check. All test rooms ended; synthetic WAVs removed.
 - Decisions: keep security policies, provider configuration, acoustic thresholds and audio privacy contracts unchanged. No live configuration or schema mutation; physical phone/Bluetooth confirmation remains pending.
 - Next action: publish, reload/rejoin physical phones, complete setup and room check, then return acoustic exports to the Planner.
+
+### 2026-10-11 — CAPTION-008.1 participant connection fix publication
+- Source commit `d839f09` pushed to `main`; GitHub combined status reported Vercel `success`: https://vercel.com/madziyis-projects/caption-assist/FHhwJXAXyz9DUgNtT4Z1TRqLzB1H.
+- Local verification server stopped. No live infrastructure change; physical-phone retest remains pending.
+- Next action: reload host/phone pages, rejoin and retry headset setup and room check before acoustic acceptance.

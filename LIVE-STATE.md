@@ -55,6 +55,13 @@ None expected initially. None verified.
 
 - None recorded.
 
+## CAPTION-008.1 participant Presence quota fix deployment — 2026-10-11
+
+- Source commit `d839f09` pushed to `main`; GitHub combined status reported Vercel `success`: [deployment status](https://vercel.com/madziyis-projects/caption-assist/FHhwJXAXyz9DUgNtT4Z1TRqLzB1H).
+- Live project `cqnyvevhuxwfzhqpmccn` confirmed ACTIVE_HEALTHY. Read-only Realtime log aggregation found 14 ClientPresenceRateLimitReached errors in the prior-24-hour window at 17:12 UTC.
+- Local app with live Realtime: two simulated joining phones completed calibration, room check and one refresh/rejoin without disconnection. Temporary rooms ended and synthetic audio removed. No live schema, policy, quota or provider configuration changed.
+- Deployment completion verified; deployed physical phone/Bluetooth confirmation remains pending.
+
 ## CAPTION-008.1 calibration timer and input picker deployment — 2026-10-11
 
 - Source commit `77efcef` pushed to `main`; GitHub combined status reported Vercel `success`: [deployment status](https://vercel.com/madziyis-projects/caption-assist/7ke58AMsU8NYNd51be4wpTuaExhu).
