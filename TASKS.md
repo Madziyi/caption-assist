@@ -10,7 +10,7 @@ Use these states:
 
 ## In progress
 
-- **CAPTION-002** `[in-progress]` — Speaker-aware Table Mode: streaming diarization, temporary speaker IDs, rename flow, speaker-aware transcript presentation.
+None.
 
 ## Ready
 
@@ -30,6 +30,7 @@ None.
 
 - **BOOTSTRAP** `[done]` — Establish verified repository context and shared Planner/Builder workflow.
 - **CAPTION-001** `[done]` — Conversation Core source implementation and user-observed functional validation complete; deeper quality checks remain pending.
+- **CAPTION-002** `[done]` — Speaker-aware Table Mode source implementation and user-observed product/UAT acceptance complete for progression; deeper quality checks remain pending.
 
 ## Deferred
 

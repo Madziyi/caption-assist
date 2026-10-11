@@ -1,7 +1,7 @@
 # Active Initiative
 
-**Initiative:** CAPTION-002 — Speaker-aware Table Mode
-**Status:** SOURCE COMPLETE — browser/source verification complete; real multi-speaker/provider UAT pending
+**Initiative:** CAPTION-002 — Speaker-aware Table Mode (closure)
+**Status:** COMPLETE FOR PROGRESSION — user-observed product/UAT acceptance recorded; deeper quality checks remain pending
 **Planner:** Planner agent  
 **Implementation / verification:** Builder agent
 
@@ -58,4 +58,4 @@ Extend the working one-device captioning path with AssemblyAI streaming diarizat
 
 ## Next action
 
-Planner/user performs real multi-speaker AssemblyAI UAT when credentials, microphone hardware, and available voices support it; do not start CAPTION-003 until the result is reviewed.
+Planner reviews the CAPTION-002 closure and decides whether to activate CAPTION-003; do not begin CAPTION-003 during this closure task.

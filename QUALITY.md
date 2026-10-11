@@ -145,6 +145,18 @@ Record measured provider billing/configuration or carefully calculated cost from
 - Accessibility observations: Reduced the shell's top padding by approximately 90%, moved the live speaker label to the top of the caption stage, and allowed the live caption region to use the remaining stage height instead of limiting it to 22vh.
 - Result: User-requested layout refinement implemented; no provider, audio, or caption timing behavior changed.
 
+### 2026-10-10 — CAPTION-002 — user-observed product/UAT acceptance
+- Environment/device: Not reported by the user.
+- Audio path: The user personally reviewed and tested the current speaker-aware interface and reports that it is working well and that they are happy with what they tested and saw. This is user-observed product/UAT acceptance, not Builder-observed provider benchmarking.
+- Session length: Not reported.
+- Latency observations/measurements: No exact latency measurement reported.
+- Accuracy observations/measurements: No formal diarization accuracy, WER, or DER measurement reported.
+- Speaker observations: No physical speaker count or quantitative attribution result reported.
+- Failure/recovery tests: Sustained-session and intentional reconnect results were not reported.
+- Accessibility observations: User acceptance supports progression of the reviewed speaker-aware interface. Narrow/mobile speaker-placement verification was not reported.
+- Cost evidence: Not measured.
+- Result: CAPTION-002 is accepted for progression based on user-observed product/UAT feedback. Formal diarization accuracy, exact latency, sustained-session stability, reconnect behavior, broader device/browser coverage, and narrow/mobile speaker-placement verification remain pending.
+
 Append concise entries:
 
 ```text

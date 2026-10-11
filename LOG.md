@@ -106,3 +106,12 @@ Use this format:
 - **Live state:** Unchanged; no live system was inspected.
 - **Known issues:** Narrow/mobile layout still requires focused visual review after this desktop-oriented spacing adjustment.
 - **Next action:** Planner/user validates speaker placement and caption use of the stage during the next browser review; do not start CAPTION-003.
+
+### 2026-10-10 — CAPTION-002 — user-observed product/UAT acceptance and closure
+- **Changed:** Updated durable context to mark CAPTION-002 complete for progression after the user's personal review and testing of the current speaker-aware interface.
+- **Decisions:** Treat the report as user-observed product/UAT acceptance, not Builder-observed provider benchmarking. Keep CAPTION-003 ready but do not start it in this task.
+- **Verification:** Confirmed commit `17d6a2d7b7b36fd0892e9f4e9713bdd3054042b9` is present on synchronized `main`; no application code changed.
+- **Quality:** The user reports that the interface is working well and that they are happy with what they tested and saw. No speaker count, WER/DER, exact latency, session duration, reconnect, device/browser, or narrow/mobile result was inferred; those checks remain pending.
+- **Live state:** `LIVE-STATE.md` remains unchanged because no new live infrastructure evidence was obtained.
+- **Known issues:** Formal diarization accuracy, exact caption latency, sustained-session stability, intentional reconnect, broader device/browser coverage, and narrow/mobile speaker placement remain unmeasured.
+- **Next action:** Planner reviews the closure and decides whether to activate CAPTION-003; do not begin CAPTION-003 during this task.
