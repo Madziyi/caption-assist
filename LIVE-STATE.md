@@ -177,3 +177,5 @@ None expected initially. None verified.
 - Short synthetic streaming session using exact Single Speaker source options: Universal-3.6 Pro / speaker_labels false / balanced / interruption_delay 0 / include_partial_turns true / 16 kHz / formatted turns; no Voice Focus, silence overrides or revision interval. Begin echoed Pro/balanced/diarization off/voice_focus null.
 - Observed Begin 1, Turn 12 (9 partial / 3 final), Termination 1, Error 0; no speaker labels or revisions. Partial text arrived before first final. This confirms local live configuration/lifecycle, not sermon accuracy, acoustic quality or measured human latency. No retained audio/transcript/credentials, no external infrastructure or secret changes.
 - Publication pending at entry time; physical sermon acceptance unverified.
+
+- Publication: implementation `dd04ae5cd23d2dcac9319d912daf8d3861a54f5b` pushed to main; Vercel **success** observed: [deployment status](https://vercel.com/madziyis-projects/caption-assist/EqnqHNz3WrgEL2zp8gFG2PvG3WzA). Deployment-check evidence only; no deployed physical sermon/microphone UAT inferred. Documentation-only handoff follows.

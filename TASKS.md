@@ -10,7 +10,7 @@ Use these states:
 
 ## In progress
 
-- **CAPTION-010** `[in-progress]` — Single Speaker Mode: no diarization, immediate partial words, 80-word paragraphs independent of pauses/turns. Local automated/browser/provider checks passed; publication and physical sermon acceptance pending. See `CAPTION-010-SINGLE-SPEAKER.md`.
+- **CAPTION-010** `[in-progress]` — Single Speaker Mode: no diarization, immediate partial words, 80-word paragraphs independent of pauses/turns. Local automated/browser/provider checks passed; implementation `dd04ae5` pushed and Vercel success observed; physical sermon acceptance pending. See `CAPTION-010-SINGLE-SPEAKER.md`.
 
 ## Shipped Open implementation
 
