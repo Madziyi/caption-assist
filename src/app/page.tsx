@@ -1,6 +1,8 @@
 "use client";
 
 import { useEffect, useMemo, useReducer, useRef, useState } from "react";
+import { AssemblyAIStreamingProvider, SINGLE_SPEAKER_ASSEMBLYAI_OPTIONS } from "@/lib/captions/provider";
+import { SingleSpeakerTranscript } from "@/components/single-speaker-transcript";
 import { ConversationSession } from "@/lib/captions/session";
 import { groupNewestFirst, newestFirst } from "@/lib/captions/history";
 import { captionReducer, initialCaptionState } from "@/lib/captions/reducer";
@@ -30,7 +32,7 @@ export default function HomePage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editingSpeakerId, setEditingSpeakerId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
-  const [mode, setMode] = useState<"open" | "headset">("open");
+  const [mode, setMode] = useState<"open" | "single" | "headset">("open");
   const [roomView, setRoomView] = useState(idleRoomView);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [participantsOpen, setParticipantsOpen] = useState(false);
@@ -102,7 +104,7 @@ export default function HomePage() {
       finally { setRoomBusy(false); }
       return;
     }
-    const session = new ConversationSession(dispatch);
+    const session = new ConversationSession(dispatch, mode === "single" ? (token) => new AssemblyAIStreamingProvider(token, undefined, SINGLE_SPEAKER_ASSEMBLYAI_OPTIONS) : undefined);
     sessionRef.current = session;
     await session.start().catch(() => undefined);
   }
@@ -182,8 +184,8 @@ export default function HomePage() {
           <p className="eyebrow">Accessible Conversation Captions</p>
         </div>
         <div className="header-actions">
-          <label className="mode-label">Mode <select aria-label="Conversation mode" value={mode} disabled={isActive || headsetActive || roomBusy || restoring} onChange={(event) => { setMode(event.target.value as "open" | "headset"); setRoomError(null); }}>
-            <option value="open">Open Mode</option><option value="headset">Headset Mode</option>
+          <label className="mode-label">Mode <select aria-label="Conversation mode" value={mode} disabled={isActive || headsetActive || roomBusy || restoring} onChange={(event) => { setMode(event.target.value as "open" | "single" | "headset"); setRoomError(null); }}>
+            <option value="open">Open Mode</option><option value="single">Single Speaker Mode</option><option value="headset">Headset Mode</option>
           </select></label>
           {canStart ? (
             <button type="button" className="button button-primary header-button" onClick={startConversation} disabled={roomBusy || restoring}>
@@ -230,7 +232,7 @@ export default function HomePage() {
           <div className={`status status-${state.status}`} role="status" aria-live="polite">
             <span className="status-dot" aria-hidden="true" />
             <span>{statusCopy[state.status]}</span>
-            {mode === "open" && state.status === "reconnecting" && <span className="status-detail">Attempt {state.reconnectAttempt} of 5</span>}
+            {mode !== "headset" && state.status === "reconnecting" && <span className="status-detail">Attempt {state.reconnectAttempt} of 5</span>}
           </div>
         </div>
       </header>
@@ -304,7 +306,7 @@ export default function HomePage() {
                   if (!firstCaption) return null;
                   return (
                     <div className={`history-group ${group.speakerId ? `history-group-${speakerMap.get(group.speakerId)?.side ?? "left"}` : "history-group-left history-group-someone"}`} key={firstCaption.id}>
-                      <SpeakerIdentity speakerId={group.speakerId} speakerMap={speakerMap} onActivate={openSpeakerPanel} />
+                      {mode !== "single" && <SpeakerIdentity speakerId={group.speakerId} speakerMap={speakerMap} onActivate={openSpeakerPanel} />}
                       <div className="history-bubbles">
                         {group.captions.map((caption) => <p className={`history-caption speaker-accent-border-${speakerMap.get(caption.speakerId ?? "")?.accentIndex ?? "neutral"}`} key={caption.id}>{caption.text}</p>)}
                       </div>
@@ -320,7 +322,7 @@ export default function HomePage() {
           <section className="caption-stage" aria-label="Live caption transcript">
         {state.finalized.length > 0 || state.interim || Object.keys(state.activeInterims).length > 0 ? (
           <div className="live-caption-scroll" ref={liveCaptionRef}>
-            {mode === "headset" ? <HeadsetTranscript finalized={state.finalized} interims={[...(state.interim ? [state.interim] : []), ...Object.values(state.activeInterims)]} speaker={(id) => <SpeakerIdentity speakerId={id} speakerMap={speakerMap} onActivate={openSpeakerPanel} live />} /> : <OpenTranscript finalized={state.finalized} interim={state.interim} speaker={(id) => <SpeakerIdentity speakerId={id} speakerMap={speakerMap} onActivate={openSpeakerPanel} live />} />}
+            {mode === "single" ? <SingleSpeakerTranscript finalized={state.finalized} interim={state.interim} /> : mode === "headset" ? <HeadsetTranscript finalized={state.finalized} interims={[...(state.interim ? [state.interim] : []), ...Object.values(state.activeInterims)]} speaker={(id) => <SpeakerIdentity speakerId={id} speakerMap={speakerMap} onActivate={openSpeakerPanel} live />} /> : <OpenTranscript finalized={state.finalized} interim={state.interim} speaker={(id) => <SpeakerIdentity speakerId={id} speakerMap={speakerMap} onActivate={openSpeakerPanel} live />} />}
           </div>
         ) : (
           <p className="caption-placeholder">
@@ -329,7 +331,7 @@ export default function HomePage() {
         )}
           </section>
 
-          {mode === "open" && state.status === "reconnecting" && (
+          {mode !== "headset" && state.status === "reconnecting" && (
             <p className="notice notice-warning" role="alert">
               Captions are temporarily interrupted. Finalized captions remain visible while the connection is restored.
             </p>

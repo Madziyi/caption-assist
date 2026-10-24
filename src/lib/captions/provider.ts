@@ -38,6 +38,13 @@ export const OPEN_ASSEMBLYAI_OPTIONS = {
   interruptionDelayMs: 0,
   revisionIntervalMs: 120_000,
 } as const;
+export const SINGLE_SPEAKER_ASSEMBLYAI_OPTIONS = {
+  speechModel: "universal-3-6-pro",
+  diarization: false,
+  mode: "balanced",
+  interruptionDelayMs: 0,
+  includePartialTurns: true,
+} as const;
 export type VoiceFocusProfile = "near-field" | "far-field";
 export type AssemblyAIStreamingOptions = {
   diarization?: boolean;
@@ -46,6 +53,7 @@ export type AssemblyAIStreamingOptions = {
   mode?: "min_latency" | "balanced" | "max_accuracy";
   revisionIntervalMs?: number;
   interruptionDelayMs?: number;
+  includePartialTurns?: boolean;
   minTurnSilenceMs?: number;
   maxTurnSilenceMs?: number;
 };
@@ -70,14 +78,14 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
   private fallbackTurnCounter = 0;
   private readonly finalTurnTexts = new Map<number, string>();
 
-  private readonly options: Required<Pick<AssemblyAIStreamingOptions, "speechModel" | "diarization">> & Pick<AssemblyAIStreamingOptions, "voiceFocus" | "mode" | "revisionIntervalMs" | "interruptionDelayMs" | "minTurnSilenceMs" | "maxTurnSilenceMs">;
+  private readonly options: Required<Pick<AssemblyAIStreamingOptions, "speechModel" | "diarization">> & Pick<AssemblyAIStreamingOptions, "voiceFocus" | "mode" | "revisionIntervalMs" | "interruptionDelayMs" | "includePartialTurns" | "minTurnSilenceMs" | "maxTurnSilenceMs">;
 
   constructor(private readonly token: string, connectionId = createProviderConnectionId(), options: AssemblyAIStreamingOptions | boolean = OPEN_ASSEMBLYAI_OPTIONS) {
     this.connectionId = connectionId;
     this.options = typeof options === "boolean"
       ? { speechModel: OPEN_ASSEMBLYAI_OPTIONS.speechModel, diarization: options }
       : { speechModel: options.speechModel ?? OPEN_ASSEMBLYAI_OPTIONS.speechModel, diarization: options.diarization ?? OPEN_ASSEMBLYAI_OPTIONS.diarization,
-          voiceFocus: options.voiceFocus, mode: options.mode, revisionIntervalMs: options.revisionIntervalMs, interruptionDelayMs: options.interruptionDelayMs, minTurnSilenceMs: options.minTurnSilenceMs, maxTurnSilenceMs: options.maxTurnSilenceMs };
+          includePartialTurns: options.includePartialTurns, voiceFocus: options.voiceFocus, mode: options.mode, revisionIntervalMs: options.revisionIntervalMs, interruptionDelayMs: options.interruptionDelayMs, minTurnSilenceMs: options.minTurnSilenceMs, maxTurnSilenceMs: options.maxTurnSilenceMs };
   }
 
   connect(): Promise<void> {
@@ -90,6 +98,7 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
       format_turns: "true",
       speaker_labels: String(this.options.diarization),
     });
+    if (this.options.includePartialTurns !== undefined) params.set("include_partial_turns", String(this.options.includePartialTurns));
     if (this.options.voiceFocus) params.set("voice_focus", this.options.voiceFocus);
     if (this.options.mode) params.set("mode", this.options.mode);
     if (this.options.diarization && this.options.revisionIntervalMs) params.set("speaker_labels_revision_interval_ms", String(this.options.revisionIntervalMs));

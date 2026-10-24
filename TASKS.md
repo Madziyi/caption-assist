@@ -10,7 +10,11 @@ Use these states:
 
 ## In progress
 
-- **CAPTION-009** `[in-progress]` — Open Mode + Universal-3.6 Pro + Stable Reading. Source and available synthetic/browser/live provider verification complete; physical Open and Headset acceptance pending. See `CAPTION-009-OPEN-MODE.md`.
+- **CAPTION-010** `[in-progress]` — Single Speaker Mode: no diarization, immediate partial words, 80-word paragraphs independent of pauses/turns. Local automated/browser/provider checks passed; publication and physical sermon acceptance pending. See `CAPTION-010-SINGLE-SPEAKER.md`.
+
+## Shipped Open implementation
+
+- **CAPTION-009** `[implemented]` — Open Mode + Universal-3.6 Pro + Stable Reading. Source and available synthetic/browser/live provider verification complete; physical Open and Headset acceptance pending. See `CAPTION-009-OPEN-MODE.md`.
 
 ## Headset implementation history (preserved)
 

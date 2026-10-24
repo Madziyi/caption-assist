@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AssemblyAIStreamingProvider, HEADSET_ASSEMBLYAI_OPTIONS, normalizeSpeakerId, OPEN_ASSEMBLYAI_OPTIONS } from "./provider";
+import { AssemblyAIStreamingProvider, HEADSET_ASSEMBLYAI_OPTIONS, SINGLE_SPEAKER_ASSEMBLYAI_OPTIONS, normalizeSpeakerId, OPEN_ASSEMBLYAI_OPTIONS } from "./provider";
 import type { TranscriptionEvent } from "./types";
 
 class FakeWebSocket {
@@ -63,6 +63,21 @@ describe("AssemblyAIStreamingProvider", () => {
     vi.stubGlobal("WebSocket", FakeWebSocket);
     await new AssemblyAIStreamingProvider("temporary-token", "personal-stream", false).connect();
     expect(new URL(FakeWebSocket.lastUrl).searchParams.get("speaker_labels")).toBe("false");
+  });
+  it("streams Single Speaker partials with Pro and no diarization or silence overrides", async () => {
+    vi.stubGlobal("WebSocket", FakeWebSocket);
+    const events: TranscriptionEvent[] = [];
+    const provider = new AssemblyAIStreamingProvider("temporary-token", "sermon", SINGLE_SPEAKER_ASSEMBLYAI_OPTIONS);
+    provider.onEvent((event) => events.push(event)); await provider.connect();
+    const params = new URL(FakeWebSocket.lastUrl).searchParams;
+    expect(params.get("speech_model")).toBe("universal-3-6-pro");
+    expect(params.get("speaker_labels")).toBe("false");
+    expect(params.get("mode")).toBe("balanced");
+    expect(params.get("interruption_delay")).toBe("0");
+    expect(params.get("include_partial_turns")).toBe("true");
+    for (const name of ["voice_focus", "speaker_labels_revision_interval_ms", "min_turn_silence", "max_turn_silence"]) expect(params.has(name)).toBe(false);
+    FakeWebSocket.lastSocket?.onmessage?.({ data: JSON.stringify({ type: "Turn", turn_order: 1, end_of_turn: false, transcript: "Live words before a pause" }) });
+    expect(events[0]).toMatchObject({ type: "interim", caption: { text: "Live words before a pause", speakerId: null, isFinal: false } });
   });
   it("configures the fixed near-field Headset Mode stream", async () => {
     vi.stubGlobal("WebSocket", FakeWebSocket);

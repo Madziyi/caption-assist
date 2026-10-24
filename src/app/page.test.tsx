@@ -44,10 +44,10 @@ describe("host Open / Headset UX", () => {
   });
   afterEach(() => { cleanup(); vi.clearAllMocks(); mocks.view = {}; mocks.actions = []; });
 
-  it("defaults to Open, offers only two modes and starts a local session without a room", async () => {
+  it("defaults to Open, offers three modes and starts a local session without a room", async () => {
     render(<HomePage />);
     expect(screen.getByLabelText("Conversation mode")).toHaveValue("open");
-    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Open Mode", "Headset Mode"]);
+    expect(screen.getAllByRole("option").map((o) => o.textContent)).toEqual(["Open Mode", "Single Speaker Mode", "Headset Mode"]);
     fireEvent.click(screen.getByRole("button", { name: "Start Conversation" }));
     await waitFor(() => expect(mocks.openStart).toHaveBeenCalledOnce());
     expect(mocks.headsetCreate).not.toHaveBeenCalled();
@@ -79,4 +79,19 @@ describe("host Open / Headset UX", () => {
     expect(within(transcript).getByText("Sarah")).toBeInTheDocument();
     expect(within(transcript).getByText("We should leave.")).toBeInTheDocument();
   });
+  it("starts Single Speaker locally with immediate word-count paragraphs and no labels", async () => {
+    mocks.actions = [{ type: "CAPTION", event: { id: "sermon", sourceTurnId: "sermon", text: Array.from({ length: 81 }, (_, i) => `word${i}`).join(" "), speakerId: null, startedAt: 1, isFinal: false } }];
+    render(<HomePage />);
+    fireEvent.change(screen.getByLabelText("Conversation mode"), { target: { value: "single" } });
+    fireEvent.click(screen.getByRole("button", { name: "Start Conversation" }));
+    await waitFor(() => expect(mocks.openStart).toHaveBeenCalledOnce());
+    const transcript = screen.getByRole("region", { name: "Live caption transcript" });
+    expect(transcript.querySelectorAll(".single-speaker-reading-block")).toHaveLength(2);
+    expect(within(transcript).getByText("word80")).toBeInTheDocument();
+    expect(within(transcript).queryByText(/Someone|Speaker/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Conversation mode")).toBeDisabled();
+    expect(mocks.headsetCreate).not.toHaveBeenCalled();
+    expect(screen.queryByRole("button", { name: /Name Speaker/ })).not.toBeInTheDocument();
+  });
+
 });

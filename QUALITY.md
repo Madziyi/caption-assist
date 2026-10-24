@@ -486,3 +486,12 @@ Append concise entries:
 - Remaining: five physical Open scenarios and short two-person Headset regression in CAPTION-009-OPEN-MODE.md, long session revisions, physical screen-reader/browser/headset/background behavior. CAPTION-003 historical failures/measurements above remain intact; it is retired from active product.
 
 - CAPTION-009 publication: implementation `bc73b191ac034f629231b0ede87235f4cbecbd65` pushed to main; GitHub Vercel status **success** observed: [deployment status](https://vercel.com/madziyis-projects/caption-assist/3fngbgtCfXZaasrfLg1eSNX95Kmh). Status only; deployed microphone/device behavior and physical acceptance remain unverified. Final documentation-only handoff follows this implementation.
+
+
+## 2026-10-24 — CAPTION-010 Single Speaker Mode
+
+- Human requested a sermon/lecture mode without diarization, immediate captions and word-count paragraph breaks. Synced clean main `d3ba7608ec238c86c05253646613c38561fdfdfd`. Added Single Speaker Mode (Open remains default), local ConversationSession with Pro/balanced/0 interruption/explicit partials/no diarization or Voice Focus. No silence overrides or speaker revisions. Open/Headset provider and gate/arbitration behavior preserved.
+- Pure Single presentation fills 80-word paragraphs across finals/interims and arbitrarily long pauses; 81st interim word starts the next paragraph without waiting for silence/finalization. No speaker labels/naming, source rewriting, extra transcript or persistent storage. Final/correction replacement recomputes without duplication; history remains finals only.
+- Typecheck/lint/build/diff check passed; serial Vitest 197 tests / 38 files. Chromium actual page + real fake-media worklet verified 161 interim words -> 3 paragraphs, final replacement, no labels, keyboard/stop/aria; 390/1280 px at 100/200% text, zero overflow/page errors. Screenshot inspected. Existing Open browser regression passed; active Headset automated suites pass.
+- Live synthetic Single source-option provider smoke: Begin 1, Turn 12 (9 partials/3 finals), Termination 1, Error 0, no speaker labels/revisions. Partial text before first final; Begin confirmed Pro/balanced/diarization off/Voice Focus null. No latency or sermon-accuracy claim. Browser/provider closed; no raw audio/transcripts/credentials persisted. No dependency/security/database/provider-benchmark scope added.
+- Physical sermon/PA acoustics and sustained-session acceptance remain human-owned; see CAPTION-010-SINGLE-SPEAKER.md. Prior Open/Headset physical UAT remains pending separately.

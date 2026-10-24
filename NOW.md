@@ -1,15 +1,15 @@
 # Active Initiative
 
-**Initiative:** CAPTION-009 - Open Mode + Universal-3.6 Pro + Stable Reading
-**Status:** Source implemented; automated, browser and live synthetic provider/Headset verification passed. Implementation `bc73b19` pushed to main and Vercel success observed; physical acceptance pending. Human request supersedes CAPTION-008.4 follow-up; accepted Headset behavior remains protected.
-**Baseline:** Clean main, HEAD == origin/main == 619154d8e303a793ec469096d442cf89a982604d after fetch.
+**Initiative:** CAPTION-010 — Single Speaker Mode
+**Status:** Implemented and verified locally; publication in progress. CAPTION-009 is shipped; its physical UAT remains pending separately.
+**Baseline:** Clean fetched main d3ba7608ec238c86c05253646613c38561fdfdfd.
 
-Scope: two modes (Open default, Headset); remove Connected runtime and voice identification, reject legacy rooms without migration; Open uses Pro/balanced/diarization/0 ms interruption/120 s revisions without Voice Focus or silence overrides. Pure Open reading derivation keeps words immediate, groups same speakers and transient uncertainty, preserves confirmed changes and revisions, with 2 s / 80 word paragraph limits.
+Objective: add Single Speaker Mode beside Open and Headset, using one local microphone and Pro STT without diarization. Open remains default. Words appear from partial events immediately. Paragraphs break every 80 words across finals/interims, irrespective of pauses/provider turn endings, without speaker labels. Provider: balanced, interruption delay 0, include_partial_turns true, no Voice Focus, revisions or silence overrides. Raw reducer/history/privacy contracts unchanged.
 
-Order: classify references, mode/controller/transport cleanup, provider/Open presentation, focused and full tests, available browser/provider/live checks, durable handoff, commit/push main and deployment check.
+Order: provider configuration and pure word-count presentation; mode/UI wiring and focused tests; full typecheck/lint/serial tests/build; available browser and live synthetic provider checks; durable handoff, commit/push main, Vercel status verification.
 
-Non-goals: Hybrid, Jev, new benchmarks, security/dependency work, Headset gate/arbitration tuning, history redesign, retention or RLS changes.
+Acceptance: 81st live word starts paragraph 2 without final/silence; long pauses do not split short paragraphs; final/revision replacement has no duplicates; no Supabase room or speaker naming; mode locks during capture; Open/Headset behavior preserved. No storage/audio retention, RLS, dependencies or Headset tuning changes.
 
-Acceptance: stable accessible live reading without delayed text or invented finalized identity; exact Headset identity and infrastructure preserved; legacy rooms unavailable. Required gates: typecheck, lint, serial Vitest, build, diff check; browser/provider checks where available. Physical Open five-scenario UAT and short two-person Headset regression remain human-owned.
+Risks: provider latency/accuracy and physical sermon acoustics remain measured separately; partial wording can change before final. Human UAT: natural continuous sermon speech with 80+ words, pauses, stop/restart, readability and first-text feel.
 
-Next action: human runs the five physical Open scenarios and short two-person Headset regression in CAPTION-009-OPEN-MODE.md; Planner resyncs main and reviews the handoff.
+Next action: publish and confirm Vercel status, then human tries a natural sermon/lecture with pauses and 80+ continuous words.

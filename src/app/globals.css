@@ -276,7 +276,7 @@ select:focus-visible { outline: 4px solid #f1bd4b; outline-offset: 3px; }
 .headset-row > strong { min-width: 0; overflow-wrap: anywhere; }
 .headset-row-status { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; max-width: 65%; min-width: 0; }
 .headset-row-status small { font-size: 0.8rem; color: var(--muted); text-align: right; }
-.headset-reading-block .current-caption, .open-reading-block .current-caption { width: 100%; text-align: left; overflow-wrap: anywhere; }
+.headset-reading-block .current-caption, .open-reading-block .current-caption, .single-speaker-reading-block .current-caption { width: 100%; text-align: left; overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: reduce) { .headset-activity { transition: none; } }
 @media (forced-colors: active) { .headset-activity { border-color: CanvasText; } }
 
