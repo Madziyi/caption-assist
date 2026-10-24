@@ -149,6 +149,7 @@ None expected initially. None verified.
 
 ## CAPTION-008.4 source and deployment status — 2026-10-24
 
+- Source commit `0d8f3da9005629fe773f659837ae660d5b416334` was pushed to `main`. GitHub combined status reported Vercel **success**: [deployment status](https://vercel.com/madziyis-projects/caption-assist/BDZa8s3Hi4UzTE6YtSdiUuTcoYUJ). This verifies the deployment check only, not runtime behavior or headset audio.
 - Source adds an optional authenticated OpenAI Realtime transcription secret route for open Headset rooms. `OPENAI_API_KEY` is server-only in source and optional. No deployment variable inventory was available in this pass, so its presence in Vercel is **unverified**; deployed OpenAI benchmark availability is not claimed.
 - AssemblyAI source query adds Headset-only interruption/silence parameters. No deployed provider session with those values was opened in this pass; deployed latency effect is **unverified**.
 - No hosting/provider configuration, database state, schema, retention policy or production STT selection was changed. No live OpenAI credential/session/audio was used.

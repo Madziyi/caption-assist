@@ -13,7 +13,7 @@
 
 **Owner:** Builder implements and verifies source/local browser behavior. Human configures `OPENAI_API_KEY` in deployment if desired and performs wired/Bluetooth physical UAT; no provider winner is declared without that evidence.
 
-**Builder progress:** Source and focused/full automated checks are implemented and passing locally. Existing Playwright browser scripts require an external Playwright/Chromium path that is not installed in this workspace; physical-device and deployed OpenAI availability remain unverified. Deployment and Git handoff are pending.
+**Builder progress:** Source is committed and pushed to `main` as `0d8f3da9005629fe773f659837ae660d5b416334`; GitHub reported the Vercel check as successful. Automated gates passed locally. Existing Playwright browser scripts require an external Playwright/Chromium path that is not installed in this workspace; physical-device and deployed OpenAI availability remain unverified. Next: human wired/Bluetooth headset comparison and deployment `OPENAI_API_KEY` confirmation if shadow testing is desired.
 
 ## Approved UI/readability follow-up (current Builder pass)
 
