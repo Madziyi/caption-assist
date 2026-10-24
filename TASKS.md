@@ -10,7 +10,7 @@ Use these states:
 
 ## In progress
 
-- **CAPTION-010** `[in-progress]` — Single Speaker Mode: no diarization, immediate partial words, paragraphs after >=3-second audio pauses with no word limit (human correction). Initial implementation `dd04ae5` shipped; paragraph correction automated/browser checks passed, publication and physical sermon acceptance pending. See `CAPTION-010-SINGLE-SPEAKER.md`.
+- **CAPTION-010** `[in-progress]` — Single Speaker Mode: no diarization, immediate partial words, paragraphs after >=3-second audio pauses with no word limit (human correction). Initial implementation `dd04ae5` shipped; paragraph correction `f5bf784` shipped with automated/browser checks and Vercel success; physical sermon acceptance pending. See `CAPTION-010-SINGLE-SPEAKER.md`.
 
 ## Shipped Open implementation
 

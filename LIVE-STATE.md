@@ -184,3 +184,5 @@ None expected initially. None verified.
 ### CAPTION-010 paragraph correction verification boundary — 2026-10-24
 
 The human requested >=3-second paragraph pauses instead of a word cap. Local source/browser checks cover the presentation change; no new live provider/audio session, schema, secret or infrastructure configuration change was performed. Prior live Pro/partial-caption configuration evidence remains applicable to unchanged source options; deployed physical sermon behavior still requires confirmation. Deployment status will be recorded after publication.
+
+- Paragraph-correction publication: `f5bf7843ecb469e5877d8fb8bb95030cfcb5b090` pushed to main; Vercel success observed: [deployment status](https://vercel.com/madziyis-projects/caption-assist/7sXhNkWohEQWK8D6qi5Q995kqBxh). Build/diff checks and the existing Open browser regression passed. Status does not establish physical sermon acceptance.
