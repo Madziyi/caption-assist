@@ -154,3 +154,8 @@ None expected initially. None verified.
 - AssemblyAI source query adds Headset-only interruption/silence parameters. No deployed provider session with those values was opened in this pass; deployed latency effect is **unverified**.
 - No hosting/provider configuration, database state, schema, retention policy or production STT selection was changed. No live OpenAI credential/session/audio was used.
 - Local production build on 2026-10-24 emitted Next.js's October 14, 2026 upstream security advisory because the project is pinned to Next.js 16.4.0. The official patched version is 16.4.1. No dependency upgrade was made as part of this feature task; deployed runtime version/status was not inspected.
+
+## SEC-001 Next.js security patch publication — 2026-10-24
+
+- Source commit `4a7dcaf4230176ec1f0b9ccdefc8c17853769eac` pins `next` and `eslint-config-next` to 16.4.1. GitHub combined status reported Vercel **success**: [deployment status](https://vercel.com/madziyis-projects/caption-assist/63s3ZSdXBdtf1c7BxP6w2r4JfMkt).
+- The status check is deployment evidence only. The deployed runtime package version was not queried directly; no manual deployed application check was run.

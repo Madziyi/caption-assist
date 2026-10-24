@@ -13,7 +13,7 @@
 
 **Owner:** Human performs headset benchmark and confirms deployment key presence if OpenAI comparison is desired; Builder supports follow-up fixes based on evidence.
 
-**Builder progress:** CAPTION-008.4 source is at `0d8f3da`; its Vercel check succeeded. Separate security follow-up SEC-001 upgraded Next.js and eslint-config-next to 16.4.1 in a local change; typecheck, lint, 252 tests, and build passed. Publication is pending.
+**Builder progress:** CAPTION-008.4 source is at `0d8f3da`; its Vercel check succeeded. Separate security follow-up SEC-001 upgraded Next.js and eslint-config-next to 16.4.1 in commit `4a7dcaf4230176ec1f0b9ccdefc8c17853769eac`; typecheck, lint, 252 tests, build, and Vercel check passed. Deployed runtime version was not directly inspected.
 
 ## Approved UI/readability follow-up (current Builder pass)
 

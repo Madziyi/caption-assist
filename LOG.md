@@ -443,4 +443,4 @@ Use this format:
 - Updated exact pins `next` and `eslint-config-next` from 16.4.0 to 16.4.1 and refreshed `package-lock.json`; no application source or other direct dependency changed.
 - Verification: typecheck, lint, serial Vitest (252 tests / 40 files), production build on Next.js 16.4.1, and diff check passed. The build completed without the prior Next security reminder.
 - `npm audit` reports two high findings that are unchanged from the baseline lockfile: `undici@7.30.0` via jsdom and `zod@4.6.5` via eslint-config-next. Left outside SEC-001 scope; recorded as SEC-002 for separate triage.
-- Next: commit/push this separate dependency patch and inspect the deployment check; that check does not establish deployed runtime version.
+- Publication: `4a7dcaf4230176ec1f0b9ccdefc8c17853769eac` pushed to `main`; GitHub combined status reported Vercel success: https://vercel.com/madziyis-projects/caption-assist/63s3ZSdXBdtf1c7BxP6w2r4JfMkt. Status does not establish the deployed runtime version. Next: human CAPTION-008.4 UAT; SEC-002 remains separate.

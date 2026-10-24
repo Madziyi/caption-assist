@@ -33,6 +33,10 @@ Use these states:
 
 - **SEC-002** `[ready]` — Triage the two pre-existing `npm audit` high findings: `undici@7.30.0` via `jsdom` and `zod@4.6.5` via `eslint-config-next`. Both were present at the 2026-10-24 baseline and remained after the scoped Next.js 16.4.1 update; evaluate and patch separately.
 
+## Completed security follow-ups
+
+- **SEC-001** `[done]` — Upgraded exact pins `next` and `eslint-config-next` from 16.4.0 to 16.4.1 per the October 14, 2026 Next.js advisory. Commit `4a7dcaf`; code gates and Vercel check passed. Deployed runtime version was not directly queried.
+
 ## Planned
 
 - **CAPTION-004** `[deferred]` — Hybrid Mode: host room mic plus headsets/personal microphones where acoustically isolated microphones exist. Reuse the dormant personal-microphone, cross-mic reconciliation and caption-relay modules kept from CAPTION-003.1–003.3. Not started.
