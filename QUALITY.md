@@ -497,3 +497,11 @@ Append concise entries:
 - Physical sermon/PA acoustics and sustained-session acceptance remain human-owned; see CAPTION-010-SINGLE-SPEAKER.md. Prior Open/Headset physical UAT remains pending separately.
 
 - Publication: implementation `dd04ae5cd23d2dcac9319d912daf8d3861a54f5b` pushed to main; Vercel **success** observed: [deployment status](https://vercel.com/madziyis-projects/caption-assist/EqnqHNz3WrgEL2zp8gFG2PvG3WzA). Deployment-check evidence only; no deployed physical sermon/microphone UAT inferred. Documentation-only handoff follows.
+
+
+### 2026-10-24 — CAPTION-010 human paragraph correction
+
+- Human supplied physical-use screenshot and rejected arbitrary 80-word splits; requested new paragraphs after a 3-second pause. Synced clean main `0ea492cbbe8a6e43fbe4f7cea18f53de1bee6186`. Removed Single's word cap, deriving >=3000 ms gaps from preceding audioEndAt (endedAt fallback) to next startedAt; missing endpoint evidence keeps text together. Words remain immediate, with no silence timer/debounce, blank paragraph or provider finalization wait.
+- Automated: typecheck/lint passed; serial Vitest 201 tests/38 files. 2999/3000/3001 ms, 161 continuous interim words, finals/short pauses, audio-vs-arrival timing, missing endpoints/overlap and correction/dedupe covered. Production build and diff checks recorded before publication.
+- Actual-page Chrome fake-media capture/worklet + mocked provider: 161 interim words remain one paragraph; resumed interim after exactly 3 seconds starts paragraph two; final replacement/no labels/keyboard/aria/stop pass. 390/1280 px at 100/200% text: no overflow, zero page errors. Browser/server closed; no audio/transcript storage. No new live STT test because provider/audio/transport configuration is unchanged. Open/Headset tests pass.
+- Physical sermon readability/long-session acceptance remains human-owned. No accuracy/latency measurements inferred from screenshot or synthetic checks. Earlier 80-word implementation evidence above remains historical and is superseded for Single Mode only.

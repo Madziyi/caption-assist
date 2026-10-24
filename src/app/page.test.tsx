@@ -79,15 +79,15 @@ describe("host Open / Headset UX", () => {
     expect(within(transcript).getByText("Sarah")).toBeInTheDocument();
     expect(within(transcript).getByText("We should leave.")).toBeInTheDocument();
   });
-  it("starts Single Speaker locally with immediate word-count paragraphs and no labels", async () => {
+  it("starts Single Speaker locally with immediate continuous paragraphs and no labels", async () => {
     mocks.actions = [{ type: "CAPTION", event: { id: "sermon", sourceTurnId: "sermon", text: Array.from({ length: 81 }, (_, i) => `word${i}`).join(" "), speakerId: null, startedAt: 1, isFinal: false } }];
     render(<HomePage />);
     fireEvent.change(screen.getByLabelText("Conversation mode"), { target: { value: "single" } });
     fireEvent.click(screen.getByRole("button", { name: "Start Conversation" }));
     await waitFor(() => expect(mocks.openStart).toHaveBeenCalledOnce());
     const transcript = screen.getByRole("region", { name: "Live caption transcript" });
-    expect(transcript.querySelectorAll(".single-speaker-reading-block")).toHaveLength(2);
-    expect(within(transcript).getByText("word80")).toBeInTheDocument();
+    expect(transcript.querySelectorAll(".single-speaker-reading-block")).toHaveLength(1);
+    expect(within(transcript).getByText(/word80/)).toBeInTheDocument();
     expect(within(transcript).queryByText(/Someone|Speaker/)).not.toBeInTheDocument();
     expect(screen.getByLabelText("Conversation mode")).toBeDisabled();
     expect(mocks.headsetCreate).not.toHaveBeenCalled();

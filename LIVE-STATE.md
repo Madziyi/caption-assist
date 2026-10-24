@@ -179,3 +179,8 @@ None expected initially. None verified.
 - Publication pending at entry time; physical sermon acceptance unverified.
 
 - Publication: implementation `dd04ae5cd23d2dcac9319d912daf8d3861a54f5b` pushed to main; Vercel **success** observed: [deployment status](https://vercel.com/madziyis-projects/caption-assist/EqnqHNz3WrgEL2zp8gFG2PvG3WzA). Deployment-check evidence only; no deployed physical sermon/microphone UAT inferred. Documentation-only handoff follows.
+
+
+### CAPTION-010 paragraph correction verification boundary — 2026-10-24
+
+The human requested >=3-second paragraph pauses instead of a word cap. Local source/browser checks cover the presentation change; no new live provider/audio session, schema, secret or infrastructure configuration change was performed. Prior live Pro/partial-caption configuration evidence remains applicable to unchanged source options; deployed physical sermon behavior still requires confirmation. Deployment status will be recorded after publication.

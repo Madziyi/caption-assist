@@ -2,7 +2,13 @@
 
 Human request: caption a pastor's sermon or other single-speaker presentation accurately and quickly, without diarization or waiting for silence; split paragraphs by word count.
 
-## As built
+## Current paragraph contract — human correction, 2026-10-24
+
+The human rejected arbitrary 80-word splits after physical use. Single Speaker Mode now has **no word-count cap**. Keep continuous speech and short pauses in one paragraph. Start a new paragraph when speech resumes at least **3000 ms** after the previous last-word audio endpoint, including when resumed text is still interim. Do not buffer/delay words or append blank paragraphs during silence. Timing comes from audio end/start, not network delivery; absent timing keeps speech together conservatively. No provider tuning, diarization, history or Open/Headset behavior change.
+
+Correction verification: 201 tests / 38 files passed, typecheck/lint/build/diff check passed. Tests cover 2999/3000/3001 ms, continuous 161-word interim, provider finals, missing endpoints, audio-end preference, overlap, final/correction dedupe and immutability. Actual-page Chromium fake-media/worklet + mocked provider verified continuous 161 words -> one paragraph, exact 3-second gap -> second paragraph immediately while interim, final replacement, no labels, keyboard/aria/stop and 390/1280 px at 100/200% text without overflow/errors. No new live provider session; STT settings unchanged. Physical confirmation: speak beyond 80 words, pause 3 seconds, resume and check the new paragraph. This supersedes the original word-count acceptance below.
+
+## Initial as built (historical; word-count rule superseded)
 
 Baseline: clean fetched main `d3ba7608ec238c86c05253646613c38561fdfdfd`. Added Single Speaker Mode between Open and Headset. Open remains default; selecting a mode is locked during capture. Single uses the existing local ConversationSession/microphone/token/reconnect/stop path, no Supabase room. Open and Headset options/logic remain unchanged.
 

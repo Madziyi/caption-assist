@@ -1,15 +1,13 @@
 # Active Initiative
 
-**Initiative:** CAPTION-010 — Single Speaker Mode
-**Status:** Implemented and verified locally; implementation `dd04ae5` pushed to main and Vercel success observed. Physical sermon acceptance pending. CAPTION-009 is shipped; its physical UAT remains pending separately.
-**Baseline:** Clean fetched main d3ba7608ec238c86c05253646613c38561fdfdfd.
+**Initiative:** CAPTION-010 — Single Speaker paragraph correction
+**Status:** Replaced the 80-word rule with a pause of at least 3000 ms; source/browser verification passed, publication in progress.
+**Baseline:** Clean fetched main 0ea492cbbe8a6e43fbe4f7cea18f53de1bee6186.
 
-Objective: add Single Speaker Mode beside Open and Headset, using one local microphone and Pro STT without diarization. Open remains default. Words appear from partial events immediately. Paragraphs break every 80 words across finals/interims, irrespective of pauses/provider turn endings, without speaker labels. Provider: balanced, interruption delay 0, include_partial_turns true, no Voice Focus, revisions or silence overrides. Raw reducer/history/privacy contracts unchanged.
+Human correction: continuous sermon speech must stay in one paragraph regardless of word count. On resumed speech after >=3 seconds of silence, start a new paragraph immediately. Short pauses/provider finals do not split it. No timers or waiting to display words; derive the gap from preceding last-word audio endpoint to next speech start. Missing endpoint evidence keeps the paragraph together. No diarization/labels.
 
-Order: provider configuration and pure word-count presentation; mode/UI wiring and focused tests; full typecheck/lint/serial tests/build; available browser and live synthetic provider checks; durable handoff, commit/push main, Vercel status verification.
+Scope: Single presentation helper, tests/browser harness and durable contracts. Raw reducer/history, STT settings, Open/Headset and privacy remain unchanged. No provider/schema/dependency changes.
 
-Acceptance: 81st live word starts paragraph 2 without final/silence; long pauses do not split short paragraphs; final/revision replacement has no duplicates; no Supabase room or speaker naming; mode locks during capture; Open/Headset behavior preserved. No storage/audio retention, RLS, dependencies or Headset tuning changes.
+Verification: typecheck, lint, serial Vitest (201 tests / 38 files), build and diff check; actual-page Chromium fake-media worklet/provider fixture proves 161 continuous interim words stay together and an exact 3-second speech gap creates paragraph two before final. 390/1280 px at 100/200% text, no overflow/page errors. Physical sermon acoustics/readability still require human UAT.
 
-Risks: provider latency/accuracy and physical sermon acoustics remain measured separately; partial wording can change before final. Human UAT: natural continuous sermon speech with 80+ words, pauses, stop/restart, readability and first-text feel.
-
-Next action: human tries a natural sermon/lecture with pauses and 80+ continuous words.
+Next action: publish verified change, check Vercel status, then human speaks continuously past 80 words and resumes after a 3-second pause.

@@ -16,8 +16,8 @@ class Socket {
  close(){this.readyState=3;this.onclose?.({});}
 }
 window.WebSocket=Socket;
-window.__turn=(order,label,text,final=true)=>window.__socket.onmessage({data:JSON.stringify({type:'Turn',turn_order:order,speaker_label:label,transcript:text,end_of_turn:final,words:text.split(' ').map((text,i)=>({text,start:order*500+i*20,end:order*500+i*20+20,speaker:label}))})});
-window.__revise=(order,label,text)=>window.__socket.onmessage({data:JSON.stringify({type:'SpeakerRevision',revisions:[{turn_order:order,speaker_label:label,words:text.split(' ').map((text,i)=>({text,start:order*500+i*20,end:order*500+i*20+20,speaker:label}))}]} )});
+window.__turn=(order,label,text,final=true,start=order*500)=>window.__socket.onmessage({data:JSON.stringify({type:'Turn',turn_order:order,speaker_label:label,transcript:text,end_of_turn:final,words:text.split(' ').map((text,i)=>({text,start:start+i*20,end:start+i*20+20,speaker:label}))})});
+window.__revise=(order,label,text,start=order*500)=>window.__socket.onmessage({data:JSON.stringify({type:'SpeakerRevision',revisions:[{turn_order:order,speaker_label:label,words:text.split(' ').map((text,i)=>({text,start:start+i*20,end:start+i*20+20,speaker:label}))}]} )});
 createRoot(document.getElementById('root')).render(React.createElement(HomePage));`;
 let server,browser;
 try {
@@ -37,15 +37,15 @@ try {
  const turn=async(...args)=>page.evaluate(args=>window.__turn(...args),args);
  if(single){
  const words=Array.from({length:161},(_,i)=>'word'+i).join(' ');
- await turn(0,null,words,false);await page.getByText('word160',{exact:true}).waitFor();
- assert.equal(await page.locator('.single-speaker-reading-block').count(),3);
+ await turn(0,null,words,false);await page.getByText(/word160/).waitFor();
+ assert.equal(await page.locator('.single-speaker-reading-block').count(),1);
  const config=new URL(await page.evaluate(()=>window.__providerUrl)).searchParams;assert.equal(config.get('speaker_labels'),'false');assert.equal(config.get('include_partial_turns'),'true');assert.equal(config.get('interruption_delay'),'0');
  assert.equal(await page.locator('.speaker-identity').count(),0);
- await turn(0,null,words,true);await page.waitForFunction(()=>document.querySelectorAll('.single-speaker-reading-block .final-caption').length===3);
- assert.equal(await page.getByText('word160',{exact:true}).count(),1);
- await turn(1,null,'Continuing after a long pause.',false);await page.getByText('Continuing after a long pause.',{exact:true}).waitFor();
- assert.equal(await page.locator('.single-speaker-reading-block').count(),3);
- assert.equal(await page.locator('.single-speaker-reading-block p[aria-live="polite"][aria-atomic="false"]').count(),3);
+ await turn(0,null,words,true);await page.waitForFunction(()=>document.querySelectorAll('.single-speaker-reading-block .final-caption').length===1);
+ assert.equal(await page.getByText(/word160/).count(),1);
+ await turn(1,null,'Continuing after a long pause.',false,6220);await page.getByText('Continuing after a long pause.',{exact:true}).waitFor();
+ assert.equal(await page.locator('.single-speaker-reading-block').count(),2);
+ assert.equal(await page.locator('.single-speaker-reading-block p[aria-live="polite"][aria-atomic="false"]').count(),2);
  }else{
  await turn(0,'A','We should leave tomorrow.');await turn(1,null,'Traffic should be lighter.',false);
  await page.getByText('Traffic should be lighter.',{exact:true}).waitFor();assert.equal(await page.locator('.open-reading-block').count(),1);
@@ -63,5 +63,5 @@ try {
  const layouts=[];for(const width of [390,1280]){await page.setViewportSize({width,height:844});for(const scale of [100,200]){await page.evaluate(s=>document.documentElement.style.fontSize=s+'%',scale);await page.waitForTimeout(50);assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false);layouts.push({width,scale,overflow:false});}}
  await page.screenshot({path:path.join(root,single?'test-results/single-speaker-reading.png':'test-results/open-reading.png'),fullPage:true});
  await page.getByRole('button',{name:'End Conversation',exact:true}).click();await page.getByRole('button',{name:'Start New Conversation',exact:true}).waitFor();
- assert.deepEqual(errors,[]);console.log(JSON.stringify({singleSpeaker:single,modes:true,keyboardStart:true,realFakeMediaCapture:true,immediateInterim:true,...(single?{wordCountParagraphs:true,noSpeakerLabels:true,finalReplacement:true}:{unknownBridge:true,interjection:true,revisionMergeSplit:true,rename:true}),ariaLive:true,stop:true,layouts,pageErrors:0,externalNetworkAllowed:false}));
+ assert.deepEqual(errors,[]);console.log(JSON.stringify({singleSpeaker:single,modes:true,keyboardStart:true,realFakeMediaCapture:true,immediateInterim:true,...(single?{threeSecondPauseParagraphs:true,continuous161Words:true,noSpeakerLabels:true,finalReplacement:true}:{unknownBridge:true,interjection:true,revisionMergeSplit:true,rename:true}),ariaLive:true,stop:true,layouts,pageErrors:0,externalNetworkAllowed:false}));
 }finally{await browser?.close();await server?.close();}
