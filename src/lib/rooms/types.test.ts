@@ -18,12 +18,12 @@ describe("Connected identity and caption state", () => {
       { id: "sarah", role: "participant", displayName: "Alex", accentIndex: 0, removed: false },
       { id: "james", role: "participant", displayName: "Alex", accentIndex: 1, removed: false },
     ]);
-    expect(profiles[0]).toMatchObject({ accentIndex: 6, identityOrigin: "connected-host", displayName: "You" });
+    expect(profiles[0]).toMatchObject({ accentIndex: 6, identityOrigin: "headset-host", displayName: "You" });
     expect(profiles.slice(1).map((p) => p.accentIndex)).toEqual([0, 1]);
     expect(profiles[1].id).not.toBe(profiles[2].id);
   });
   it("binds identity to the authorized channel, preserves simultaneous interims and clears only the finalized stream", () => {
-    let state = captionReducer(initialCaptionState, { type: "CONNECTED_START" });
+    let state = captionReducer(initialCaptionState, { type: "HEADSET_START" });
     state = captionReducer(state, { type: "TRANSCRIPTION_EVENT", event: exactIdentity(event("turn"), "sarah") });
     state = captionReducer(state, { type: "TRANSCRIPTION_EVENT", event: exactIdentity(event("turn"), "james") });
     expect(Object.values(state.activeInterims).map((c) => c.speakerId)).toEqual(["sarah", "james"]);

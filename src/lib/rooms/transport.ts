@@ -1,6 +1,5 @@
 import type { RealtimeChannel, SupabaseClient } from "@supabase/supabase-js";
-import { IDENTIFY_REQUEST_ID, validIdentificationPhases, validIdentifyRequests, type Participant, type ParticipantStatus, type RoomControl } from "./types";
-import type { VoicePhase } from "./voice-identity";
+import { type Participant, type ParticipantStatus, type RoomControl } from "./types";
 import { INTERIM_THROTTLE_MS } from "../headset/relay-constants";
 import type { TranscriptionEvent } from "../captions/types";
 import { validEnvelope, type CaptionEnvelope } from "./types";
@@ -11,9 +10,6 @@ import { validHeadsetControl, validHeadsetPresence, validHeadsetPresenceUpdate, 
 const HEADSET_PRESENCE_INTERVAL_MS = 12000;
 
 type TransportCallbacks = {
-  /** Host: the participant's current identification request, or null when none is open. */
-  identify(participantId: string, requestId: string | null): void;
-  identification(phases: Record<string, VoicePhase>, requests: Record<string, string>): void;
   state(participantId: string, status: ParticipantStatus): void;
   control(event: RoomControl): void;
   disconnected(): void;
@@ -27,7 +23,6 @@ type TransportCallbacks = {
 export interface RoomTransport {
   connect(participants: Participant[]): Promise<void>;
   updateParticipants(participants: Participant[]): Promise<void>;
-  setIdentifyRequest(requestId: string | null): Promise<void>;
   setHeadsetPresence?(presence: HeadsetPresence): Promise<void>;
   sendHeadsetSignal?(signal: HeadsetSignal): Promise<void>;
   sendCaption?(event: TranscriptionEvent, streamId: string, evidence?: CaptionEnvelope["evidence"]): Promise<void>;
@@ -41,7 +36,6 @@ export class SupabaseRoomTransport implements RoomTransport {
   private presenceChannel: RealtimeChannel | null = null;
   private stopped = false;
   private allowed = new Set<string>();
-  private identifyState: string | null = null;
   private headsetState: HeadsetPresence | null = null;
   private readonly headsetSession = crypto.randomUUID();
   private headsetSeq = 0;
@@ -60,9 +54,7 @@ export class SupabaseRoomTransport implements RoomTransport {
     this.controlChannel = this.client.channel(`caption-room:${this.roomId}:control`, { config: { private: true, broadcast: { ack: true, self: false } } });
     this.controlChannel.on("broadcast", { event: "control" }, ({ payload }) => {
       if (this.stopped) return;
-      if (payload?.type === "voice-identification") {
-        if (this.self.role !== "host" && validIdentificationPhases(payload.phases) && validIdentifyRequests(payload.requests)) this.callbacks.identification(payload.phases, payload.requests);
-      } else if (validHeadsetControl(payload)) {
+      if (validHeadsetControl(payload)) {
         if (this.self.role !== "host") this.callbacks.headsetControl?.(payload);
       } else if (payload?.type === "room-ended" || payload?.type === "registry-changed"
         || (payload?.type === "participant-removed" && typeof payload.participantId === "string")) this.callbacks.control(payload);
@@ -98,14 +90,11 @@ export class SupabaseRoomTransport implements RoomTransport {
         config: { private: true, broadcast: { ack: true, self: false }, presence: { key: participant.id } },
       });
       this.channels.set(participant.id, channel);
-      // Requests ride on presence state so a host that subscribes after the tap still receives them.
-      // The private topic authorizes the publisher, so a request names that participant only.
       channel.on("presence", { event: "sync" }, () => {
         if (this.stopped || !this.allowed.has(participant.id)) return;
-        const entries = Object.values(channel.presenceState()).flat() as Array<{ identify?: unknown; headset?: unknown }>;
+        const entries = Object.values(channel.presenceState()).flat() as Array<{ headset?: unknown }>;
         this.callbacks.state(participant.id, entries.length ? "Connected" : "Disconnected");
         if (this.self.role === "host" && participant.id !== this.self.id) {
-          this.callbacks.identify(participant.id, identifyRequest(entries));
           if (!entries.length) {
             this.headsetVersions.delete(participant.id);
             this.callbacks.headsetPresence?.(participant.id, null);
@@ -146,13 +135,6 @@ export class SupabaseRoomTransport implements RoomTransport {
     });
   }
 
-  async setIdentifyRequest(requestId: string | null): Promise<void> {
-    if (this.stopped || this.self.role === "host") return;
-    this.identifyState = requestId;
-    const channel = this.channels.get(this.self.id);
-    this.lastPresenceAt = Date.now();
-    if (!channel || await channel.track(this.presencePayload()) !== "ok") throw new Error("Your request could not reach the host. Try again.");
-  }
   async setHeadsetPresence(presence: HeadsetPresence): Promise<void> {
     if (this.stopped || this.self.role === "host") return;
     if (JSON.stringify(this.headsetState) === JSON.stringify(presence)) return;
@@ -165,7 +147,7 @@ export class SupabaseRoomTransport implements RoomTransport {
     if (!channel || await channel.send({ type: "broadcast", event: "headset-presence", payload: update }) !== "ok") throw new Error("Your headset state could not reach the host.");
   }
   private presencePayload() {
-    return { online: true, identify: this.identifyState, ...(this.headsetState ? { headset: this.headsetState, headsetSession: this.headsetSession, headsetSeq: this.headsetSeq } : {}) };
+    return { online: true, ...(this.headsetState ? { headset: this.headsetState, headsetSession: this.headsetSession, headsetSeq: this.headsetSeq } : {}) };
   }
   private scheduleHeadsetPresence() {
     if (this.stopped || this.headsetPresenceTimer || !this.headsetState) return;
@@ -251,10 +233,6 @@ export class SupabaseRoomTransport implements RoomTransport {
   }
 }
 
-function identifyRequest(entries: Array<{ identify?: unknown }>): string | null {
-  for (const entry of [...entries].reverse()) if (typeof entry.identify === "string" && IDENTIFY_REQUEST_ID.test(entry.identify)) return entry.identify;
-  return null;
-}
 function headsetPresence(entries: Array<{ headset?: unknown }>): HeadsetPresence | null {
   for (const entry of [...entries].reverse()) if (validHeadsetPresence(entry.headset)) return entry.headset;
   return null;

@@ -13,7 +13,7 @@ export type CaptionEvent = {
   ingestOrder?: number;
 };
 
-export type IdentityOrigin = "diarized" | "connected-participant" | "connected-host";
+export type IdentityOrigin = "diarized" | "headset-participant" | "headset-host";
 
 export type SpeakerProfile = {
   id: string;
@@ -61,8 +61,6 @@ export type CaptionState = {
   interim: CaptionEvent | null;
   activeInterims: Record<string, CaptionEvent>;
   speakers: SpeakerProfile[];
-  /** Connected Mode: diarized speaker ID → participant ID for session-local voice identification. */
-  speakerAliases: Record<string, string>;
   error: SessionError | null;
   reconnectAttempt: number;
 };

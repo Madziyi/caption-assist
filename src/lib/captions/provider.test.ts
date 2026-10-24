@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { AssemblyAIStreamingProvider, CONNECTED_ROOM_ASSEMBLYAI_OPTIONS, connectedAssemblyAIOptions, connectedVoiceFocusProfile, HEADSET_ASSEMBLYAI_OPTIONS, normalizeSpeakerId, TABLE_ASSEMBLYAI_OPTIONS } from "./provider";
+import { AssemblyAIStreamingProvider, HEADSET_ASSEMBLYAI_OPTIONS, normalizeSpeakerId, OPEN_ASSEMBLYAI_OPTIONS } from "./provider";
 import type { TranscriptionEvent } from "./types";
 
 class FakeWebSocket {
@@ -59,20 +59,10 @@ describe("AssemblyAIStreamingProvider", () => {
     FakeWebSocket.lastSocket?.onmessage?.({ data: JSON.stringify({ type: "Turn", turn_order: 2, end_of_turn: true, words: [{ text: "Okay", confidence: -1 }] }) });
     const last = events.at(-1)!; expect((last.type === "interim" ? last.caption : last.captions[0]).recognitionConfidence).toBeUndefined();
   });
-  it("disables diarization for a personal Connected stream", async () => {
+  it("disables diarization for a personal Headset stream", async () => {
     vi.stubGlobal("WebSocket", FakeWebSocket);
     await new AssemblyAIStreamingProvider("temporary-token", "personal-stream", false).connect();
     expect(new URL(FakeWebSocket.lastUrl).searchParams.get("speaker_labels")).toBe("false");
-  });
-  it("configures Connected Voice Focus with the Pro model and exact parameter spelling", async () => {
-    vi.stubGlobal("WebSocket", FakeWebSocket);
-    await new AssemblyAIStreamingProvider("temporary-token", "connected", connectedAssemblyAIOptions("far-field")).connect();
-    const params = new URL(FakeWebSocket.lastUrl).searchParams;
-    expect(params.get("speech_model")).toBe("universal-3-6-pro");
-    expect(params.get("speaker_labels")).toBe("false");
-    expect(params.get("voice_focus")).toBe("far-field");
-    expect(params.get("mode")).toBe("balanced");
-    expect(params.has("voice-focus")).toBe(false);
   });
   it("configures the fixed near-field Headset Mode stream", async () => {
     vi.stubGlobal("WebSocket", FakeWebSocket);
@@ -88,21 +78,13 @@ describe("AssemblyAIStreamingProvider", () => {
     expect(params.get("min_turn_silence")).toBe("100");
     expect(params.get("max_turn_silence")).toBe("1000");
   });
-  it("selects near-field only for the explicit valid profile and defaults safely", () => {
-    expect(connectedVoiceFocusProfile("near-field")).toBe("near-field");
-    expect(connectedVoiceFocusProfile("near_field")).toBe("far-field");
-    expect(connectedVoiceFocusProfile("unexpected")).toBe("far-field");
-    expect(TABLE_ASSEMBLYAI_OPTIONS).toEqual({ speechModel: "universal-streaming-english", diarization: true });
-    expect(TABLE_ASSEMBLYAI_OPTIONS).not.toHaveProperty("interruptionDelayMs");
-    expect(CONNECTED_ROOM_ASSEMBLYAI_OPTIONS).not.toHaveProperty("minTurnSilenceMs");
-  });
   it("surfaces a non-secret Voice Focus rejection category without fallback", async () => {
     vi.stubGlobal("WebSocket", FakeWebSocket);
-    const statuses: string[] = []; const provider = new AssemblyAIStreamingProvider("temporary-token", "connected", connectedAssemblyAIOptions());
+    const statuses: string[] = []; const provider = new AssemblyAIStreamingProvider("temporary-token", "headset", HEADSET_ASSEMBLYAI_OPTIONS);
     provider.onStatus(status => { if (status.type === "error") statuses.push(status.message); });
     await provider.connect();
     FakeWebSocket.lastSocket?.onmessage?.({ data: JSON.stringify({ type: "Error", error: "configuration rejected" }) });
-    expect(statuses.at(-1)).toContain("connected_voice_focus_configuration_rejected");
+    expect(statuses.at(-1)).toContain("voice_focus_configuration_rejected");
     expect(statuses.at(-1)).not.toContain("temporary-token");
   });
   afterEach(() => {
@@ -117,8 +99,15 @@ describe("AssemblyAIStreamingProvider", () => {
     await provider.connect();
 
     const params = new URL(FakeWebSocket.lastUrl).searchParams;
-    expect(params.get("speech_model")).toBe("universal-streaming-english");
+    expect(params.get("speech_model")).toBe("universal-3-6-pro");
     expect(params.get("speaker_labels")).toBe("true");
+    expect(params.get("mode")).toBe("balanced");
+    expect(params.get("interruption_delay")).toBe("0");
+    expect(params.get("speaker_labels_revision_interval_ms")).toBe("120000");
+    expect(params.get("sample_rate")).toBe("16000");
+    expect(params.get("format_turns")).toBe("true");
+    for (const name of ["voice_focus", "min_turn_silence", "max_turn_silence"]) expect(params.has(name)).toBe(false);
+    expect(OPEN_ASSEMBLYAI_OPTIONS.speechModel).toBe("universal-3-6-pro");
     expect(params.has("max_speakers")).toBe(false);
     expect(params.has("speakers_expected")).toBe(false);
   });
@@ -212,16 +201,16 @@ describe("AssemblyAIStreamingProvider", () => {
     expect(normalizeSpeakerId("connection-one", "A")).not.toBe(normalizeSpeakerId("connection-two", "A"));
   });
 
-  it("configures the Connected room microphone with Table diarization and mid-session revisions", async () => {
+  it("configures the Open microphone with diarization and mid-session revisions", async () => {
     vi.stubGlobal("WebSocket", FakeWebSocket);
-    await new AssemblyAIStreamingProvider("temporary-token", "room", CONNECTED_ROOM_ASSEMBLYAI_OPTIONS).connect();
+    await new AssemblyAIStreamingProvider("temporary-token", "room", OPEN_ASSEMBLYAI_OPTIONS).connect();
     const params = new URL(FakeWebSocket.lastUrl).searchParams;
-    expect(params.get("speech_model")).toBe("universal-streaming-english");
+    expect(params.get("speech_model")).toBe("universal-3-6-pro");
     expect(params.get("speaker_labels")).toBe("true");
     expect(params.get("speaker_labels_revision_interval_ms")).toBe("120000");
     expect(params.has("voice_focus")).toBe(false);
-    await new AssemblyAIStreamingProvider("temporary-token", "table").connect();
-    expect(new URL(FakeWebSocket.lastUrl).searchParams.has("speaker_labels_revision_interval_ms")).toBe(false);
+    await new AssemblyAIStreamingProvider("temporary-token", "open").connect();
+    expect(new URL(FakeWebSocket.lastUrl).searchParams.get("speaker_labels_revision_interval_ms")).toBe("120000");
   });
 
   it("applies every item of a documented SpeakerRevision revisions array and keeps the formatted final text", async () => {

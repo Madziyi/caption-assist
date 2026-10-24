@@ -6,16 +6,14 @@ export const initialCaptionState: CaptionState = {
   interim: null,
   activeInterims: {},
   speakers: [],
-  speakerAliases: {},
   error: null,
   reconnectAttempt: 0,
 };
 
 export type CaptionAction =
   | { type: "START" }
-  | { type: "CONNECTED_START" }
-  | { type: "CONNECTED_SPEAKERS"; speakers: SpeakerProfile[] }
-  | { type: "SPEAKER_ALIASES"; aliases: Record<string, string> }
+  | { type: "HEADSET_START" }
+  | { type: "HEADSET_SPEAKERS"; speakers: SpeakerProfile[] }
   | { type: "CLEAR_INTERIM"; sourceId: string }
   | { type: "REMOVE_TURN"; sourceTurnId: string }
   | { type: "CONNECTING" }
@@ -34,12 +32,10 @@ export function captionReducer(state: CaptionState, action: CaptionAction): Capt
   switch (action.type) {
     case "START":
       return { ...initialCaptionState, status: "requesting_permission" };
-    case "CONNECTED_START":
+    case "HEADSET_START":
       return { ...initialCaptionState, status: "connecting" };
-    case "CONNECTED_SPEAKERS":
+    case "HEADSET_SPEAKERS":
       return { ...state, speakers: [...action.speakers, ...state.speakers.filter(isDiarized)] };
-    case "SPEAKER_ALIASES":
-      return { ...state, speakerAliases: action.aliases };
     case "CLEAR_INTERIM": {
       const activeInterims = { ...state.activeInterims };
       delete activeInterims[action.sourceId];
@@ -100,8 +96,8 @@ function applyTranscriptionEvent(state: CaptionState, event: TranscriptionEvent)
     if (caption.sourceId && activeInterims[caption.sourceId]?.sourceTurnId === sourceTurnId) delete activeInterims[caption.sourceId];
   }
   if (existingIndex >= 0) {
-    // Connected revisions retain the selected cross-mic speaker even after the
-    // short-lived reconciler cache expires. Table diarized revisions still work.
+    // Participant revisions retain authorized identity. Open diarized revisions
+    // continue correcting provider speaker labels.
     if (captions.every((caption) => caption.sourceId?.startsWith("participant:"))) {
       for (const caption of captions) caption.speakerId = finalized[existingIndex].speakerId;
     }

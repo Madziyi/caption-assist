@@ -22,65 +22,22 @@ function setup(self: typeof host | typeof guest) {
   return { channels, client, callbacks, transport };
 }
 describe("private RoomTransport", () => {
-  it("reads identify requests from the participant's own presence state and ignores removed participants", async () => {
+  it("uses only private topics, ignores legacy identification and removed senders", async () => {
     const { channels, client, callbacks, transport } = setup(host);
     await transport.connect([host, guest]);
     for (const call of client.channel.mock.calls) expect((call as unknown as [string, { config: { private: boolean } }])[1].config.private).toBe(true);
-    expect(channels.get("caption-room:room:participant:host")!.track).toHaveBeenCalledWith({ online: true });
-    const guestChannel = channels.get("caption-room:room:participant:guest")!;
-    const sync = guestChannel.listeners.get("presence:sync")!;
-    expect(guestChannel.listeners.has("broadcast:identify")).toBe(false);
-    guestChannel.presence = { guest: [{ online: true }] };
-    sync({});
+    const channel = channels.get("caption-room:room:participant:guest")!;
+    channel.presence = { guest: [{ online: true, identify: "legacy-request" }] };
+    channel.listeners.get("presence:sync")!({});
     expect(callbacks.state).toHaveBeenLastCalledWith("guest", "Connected");
-    expect(callbacks.identify).toHaveBeenLastCalledWith("guest", null);
-    guestChannel.presence = { guest: [{ online: true, identify: "0b8f2c1e-request" }] };
-    sync({});
-    expect(callbacks.identify).toHaveBeenLastCalledWith("guest", "0b8f2c1e-request");
-    guestChannel.presence = { guest: [{ online: true, identify: "<script>" }] };
-    sync({});
-    expect(callbacks.identify).toHaveBeenLastCalledWith("guest", null);
-    guestChannel.presence = {};
-    sync({});
-    expect(callbacks.state).toHaveBeenLastCalledWith("guest", "Disconnected");
-    const hostChannel = channels.get("caption-room:room:participant:host")!;
-    hostChannel.presence = { host: [{ online: true, identify: "0b8f2c1e-request" }] };
-    hostChannel.listeners.get("presence:sync")!({});
-    expect(callbacks.identify).not.toHaveBeenCalledWith("host", expect.anything());
-    channels.get("caption-room:room:presence")!.listeners.get("presence:sync")!({}); expect(callbacks.registryChanged).toHaveBeenCalled();
-    const calls = callbacks.identify.mock.calls.length;
-    await transport.updateParticipants([host, { ...guest, removed: true }]);
-    guestChannel.presence = { guest: [{ online: true, identify: "0b8f2c1e-again" }] };
-    sync({});
-    expect(callbacks.identify).toHaveBeenCalledTimes(calls);
-    await transport.setIdentifyRequest("0b8f2c1e-request");
-    expect(hostChannel.track).toHaveBeenCalledTimes(1);
-    await transport.disconnect(); sync({}); expect(callbacks.identify).toHaveBeenCalledTimes(calls);
-  });
-
-  it("guests publish identify requests as presence on their own channel and accept only valid host phase broadcasts", async () => {
-    const { channels, callbacks, transport } = setup(guest);
-    await transport.connect([host, guest]);
-    expect(channels.has("caption-room:room:participant:host")).toBe(false);
-    const own = channels.get("caption-room:room:participant:guest")!;
-    await transport.setIdentifyRequest("0b8f2c1e-request");
-    expect(own.track).toHaveBeenLastCalledWith({ online: true, identify: "0b8f2c1e-request" });
-    await transport.setIdentifyRequest(null);
-    expect(own.track).toHaveBeenLastCalledWith({ online: true, identify: null });
-    own.presence = { guest: [{ online: true, identify: "0b8f2c1e-request" }] };
-    own.listeners.get("presence:sync")!({});
     expect(callbacks.identify).not.toHaveBeenCalled();
-    own.track.mockResolvedValueOnce("error");
-    await expect(transport.setIdentifyRequest("0b8f2c1e-other")).rejects.toThrow("could not reach the host");
-    const control = channels.get("caption-room:room:control")!.listeners.get("broadcast:control")!;
-    control({ payload: { type: "voice-identification", phases: { guest: "listening" }, requests: { guest: "0b8f2c1e-request" } } });
-    control({ payload: { type: "voice-identification", phases: { guest: "hacked" }, requests: {} } });
-    control({ payload: { type: "voice-identification", phases: ["listening"], requests: {} } });
-    control({ payload: { type: "voice-identification", phases: { guest: "listening" }, requests: { guest: "<script>" } } });
-    control({ payload: { type: "voice-identification", phases: { guest: "listening" } } });
-    expect(callbacks.identification.mock.calls).toEqual([[{ guest: "listening" }, { guest: "0b8f2c1e-request" }]]);
-    await transport.sendControl({ type: "room-ended" });
-    expect(channels.get("caption-room:room:control")!.send).not.toHaveBeenCalled();
+    channels.get("caption-room:room:control")!.listeners.get("broadcast:control")!({ payload: { type: "voice-identification", phases: {}, requests: {} } });
+    expect(callbacks.identification).not.toHaveBeenCalled();
+    await transport.updateParticipants([host, { ...guest, removed: true }]);
+    const calls = callbacks.state.mock.calls.length;
+    channel.listeners.get("presence:sync")!({});
+    expect(callbacks.state).toHaveBeenCalledTimes(calls);
+    await transport.disconnect();
   });
 });
 
@@ -117,35 +74,32 @@ describe("headset state transport under Presence limits", () => {
     await transport.disconnect();
   });
 
-  it("deduplicates state and coalesces a burst into the newest snapshot without dropping identify metadata", async () => {
+  it("deduplicates state and coalesces a burst into the newest snapshot with only current headset metadata", async () => {
     const { channels, transport } = setup(guest);
     await transport.connect([host, guest]);
     const own = channels.get("caption-room:room:participant:guest")!;
-    await transport.setIdentifyRequest("0b8f2c1e-request");
     await transport.setHeadsetPresence(headsetState);
     await transport.setHeadsetPresence({ ...headsetState });
     await transport.setHeadsetPresence({ ...headsetState, setup: "voice", floorDb: -65 });
     const ready = { ...headsetState, setup: "ready" as const, floorDb: -65, ownDb: -25 };
     await transport.setHeadsetPresence(ready);
     expect(own.send).toHaveBeenCalledTimes(3);
-    expect(own.track).toHaveBeenCalledTimes(2);
+    expect(own.track).toHaveBeenCalledTimes(1);
     await vi.advanceTimersByTimeAsync(12000);
-    expect(own.track).toHaveBeenLastCalledWith({ online: true, identify: "0b8f2c1e-request", headset: ready, headsetSession: expect.any(String), headsetSeq: 3 });
+    expect(own.track).toHaveBeenLastCalledWith({ online: true, headset: ready, headsetSession: expect.any(String), headsetSeq: 3 });
     await transport.disconnect();
   });
 
-  it("postpones a queued snapshot if another Presence write occurs and cancels it on disconnect", async () => {
+  it("cancels queued snapshots on disconnect", async () => {
     const { channels, transport } = setup(guest);
     await transport.connect([host, guest]);
     const own = channels.get("caption-room:room:participant:guest")!;
     await transport.setHeadsetPresence(headsetState);
     await vi.advanceTimersByTimeAsync(11000);
-    await transport.setIdentifyRequest("0b8f2c1e-request");
-    await vi.advanceTimersByTimeAsync(1000);
-    expect(own.track).toHaveBeenCalledTimes(2);
+    expect(own.track).toHaveBeenCalledTimes(1);
     await transport.disconnect();
     await vi.advanceTimersByTimeAsync(30000);
-    expect(own.track).toHaveBeenCalledTimes(2);
+    expect(own.track).toHaveBeenCalledTimes(1);
   });
 
   it("a host receives immediate state, ignores stale snapshots, accepts a new phone session and rejects retired sessions", async () => {

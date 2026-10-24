@@ -1,6 +1,6 @@
 import type { CaptionAction } from "../captions/reducer";
 import type { TranscriptionEvent } from "../captions/types";
-import { comparisonTokens, shortSideCoverage } from "../captions/cross-mic-reconciler";
+import { comparisonTokens, shortSideCoverage } from "../captions/comparison";
 import { eventCaptions, type CaptionEvidence } from "./evidence";
 
 export const ARBITER = { retentionMs: 15000, maxTurns: 256, overlapToleranceMs: 300, textCoverage: 0.6, tieDb: 1, interimMarginDb: 3, finalMarginDb: 4, overlapFraction: 0.5, finalHoldMs: 800, maxHidden: 200, maxTokens: 256 } as const;

@@ -43,7 +43,7 @@ The Builder inspected repository source only; no deployed system, provider accou
 
 | Provider | Purpose | Model/config | Credential secret name | Live verified |
 |---|---|---|---|---|
-| AssemblyAI | Table/Connected and per-phone headset STT | Headset: universal-3-6-pro / near-field / balanced / 16 kHz / no diarization / formatted turns | `ASSEMBLYAI_API_KEY` (local token route exercised; value never recorded) | yes, local live browser path; deployed physical acceptance unverified |
+| AssemblyAI | Open and per-phone headset STT | Headset: universal-3-6-pro / near-field / balanced / 16 kHz / no diarization / formatted turns | `ASSEMBLYAI_API_KEY` (local token route exercised; value never recorded) | yes, local live browser path; deployed physical acceptance unverified |
 | Deepgram | benchmark candidate | unverified | not established | no |
 | Speechmatics | benchmark candidate | unverified | not established | no |
 
@@ -159,3 +159,12 @@ None expected initially. None verified.
 
 - Source commit `4a7dcaf4230176ec1f0b9ccdefc8c17853769eac` pins `next` and `eslint-config-next` to 16.4.1. GitHub combined status reported Vercel **success**: [deployment status](https://vercel.com/madziyis-projects/caption-assist/63s3ZSdXBdtf1c7BxP6w2r4JfMkt).
 - The status check is deployment evidence only. The deployed runtime package version was not queried directly; no manual deployed application check was run.
+
+
+## CAPTION-009 live verification — 2026-10-24
+
+- Local exact-source Open AssemblyAI v3 smoke: universal-3-6-pro, speaker_labels true, balanced, interruption_delay 0, speaker_labels_revision_interval_ms 120000, format_turns true, 16000 Hz, no voice_focus or silence overrides. Begin echoed Pro/balanced/diarization/voice_focus null. Received Begin 1, Turn 6, SpeakerRevision 1 at end, Termination 1, Error 0; three synthetic labels. Short synthetic session only, no human diarization quality or mid-session revision proof.
+- Local live Headset app/Supabase/AssemblyAI regression: host plus two fake-media phones, four target phrases once each under correct identity, zero misses/target duplicates/wrong names, four text suppressions; bypass exposed two duplicates/two wrong names. Provider Begin/Turn/Termination on both phones with no provider/page/quota errors; host captured no microphone. Test rooms ended, browsers/server closed and synthetic temporary audio removed.
+- Supabase catalog on `cqnyvevhuxwfzhqpmccn`: caption_room_action security-invoker, anon/authenticated EXECUTE false, service_role true; caption_rooms_read, caption_participants_read, caption_realtime_send/receive policies present. No schema, RLS, quota or secret change. Full transactional SQL test did not return a result (connector request-state error); no success inferred.
+- Current application rejects legacy Connected rooms while database values/RPC remain for expiry compatibility; this is a source contract until deployment checks below. Historical Connected evidence is retained above and no longer describes an available mode.
+- Physical Open and Headset UAT and deployed real-microphone operation remain unverified.

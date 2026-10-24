@@ -31,15 +31,11 @@ type AssemblyAIMessage = {
 
 const ASSEMBLYAI_WS_URL = "wss://streaming.assemblyai.com/v3/ws";
 const MAX_REMEMBERED_TURN_TEXTS = 512;
-export const TABLE_ASSEMBLYAI_OPTIONS = {
-  speechModel: "universal-streaming-english",
+export const OPEN_ASSEMBLYAI_OPTIONS = {
+  speechModel: "universal-3-6-pro",
   diarization: true,
-} as const;
-// Connected Mode uses one host room microphone with the Table model and
-// diarization. Mid-session revisions (minimum 120 s of audio) let session-local
-// voice identities follow AssemblyAI's speaker reclustering.
-export const CONNECTED_ROOM_ASSEMBLYAI_OPTIONS = {
-  ...TABLE_ASSEMBLYAI_OPTIONS,
+  mode: "balanced",
+  interruptionDelayMs: 0,
   revisionIntervalMs: 120_000,
 } as const;
 export type VoiceFocusProfile = "near-field" | "far-field";
@@ -54,15 +50,11 @@ export type AssemblyAIStreamingOptions = {
   maxTurnSilenceMs?: number;
 };
 
-export function connectedVoiceFocusProfile(value = typeof process === "undefined" ? undefined : process.env.NEXT_PUBLIC_CONNECTED_VOICE_FOCUS_PROFILE): VoiceFocusProfile {
-  return value === "near-field" ? "near-field" : "far-field";
-}
-
-export function connectedAssemblyAIOptions(profile = connectedVoiceFocusProfile()): Required<Pick<AssemblyAIStreamingOptions, "speechModel" | "diarization" | "voiceFocus" | "mode">> {
-  return { speechModel: "universal-3-6-pro", diarization: false, voiceFocus: profile, mode: "balanced" };
-}
 export const HEADSET_ASSEMBLYAI_OPTIONS = {
-  ...connectedAssemblyAIOptions("near-field"),
+  speechModel: "universal-3-6-pro",
+  diarization: false,
+  voiceFocus: "near-field",
+  mode: "balanced",
   interruptionDelayMs: 0,
   minTurnSilenceMs: 100,
   maxTurnSilenceMs: 1000,
@@ -80,11 +72,11 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
 
   private readonly options: Required<Pick<AssemblyAIStreamingOptions, "speechModel" | "diarization">> & Pick<AssemblyAIStreamingOptions, "voiceFocus" | "mode" | "revisionIntervalMs" | "interruptionDelayMs" | "minTurnSilenceMs" | "maxTurnSilenceMs">;
 
-  constructor(private readonly token: string, connectionId = createProviderConnectionId(), options: AssemblyAIStreamingOptions | boolean = TABLE_ASSEMBLYAI_OPTIONS) {
+  constructor(private readonly token: string, connectionId = createProviderConnectionId(), options: AssemblyAIStreamingOptions | boolean = OPEN_ASSEMBLYAI_OPTIONS) {
     this.connectionId = connectionId;
     this.options = typeof options === "boolean"
-      ? { speechModel: TABLE_ASSEMBLYAI_OPTIONS.speechModel, diarization: options }
-      : { speechModel: options.speechModel ?? TABLE_ASSEMBLYAI_OPTIONS.speechModel, diarization: options.diarization ?? TABLE_ASSEMBLYAI_OPTIONS.diarization,
+      ? { speechModel: OPEN_ASSEMBLYAI_OPTIONS.speechModel, diarization: options }
+      : { speechModel: options.speechModel ?? OPEN_ASSEMBLYAI_OPTIONS.speechModel, diarization: options.diarization ?? OPEN_ASSEMBLYAI_OPTIONS.diarization,
           voiceFocus: options.voiceFocus, mode: options.mode, revisionIntervalMs: options.revisionIntervalMs, interruptionDelayMs: options.interruptionDelayMs, minTurnSilenceMs: options.minTurnSilenceMs, maxTurnSilenceMs: options.maxTurnSilenceMs };
   }
 
@@ -189,7 +181,7 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
     }
 
     if (message.type === "Error") {
-      const category = this.options.voiceFocus ? "connected_voice_focus_configuration_rejected" : "provider_configuration_rejected";
+      const category = this.options.voiceFocus ? "voice_focus_configuration_rejected" : "provider_configuration_rejected";
       this.emitStatus({ type: "error", message: `AssemblyAI rejected the streaming configuration (${category}).` });
       return;
     }

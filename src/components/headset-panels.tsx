@@ -1,6 +1,6 @@
 "use client";
 import { useState } from "react";
-import type { ConnectedRoom, RoomView } from "@/lib/rooms/controller";
+import type { HeadsetRoom, RoomView } from "@/lib/rooms/controller";
 import { sensitivityDb, sensitivityLabel } from "@/lib/headset/calibration";
 import { LOOKAHEAD_MS } from "@/lib/headset/gated-audio";
 import { HeadsetActivity } from "./headset-activity";
@@ -16,7 +16,7 @@ export function HeadsetHiddenDuplicates({ view }: { view: RoomView }) {
   return <section><label><input type="checkbox" checked={show} onChange={(e) => setShow(e.target.checked)} />Show hidden duplicates (for testing)</label>{show && <div className="headset-hidden-list">{(view.headsetHost?.hiddenCaptions ?? []).map((caption) => <p className="headset-hidden-caption" key={caption.sourceTurnId}>Hidden duplicate: {caption.text}</p>)}</div>}</section>;
 }
 
-export function HeadsetSensitivity({ view, room }: { view: RoomView; room: ConnectedRoom }) {
+export function HeadsetSensitivity({ view, room }: { view: RoomView; room: HeadsetRoom }) {
   const host = view.headsetHost;
   return <div className="headset-sensitivity-list"><h3>Caption sensitivity</h3>{Object.entries(host?.people ?? {}).map(([id, person]) => {
     const name = view.snapshot?.participants.find((p) => p.id === id)?.displayName ?? "Participant";
@@ -34,7 +34,7 @@ export function HeadsetSpeakingBoard({ view }: { view: RoomView }) {
   return <section className="headset-board" aria-labelledby="headset-board-heading"><h2 id="headset-board-heading">Speaking board</h2>{host ? Object.entries(host.people).map(([id, person]) => <div className="headset-row" key={id}><strong>{view.snapshot?.participants.find((p) => p.id === id)?.displayName ?? "Participant"}</strong><div className="headset-row-status"><HeadsetActivity compact state={person.presence ? { ...person.presence, speaking: person.speaking, checking: host.check?.status === "running" } : null} />{readyCount >= 2 && person.presence?.setup === "ready" && person.presence.tuned === false && <small>Room check needed</small>}</div></div>) : <p>No participants yet.</p>}</section>;
 }
 
-export function HeadsetHostPanel({ view, room }: { view: RoomView; room: ConnectedRoom }) {
+export function HeadsetHostPanel({ view, room }: { view: RoomView; room: HeadsetRoom }) {
   const host = view.headsetHost;
   const matrix = host?.check?.matrix;
   const [copyStatus, setCopyStatus] = useState("");

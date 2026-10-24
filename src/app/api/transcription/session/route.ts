@@ -10,7 +10,7 @@ export async function POST(request?: Request): Promise<NextResponse> {
       if (!isUuid(roomId)) throw new RoomFailure(400, "Invalid conversation.");
       const { supabase, userId } = await authenticatedRoomUser(request);
       const { data, error } = await supabase.rpc("caption_room_action", { operation: "snapshot", actor: userId, target_room: roomId });
-      if (error || !data || data.status !== "open" || data.self.removed) throw new RoomFailure(403, "This conversation is unavailable.");
+      if (error || !data || data.mode !== "headset" || data.status !== "open" || data.self.removed) throw new RoomFailure(403, "This conversation is unavailable.");
     } catch (error) {
       const failure = error instanceof RoomFailure ? error : new RoomFailure(403, "This conversation is unavailable.");
       return NextResponse.json({ message: failure.message }, { status: failure.status });

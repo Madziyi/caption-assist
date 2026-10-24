@@ -30,19 +30,26 @@ The product must work immediately with one host device, while allowing nearby pa
 
 ## Product modes
 
-### Table Mode
-One host laptop/tablet/phone captures the room and produces live captions. Speaker diarization may provide temporary labels such as `Speaker 1`, `Speaker 2`.
+### Open Mode (default)
+One device and one room microphone capture everyone speaking naturally. AssemblyAI Universal-3.6 Pro produces immediate captions with live diarization; ordinary speaker naming remains available. No room, QR, membership or voice-identification procedure is needed.
 
-### Connected Mode
-One host room microphone with live diarization captions everyone (CAPTION-003.4). The host joins as `You` with the reserved navy identity, and the room microphone starts with the conversation. Participants scan a QR/link and enter a display name; their phones are identity/control devices only and never record audio. Each person taps **Identify my voice** once and speaks normally; the host binds the next stable diarized speaker to that participant for this conversation only, so captions show their name. The host can also identify itself, identify anyone from Participants, or name unidentified voices directly.
+Open uses `speaker_labels=true`, `mode=balanced`, `interruption_delay=0`, `speaker_labels_revision_interval_ms=120000`, formatted turns and mono 16 kHz PCM. Voice Focus is off; explicit minimum/maximum silence overrides are absent. The provider's semantic endpointing owns these defaults.
+
+The raw reducer preserves turn IDs, text and speaker assignments for correction/history. `OpenTranscript` derives `openReadingBlocks()` from current state: immediate interim words, conservative provisional boundaries, same-speaker flow, 2 s pause and 80-word paragraphs, confirmed different-speaker boundaries, and recomputation after revisions. Unknown finalized speech is bridged only when surrounding finalized speakers agree within the reading window; otherwise it stays neutral. Names resolve at render time. No second stored transcript or visual debounce.
 
 ### Headset Mode
-CAPTION-008.1–008.3 are implemented; 008.3 remains human-accepted. A separate, opt-in mode for groups where every speaker wears AirPods or a headset connected to their own phone. There is no room microphone. Each phone calibrates its wearer's level and the bleed from neighbours (room check), and gates its wearer's speech locally by loudness. Captions are attributed by whose phone produced them, without diarization or voice identification. People without a headset are not captioned in this mode, and the UI says so. CAPTION-008.1 measures headset separation without sending audio; 008.2 adds one AssemblyAI Universal-3.6 Pro stream per phone with Voice Focus `near-field`. 008.3 adds manual sensitivity sliders, visible tuning state, relative-level duplicate arbitration and latency measurements. CAPTION-008.4 keeps AssemblyAI as production primary, adds Headset-only provider timing controls and an explicit `?sttBenchmark=1` OpenAI shadow path on the same delayed gated PCM. Benchmark transcripts/metrics are memory-only; no raw audio or transcript persistence. `OPENAI_API_KEY` is optional and server-only. Specification: `CAPTION-008-HEADSET-MODE.md`.
+The accepted CAPTION-008 architecture remains: one headset/phone per speaker, calibration and room check, local loudness gating with 300 ms look-ahead, continuous sensitivity, authorized participant caption relay, cross-phone arbitration, speaking indicators, and flowing reading blocks. Names come from the participant channel; no diarization is required. Host capture is optional and starts only through headset setup. Supabase supplies private transport, membership, expiry and invitation links.
 
-### Hybrid Mode
-Future CAPTION-004 only; not implemented. The host room microphone would remain active alongside headsets/personal microphones in acoustically isolated settings, reusing the dormant CAPTION-003.1–003.3 personal-microphone and reconciliation modules.
+Headset provider settings remain Pro / no speaker labels / near-field Voice Focus / balanced / 0 ms interruption / 100 ms minimum silence / 1000 ms maximum silence. OpenAI remains observation-only behind the existing `?sttBenchmark=1` opt-in; it cannot supply production captions.
 
-Table Mode uses the host as a room microphone with diarization ON. Mode selection is locked for the active conversation; end before selecting another mode. Table and Connected Mode remain the one-device options. Headset Mode deliberately requires a headset per speaker and is never the default.
+### Retired Connected Mode and deferred Hybrid Mode
+CAPTION-003 is retired from the active product. Its historical experiments and failures below remain evidence, not active contracts. Room controller is now `HeadsetRoom`; voice identification, room microphone lifecycle, aliases and dormant personal-mic reconciliation runtime are removed. Only comparison helpers used by Headset arbitration survive in `comparison.ts`.
+
+Database `connected` values and the service-role-only legacy RPC remain for expiring historical data. Current app/API never creates, joins, restores or uses Connected rooms: old restores return null; invitations/mutations fail with "This conversation is no longer available." No schema migration or automatic conversion. In-memory origins/actions were renamed to Headset terms; they are neither persisted nor externally transmitted.
+
+Hybrid Mode is deferred as a separate future initiative. Design it from future evidence; no dormant runtime is retained for it. As-built details and physical UAT: `CAPTION-009-OPEN-MODE.md`.
+
+## Historical contracts (retired/superseded by CAPTION-009)
 
 ## CAPTION-003 source contracts — 2026-10-11
 
@@ -106,7 +113,7 @@ Supersedes the personal-microphone parts of the CAPTION-003 source contracts (pa
 
 - Rooms persist `mode` (`connected` | `headset`) through an additive migration and a `create_headset` operation, with no function-signature or policy change. Every snapshot and `check` returns the mode; clients treat a missing mode as `connected`.
 - Headset rooms never start the host room microphone or voice identification. Phones open the headset microphone on a user gesture, with automatic gain control, noise suppression and echo cancellation requested off, and report what the browser actually applied.
-- Headset signalling uses the existing private topics: immediate participant `headset-presence` broadcasts carry validated `{ sessionId, seq, presence }` setup/visibility/input status. A deduplicated, coalesced Presence snapshot (at most one every 12 s) keeps `identify` and `headset` together for late host subscribers without exceeding the connection's five Presence writes per 30 s. Session/sequence guards prevent older snapshots from replacing newer broadcast state. Participant broadcast `headset` carries gate transitions and room-check results; host control carries `headset-check` / `headset-check-cancel`. No payload carries audio or conversation text; temporary transport versions are not retained or exported.
+- Headset signalling uses the existing private topics: immediate participant `headset-presence` broadcasts carry validated `{ sessionId, seq, presence }` setup/visibility/input status. A deduplicated, coalesced Presence snapshot (at most one every 12 s) keeps headset state available for late host subscribers without exceeding the connection's five Presence writes per 30 s. Session/sequence guards prevent older snapshots from replacing newer broadcast state. Participant broadcast `headset` carries gate transitions and room-check results; host control carries `headset-check` / `headset-check-cancel`. No payload carries audio or conversation text; temporary transport versions are not retained or exported.
 - The gate decision is phone-local, uses calibrated thresholds with hysteresis and hold, and leans toward open.
 - 008.2 provider: one AssemblyAI v3 stream per phone, `universal-3-6-pro`, `speaker_labels=false`, `voice_focus=near-field`, `mode=balanced`, `format_turns=true`, with no silent fallback. Caption identity comes from the sending participant's channel.
 - 008.2 (implemented):
@@ -248,7 +255,7 @@ Provider connections receive unique namespaces. A provider label from a later re
 - Use least-privilege access for infrastructure and providers.
 - Record secret/environment-variable **names only** in `LIVE-STATE.md`, never values.
 - Treat conversation text as sensitive user content.
-- Connected voice identification is session-local association only: no voiceprints or biometric storage.
+- Retired Connected voice identification never stored voiceprints or biometric data; it is absent from the active product.
 - Headset Mode calibration and room-check levels are plain loudness numbers held in memory for one conversation; they are not voiceprints and are never stored. CAPTION-008.1 sends no audio. From 008.2, a phone sends audio for transcription only while its wearer's gate is open. Exported diagnostics contain no names, IDs, audio or caption text.
 
 ## Accessibility requirements
@@ -268,7 +275,7 @@ Provider connections receive unique namespaces. A provider label from a later re
 - Must remain useful when only the host device is present.
 - Guest participants should be able to join from a link/QR without app installation.
 - Bluetooth microphone routing differs by browser/OS; the product must test and display the actual selected/available input rather than assuming earbuds are active.
-- Mobile browsers may suspend background pages; connected-participant UX must account for this later.
+- Mobile browsers may suspend background pages; Headset participant UX must account for this later.
 - Overlapping room speech cannot be assumed to diarize perfectly from one microphone.
 - Low-cost operation matters, but cost reductions must not silently compromise accessibility reliability.
 
@@ -284,14 +291,14 @@ Provider connections receive unique namespaces. A provider label from a later re
 
 ## Roadmap
 
-- `CAPTION-001` — Conversation Core
-- `CAPTION-002` — Speaker-aware Table Mode
-- `CAPTION-003` — QR participant rooms
-- `CAPTION-004` — Hybrid room + personal microphones
-- `CAPTION-005` — Accessibility and optional sound-event layer
-- `CAPTION-006` — Production hardening
-- `CAPTION-007` — Provider/accuracy/cost benchmark and field validation
-- `CAPTION-008` — Headset Mode (per-speaker headsets, loudness-gated personal transcription, no room microphone)
+- `CAPTION-009` — Active: Open Mode + Pro STT + Stable Reading; physical acceptance pending.
+- `CAPTION-005` — Accessibility refinement.
+- `CAPTION-006` — Production hardening.
+- `CAPTION-007` — Field validation / provider benchmarking (separate approval).
+- `CAPTION-004` — Hybrid Mode, deferred as a separate initiative.
+- `CAPTION-001/002` — Historical Conversation Core / Table Mode.
+- `CAPTION-003` — Connected Mode, retired from active product; evidence retained.
+- `CAPTION-008` — Accepted Headset implementation and separate remaining recovery/UAT history.
 
 ## Definition of done
 
@@ -306,7 +313,7 @@ A meaningful feature is done only when:
 - context files are updated;
 - changes are committed and pushed to `main`.
 
-## Temporary cross-microphone diagnostic contract
+## Historical temporary cross-microphone diagnostic contract (removed in CAPTION-009)
 
 After CAPTION-003.1 failed user real-device acceptance, add observation only before any threshold changes. The host URL ?captionDebug=1 opts in to an in-memory ledger and Connected-only panel; ordinary use leaves collection disabled. Keep the latest 30 scalar comparison records, with opaque participant/source IDs, event kinds, conservative word counts, host-local receive deltas, ordered token similarity, length-bound containment score, configured gates and decision/reason. Display names resolve locally in the host UI; copied JSON contains constants and opaque-source metrics only. No caption text, tokens, turn IDs, access credentials, invitation URLs, persistence, diagnostic network traffic or logging.
 

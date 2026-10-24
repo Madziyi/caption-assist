@@ -35,13 +35,13 @@ describe("POST /api/transcription/session", () => {
       expect.objectContaining({ headers: { authorization: "test-only-secret" }, cache: "no-store" }),
     );
   });
-  it("requires verified room membership before minting a Connected speech token", async () => {
+  it("requires verified room membership before minting a Headset speech token", async () => {
     const providerFetch = vi.fn(); vi.stubGlobal("fetch", providerFetch);
     roomAuth.authenticate.mockRejectedValue(new RoomFailure(401, "Reconnect"));
     const response = await POST(new Request("https://caption.test/api/transcription/session?roomId=11111111-1111-4111-8111-111111111111", { method: "POST" }));
     expect(response.status).toBe(401); expect(providerFetch).not.toHaveBeenCalled();
   });
-  it.each([{ status: "ended", self: { removed: false } }, { status: "open", self: { removed: true } }])("rejects ended/removed Connected access before contacting AssemblyAI", async (snapshot) => {
+  it.each([{ mode: "connected", status: "open", self: { removed: false } }, { mode: "headset", status: "ended", self: { removed: false } }, { mode: "headset", status: "open", self: { removed: true } }])("rejects ended/removed Headset access before contacting AssemblyAI", async (snapshot) => {
     const providerFetch = vi.fn(); vi.stubGlobal("fetch", providerFetch);
     roomAuth.authenticate.mockResolvedValue({ userId: "verified-user", supabase: { rpc: roomAuth.rpc } });
     roomAuth.rpc.mockResolvedValue({ data: snapshot, error: null });

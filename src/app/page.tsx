@@ -4,19 +4,13 @@ import { useEffect, useMemo, useReducer, useRef, useState } from "react";
 import { ConversationSession } from "@/lib/captions/session";
 import { groupNewestFirst, newestFirst } from "@/lib/captions/history";
 import { captionReducer, initialCaptionState } from "@/lib/captions/reducer";
-import type { CaptionEvent, SessionStatus, SpeakerProfile } from "@/lib/captions/types";
-import { ConnectedRoom, idleRoomView, type RoomMicrophoneState } from "@/lib/rooms/controller";
-import { IdentificationBanner, InvitePanel, ParticipantsPanel } from "@/components/room-panels";
+import type { SessionStatus, SpeakerProfile } from "@/lib/captions/types";
+import { HeadsetRoom, idleRoomView } from "@/lib/rooms/controller";
+import { InvitePanel, ParticipantsPanel } from "@/components/room-panels";
 import { HeadsetHostPanel, HeadsetSpeakingBoard } from "@/components/headset-panels";
 import { HeadsetSetup } from "@/components/headset-setup";
 import { HeadsetTranscript } from "@/components/headset-transcript";
-
-const roomMicrophoneCopy: Record<RoomMicrophoneState, string> = {
-  Off: "Room mic off",
-  Starting: "Starting room mic…",
-  Listening: "🎤 Room mic on",
-  Reconnecting: "Room mic reconnecting…",
-};
+import { OpenTranscript } from "@/components/open-transcript";
 
 const statusCopy: Record<SessionStatus, string> = {
   idle: "Ready to caption",
@@ -36,41 +30,28 @@ export default function HomePage() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [editingSpeakerId, setEditingSpeakerId] = useState<string | null>(null);
   const [draftName, setDraftName] = useState("");
-  const [mode, setMode] = useState<"table" | "connected" | "headset">("table");
+  const [mode, setMode] = useState<"open" | "headset">("open");
   const [roomView, setRoomView] = useState(idleRoomView);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [participantsOpen, setParticipantsOpen] = useState(false);
   const [roomError, setRoomError] = useState<string | null>(null);
   const [roomBusy, setRoomBusy] = useState(false);
   const [restoring, setRestoring] = useState(Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL));
-  const roomRef = useRef<ConnectedRoom | null>(null);
+  const roomRef = useRef<HeadsetRoom | null>(null);
   const sessionRef = useRef<ConversationSession | null>(null);
   const liveCaptionRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const historyButtonRef = useRef<HTMLButtonElement>(null);
   const historyCloseRef = useRef<HTMLButtonElement>(null);
 
-  // Identified diarized speakers resolve to their Connected participant profile.
-  const speakerMap = useMemo(() => {
-    const map = new Map(state.speakers.map((speaker) => [speaker.id, speaker]));
-    for (const [speakerId, participantId] of Object.entries(state.speakerAliases)) {
-      const participant = map.get(participantId);
-      if (participant) map.set(speakerId, participant);
-    }
-    return map;
-  }, [state.speakers, state.speakerAliases]);
-  const historyGroups = useMemo(() => groupNewestFirst(newestFirst(state.finalized.map((caption) => {
-    const participantId = caption.speakerId ? state.speakerAliases[caption.speakerId] : undefined;
-    return participantId ? { ...caption, speakerId: participantId } : caption;
-  }))), [state.finalized, state.speakerAliases]);
-  const nameableSpeakers = useMemo(() => mode === "connected"
-    ? state.speakers.filter((speaker) => speaker.identityOrigin === "diarized" && !state.speakerAliases[speaker.id])
-    : state.speakers, [mode, state.speakers, state.speakerAliases]);
+  const speakerMap = useMemo(() => new Map(state.speakers.map((speaker) => [speaker.id, speaker])), [state.speakers]);
+  const historyGroups = useMemo(() => groupNewestFirst(newestFirst(state.finalized)), [state.finalized]);
+  const nameableSpeakers = state.speakers;
 
   useEffect(() => () => void sessionRef.current?.stop(), []);
 
   useEffect(() => {
-    const room = new ConnectedRoom(setRoomView, dispatch);
+    const room = new HeadsetRoom(setRoomView, dispatch);
     roomRef.current = room;
     let current = true;
     if (process.env.NEXT_PUBLIC_SUPABASE_URL) void room.restore().then((restored) => {
@@ -114,9 +95,9 @@ export default function HomePage() {
 
   async function startConversation() {
     setRoomError(null);
-    if (mode === "connected" || mode === "headset") {
+    if (mode === "headset") {
       setRoomBusy(true);
-      try { await roomRef.current?.create(mode); setInviteOpen(true); }
+      try { await roomRef.current?.create(); setInviteOpen(true); }
       catch (error) { setRoomError(error instanceof Error ? error.message : "The conversation could not start."); dispatch({ type: "ENDED" }); }
       finally { setRoomBusy(false); }
       return;
@@ -127,7 +108,7 @@ export default function HomePage() {
   }
 
   async function endConversation() {
-    if (mode === "connected" || mode === "headset") {
+    if (mode === "headset") {
       setRoomBusy(true); setRoomError(null);
       try { await roomRef.current?.end(); dispatch({ type: "ENDED" }); setInviteOpen(false); setParticipantsOpen(false); }
       catch (error) { setRoomError(error instanceof Error ? error.message : "Room end could not be confirmed. Try again."); }
@@ -148,7 +129,6 @@ export default function HomePage() {
   }
 
   function openSpeakerPanel(speakerId?: string) {
-    if (mode === "connected" && !nameableSpeakers.some((speaker) => speaker.id === speakerId)) { setParticipantsOpen(true); return; }
     setSpeakerPanelOpen(true);
     if (speakerId) beginEditing(speakerId);
   }
@@ -186,11 +166,9 @@ export default function HomePage() {
   const isActive = ["requesting_permission", "connecting", "listening", "reconnecting", "stopping"].includes(state.status);
   const canStart = state.status === "idle" || state.status === "ended";
   const editingSpeaker = editingSpeakerId ? speakerMap.get(editingSpeakerId) : undefined;
-  const connectedActive = (mode === "connected" || mode === "headset") && ["connecting", "joined", "disconnected"].includes(roomView.phase) && Boolean(roomView.snapshot);
+  const headsetActive = (mode === "headset") && ["connecting", "joined", "disconnected"].includes(roomView.phase) && Boolean(roomView.snapshot);
   const participantCount = roomView.snapshot?.participants.filter((p) => !p.removed).length ?? 0;
-  const waitingCopy = mode === "headset" ? "Captions appear here when someone with a ready headset speaks. Only people wearing a set-up headset are captioned."
-    : roomView.roomMicrophone !== "Listening" ? "The room microphone is off. Start it to caption the conversation."
-    : participantCount <= 1 ? "Listening. Invite participants, then ask each person to identify their voice." : "Listening for conversation…";
+  const waitingCopy = "Captions appear here when someone with a ready headset speaks. Only people wearing a set-up headset are captioned.";
 
   async function openInvite() {
     try { await roomRef.current?.invite(); setParticipantsOpen(false); setInviteOpen(true); }
@@ -204,8 +182,8 @@ export default function HomePage() {
           <p className="eyebrow">Accessible Conversation Captions</p>
         </div>
         <div className="header-actions">
-          <label className="mode-label">Mode <select aria-label="Conversation mode" value={mode} disabled={isActive || connectedActive || roomBusy || restoring} onChange={(event) => { setMode(event.target.value as "table" | "connected" | "headset"); setRoomError(null); }}>
-            <option value="table">Table Mode</option><option value="connected">Connected Mode</option><option value="headset">Headset Mode (test)</option>
+          <label className="mode-label">Mode <select aria-label="Conversation mode" value={mode} disabled={isActive || headsetActive || roomBusy || restoring} onChange={(event) => { setMode(event.target.value as "open" | "headset"); setRoomError(null); }}>
+            <option value="open">Open Mode</option><option value="headset">Headset Mode</option>
           </select></label>
           {canStart ? (
             <button type="button" className="button button-primary header-button" onClick={startConversation} disabled={roomBusy || restoring}>
@@ -216,7 +194,7 @@ export default function HomePage() {
               {state.status === "stopping" ? "Ending Conversation…" : "End Conversation"}
             </button>
           ) : null}
-          {mode === "table" && state.speakers.length > 0 && (
+          {mode === "open" && state.speakers.length > 0 && (
             <button
               type="button"
               className="speaker-control"
@@ -227,13 +205,7 @@ export default function HomePage() {
               <span aria-hidden="true">👥</span> {state.speakers.length}
             </button>
           )}
-          {connectedActive && mode === "connected" && <>
-            {roomView.roomMicrophone === "Off"
-              ? <button type="button" className="button button-primary header-button" disabled={roomBusy} onClick={() => void roomRef.current?.startRoomMicrophone()}>Start room microphone</button>
-              : <span className={`room-mic-state room-mic-${roomView.roomMicrophone.toLowerCase()}`} role="status">{roomMicrophoneCopy[roomView.roomMicrophone]}</span>}
-            <button className="speaker-control" aria-expanded={participantsOpen} onClick={() => setParticipantsOpen(true)}>Participants {participantCount}</button>
-          </>}
-          {connectedActive && mode === "headset" && <button className="speaker-control" aria-expanded={participantsOpen} onClick={() => setParticipantsOpen(true)}>Participants {participantCount}</button>}
+          {headsetActive && mode === "headset" && <button className="speaker-control" aria-expanded={participantsOpen} onClick={() => setParticipantsOpen(true)}>Participants {participantCount}</button>}
           <button
             ref={historyButtonRef}
             type="button"
@@ -257,20 +229,19 @@ export default function HomePage() {
           </button>
           <div className={`status status-${state.status}`} role="status" aria-live="polite">
             <span className="status-dot" aria-hidden="true" />
-            <span>{mode === "connected" && connectedActive ? roomView.phase === "joined" ? "Connected" : roomView.phase === "disconnected" ? "Room disconnected" : "Connecting" : statusCopy[state.status]}</span>
-            {mode === "table" && state.status === "reconnecting" && <span className="status-detail">Attempt {state.reconnectAttempt} of 5</span>}
+            <span>{statusCopy[state.status]}</span>
+            {mode === "open" && state.status === "reconnecting" && <span className="status-detail">Attempt {state.reconnectAttempt} of 5</span>}
           </div>
         </div>
       </header>
 
-      {inviteOpen && connectedActive && <InvitePanel view={roomView} close={() => setInviteOpen(false)} />}
-      {participantsOpen && connectedActive && roomRef.current && <ParticipantsPanel view={roomView} room={roomRef.current} close={() => setParticipantsOpen(false)} invite={() => void openInvite()} />}
-      {(roomError || (mode === "connected" && roomView.error)) && <p className="notice notice-error" role="alert">{roomError ?? roomView.error}</p>}
-      {mode === "connected" && roomView.phase === "disconnected" && roomView.snapshot && <button className="button button-secondary" disabled={roomBusy} onClick={async () => {
+      {inviteOpen && headsetActive && <InvitePanel view={roomView} close={() => setInviteOpen(false)} />}
+      {participantsOpen && headsetActive && roomRef.current && <ParticipantsPanel view={roomView} room={roomRef.current} close={() => setParticipantsOpen(false)} invite={() => void openInvite()} />}
+      {(roomError || (mode === "headset" && roomView.error)) && <p className="notice notice-error" role="alert">{roomError ?? roomView.error}</p>}
+      {mode === "headset" && roomView.phase === "disconnected" && roomView.snapshot && <button className="button button-secondary" disabled={roomBusy} onClick={async () => {
         setRoomBusy(true); try { await roomRef.current?.rejoin(); setRoomError(null); } catch (error) { setRoomError(error instanceof Error ? error.message : "Rejoin failed."); } finally { setRoomBusy(false); }
       }}>Rejoin Conversation</button>}
-      {connectedActive && mode === "connected" && roomRef.current && <IdentificationBanner view={roomView} room={roomRef.current} />}
-      {connectedActive && mode === "headset" && roomRef.current && <>
+      {headsetActive && mode === "headset" && roomRef.current && <>
         <HeadsetSpeakingBoard view={roomView} />
         <HeadsetHostPanel view={roomView} room={roomRef.current} />
         <section className="headset-host-setup"><h2>Optional host headset</h2><p>The host microphone stays off unless you choose to set up your own headset.</p><HeadsetSetup view={roomView.headsetSelf} start={() => void roomRef.current?.startHeadsetSetup()} useAnyway={() => roomRef.current?.useCurrentHeadsetInput()} retry={() => void roomRef.current?.restartHeadsetMicrophone()} retryCaptions={() => void roomRef.current?.retryHeadsetCaptions()} choose={(id) => void roomRef.current?.chooseHeadsetInput(id)} /></section>
@@ -279,10 +250,9 @@ export default function HomePage() {
       {speakerPanelOpen && nameableSpeakers.length > 0 && (
         <section className="speaker-panel" role="dialog" aria-labelledby="speakers-heading">
           <div className="speaker-panel-header">
-            <h2 id="speakers-heading">{mode === "connected" ? "Unidentified voices" : "Speakers"}</h2>
+            <h2 id="speakers-heading">Speakers</h2>
             <button type="button" className="button button-quiet panel-close" onClick={() => setSpeakerPanelOpen(false)} aria-label="Close speakers panel">Close</button>
           </div>
-          {mode === "connected" && <p className="speaker-panel-hint">Name a voice for someone without a phone, or use Participants to identify a joined person.</p>}
           <div className="speaker-list">
             {nameableSpeakers.map((speaker) => (
               <div className="speaker-row" key={speaker.id}>
@@ -350,22 +320,16 @@ export default function HomePage() {
           <section className="caption-stage" aria-label="Live caption transcript">
         {state.finalized.length > 0 || state.interim || Object.keys(state.activeInterims).length > 0 ? (
           <div className="live-caption-scroll" ref={liveCaptionRef}>
-            {mode === "headset" ? <HeadsetTranscript finalized={state.finalized} interims={[...(state.interim ? [state.interim] : []), ...Object.values(state.activeInterims)]} speaker={(id) => <SpeakerIdentity speakerId={id} speakerMap={speakerMap} onActivate={openSpeakerPanel} live />} /> : <>{state.finalized.map((caption) => (
-              <LiveCaptionLine key={caption.id} caption={caption} speakerMap={speakerMap} onActivate={openSpeakerPanel} />
-            ))}
-            {state.interim && (
-              <LiveCaptionLine caption={state.interim} speakerMap={speakerMap} onActivate={openSpeakerPanel} isInterim />
-            )}
-            {Object.values(state.activeInterims).map((caption) => <LiveCaptionLine key={caption.sourceId} caption={caption} speakerMap={speakerMap} onActivate={openSpeakerPanel} isInterim />)}</>}
+            {mode === "headset" ? <HeadsetTranscript finalized={state.finalized} interims={[...(state.interim ? [state.interim] : []), ...Object.values(state.activeInterims)]} speaker={(id) => <SpeakerIdentity speakerId={id} speakerMap={speakerMap} onActivate={openSpeakerPanel} live />} /> : <OpenTranscript finalized={state.finalized} interim={state.interim} speaker={(id) => <SpeakerIdentity speakerId={id} speakerMap={speakerMap} onActivate={openSpeakerPanel} live />} />}
           </div>
         ) : (
           <p className="caption-placeholder">
-            {connectedActive ? waitingCopy : state.status === "listening" ? "Listening for conversation…" : "Start a conversation to see captions here."}
+            {headsetActive ? waitingCopy : state.status === "listening" ? "Listening for conversation…" : "Start a conversation to see captions here."}
           </p>
         )}
           </section>
 
-          {mode === "table" && state.status === "reconnecting" && (
+          {mode === "open" && state.status === "reconnecting" && (
             <p className="notice notice-warning" role="alert">
               Captions are temporarily interrupted. Finalized captions remain visible while the connection is restored.
             </p>
@@ -400,17 +364,6 @@ function SpeakerIdentity({ speakerId, speakerMap, onActivate, live = false }: { 
       <span className="speaker-dot" aria-hidden="true" />
       {label}
     </button>
-  );
-}
-
-function LiveCaptionLine({ caption, speakerMap, onActivate, isInterim = false }: { caption: CaptionEvent; speakerMap: Map<string, SpeakerProfile>; onActivate: (speakerId?: string) => void; isInterim?: boolean }) {
-  return (
-    <div className="live-caption-line">
-      <SpeakerIdentity speakerId={caption.speakerId} speakerMap={speakerMap} onActivate={onActivate} live />
-      <p className={`current-caption ${isInterim ? "interim-caption" : "final-caption"}`} aria-live="polite" aria-atomic="true">
-        {caption.text}
-      </p>
-    </div>
   );
 }
 

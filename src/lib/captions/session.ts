@@ -1,5 +1,5 @@
 import { MicrophoneCapture, MicrophoneCaptureError } from "../audio/microphone";
-import { AssemblyAIStreamingProvider, TABLE_ASSEMBLYAI_OPTIONS, type ProviderStatus, type StreamingTranscriptionProvider } from "./provider";
+import { AssemblyAIStreamingProvider, OPEN_ASSEMBLYAI_OPTIONS, type ProviderStatus, type StreamingTranscriptionProvider } from "./provider";
 import type { CaptionAction } from "./reducer";
 import type { SessionErrorCode } from "./types";
 
@@ -16,7 +16,7 @@ export class ConversationSession {
   private reconnectGeneration = 0;
   private readonly providerFactory: ProviderFactory;
 
-  constructor(private readonly dispatch: (action: CaptionAction) => void, providerFactory: ProviderFactory = (token) => new AssemblyAIStreamingProvider(token, undefined, TABLE_ASSEMBLYAI_OPTIONS)) {
+  constructor(private readonly dispatch: (action: CaptionAction) => void, providerFactory: ProviderFactory = (token) => new AssemblyAIStreamingProvider(token, undefined, OPEN_ASSEMBLYAI_OPTIONS)) {
     this.providerFactory = providerFactory;
   }
 

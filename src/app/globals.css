@@ -43,6 +43,7 @@ h1, h2, h3 { font-family: Inter, system-ui, sans-serif; letter-spacing: -0.02em;
 
 .conversation-header {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
@@ -50,23 +51,14 @@ h1, h2, h3 { font-family: Inter, system-ui, sans-serif; letter-spacing: -0.02em;
   padding: 0.65rem 0;
 }
 
-.header-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 0.75rem; }
+.header-actions { min-width: 0; max-width: 100%; display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 0.75rem; }
 
-.reconciliation-debug { padding: 1rem; border: 2px dashed var(--line); border-radius: 0.65rem; background: var(--panel); font-size: 1rem; }
-.reconciliation-debug h2 { margin: 0; font-size: 1.25rem; }
-.reconciliation-debug-stt { display: grid; gap: 0.2rem; margin: 0.8rem 0; padding: 0.7rem; border-radius: 0.45rem; background: var(--surface); }
-.reconciliation-debug-constants { display: flex; flex-wrap: wrap; gap: 1rem; }
-.reconciliation-debug-constants dt { font-weight: 700; }
-.reconciliation-debug-constants dd { margin: 0; }
-.reconciliation-debug-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem; }
-.reconciliation-debug-records { max-height: 24rem; overflow-y: auto; overflow-wrap: anywhere; }
-.reconciliation-debug-records li { padding: 0.65rem 0; border-bottom: 1px solid var(--line); }
 
 @media (min-width: 1200px) {
   .conversation-header { gap: 0.75rem; }
   .conversation-header .eyebrow { white-space: nowrap; font-size: 0.75rem; }
-  .header-actions { flex-wrap: nowrap; gap: clamp(0.35rem, 0.5vw, 0.75rem); }
-  .header-actions > * { flex-shrink: 0; white-space: nowrap; }
+  .header-actions { flex-wrap: wrap; gap: clamp(0.35rem, 0.5vw, 0.75rem); }
+  .header-actions > * { flex-shrink: 0; max-width: 100%; }
   .header-actions .button, .header-actions .history-control, .header-actions .speaker-control { font-size: clamp(0.875rem, 0.75vw, 1rem); padding: 0.45rem 0.6rem; min-height: 2.5rem; }
   .header-actions .mode-label { font-size: 0.875rem; }
   .header-actions .mode-label select { font: inherit; }
@@ -218,7 +210,7 @@ h1 { margin: 0.1rem 0 0; font-size: clamp(2rem, 4vw, 3.25rem); }
   *, *::before, *::after { scroll-behavior: auto !important; transition-duration: 0.01ms !important; animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; }
 }
 
-.mode-label { display: flex; align-items: center; gap: 0.4rem; font-weight: 700; }
+.mode-label { max-width: 100%; flex-wrap: wrap; display: flex; align-items: center; gap: 0.4rem; font-weight: 700; }
 .mode-label select { min-height: 2.5rem; max-width: 11rem; padding: 0.4rem; color: var(--ink); background: var(--panel); border: 2px solid var(--line); border-radius: 0.65rem; }
 select:focus-visible { outline: 4px solid #f1bd4b; outline-offset: 3px; }
 .speaker-accent-6 { --speaker-accent: #153458; color: var(--speaker-accent); }
@@ -239,15 +231,7 @@ select:focus-visible { outline: 4px solid #f1bd4b; outline-offset: 3px; }
 .participant-shell meter { width: 100%; height: 2rem; }
 .participant-status { font-weight: 700; color: var(--success); }
 .participant-example { color: var(--muted); font-style: italic; }
-.room-mic-state { display: inline-flex; align-items: center; min-height: 2.5rem; padding: 0.45rem 0.8rem; border: 2px solid var(--line); border-radius: 0.65rem; font-weight: 700; white-space: nowrap; }
-.room-mic-listening { color: var(--success); border-color: color-mix(in srgb, var(--success) 45%, var(--line)); }
-.room-mic-starting, .room-mic-reconnecting { color: var(--warning); }
-.identification-banner { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 0.75rem; margin: 0; padding: 0.85rem 1.15rem; border-radius: 0.85rem; color: #0b3a63; background: #e8f2fb; border: 1px solid #9cc3e6; }
-.identification-banner p { margin: 0; }
 .voice-phase { font-weight: 700; color: var(--muted); }
-.voice-phase-identified { color: var(--success); }
-.voice-phase-listening, .voice-phase-waiting { color: var(--accent-dark); }
-.voice-phase-not_found, .voice-phase-needs_again { color: var(--warning); }
 .speaker-panel-hint { margin: 0.5rem 0 0; color: var(--muted); font-size: 1rem; }
 .headset-board, .headset-controls, .headset-host-setup, .headset-setup { padding: 1rem; background: var(--panel); border: 2px solid var(--line); border-radius: 1rem; }
 .headset-board h2, .headset-controls h2, .headset-host-setup h2 { margin-top: 0; }
@@ -268,9 +252,6 @@ select:focus-visible { outline: 4px solid #f1bd4b; outline-offset: 3px; }
 .benchmark-summary, .benchmark-latest { display: grid; gap: 0.3rem; padding-top: 0.45rem; border-top: 1px solid var(--line); }
 .headset-setup p { margin: 0; }
 .headset-level { color: var(--muted); font-size: 0.95rem; }
-@media (min-width: 1200px) {
-  .header-actions .room-mic-state { font-size: clamp(0.875rem, 0.75vw, 1rem); padding: 0.45rem 0.6rem; }
-}
 .headset-range-labels { display: flex; justify-content: space-between; }
 .headset-hidden-caption { opacity: 0.65; }
 .headset-sensitivity-list input[type="range"] { display: block; width: 100%; min-width: 0; }
@@ -295,6 +276,9 @@ select:focus-visible { outline: 4px solid #f1bd4b; outline-offset: 3px; }
 .headset-row > strong { min-width: 0; overflow-wrap: anywhere; }
 .headset-row-status { display: flex; flex-direction: column; align-items: flex-end; gap: 0.2rem; max-width: 65%; min-width: 0; }
 .headset-row-status small { font-size: 0.8rem; color: var(--muted); text-align: right; }
-.headset-reading-block .current-caption { width: 100%; text-align: left; overflow-wrap: anywhere; }
+.headset-reading-block .current-caption, .open-reading-block .current-caption { width: 100%; text-align: left; overflow-wrap: anywhere; }
 @media (prefers-reduced-motion: reduce) { .headset-activity { transition: none; } }
 @media (forced-colors: active) { .headset-activity { border-color: CanvasText; } }
+
+.header-actions > * { max-width: 100%; }
+.mode-label select { max-width: min(100%, 11rem); min-width: 0; }

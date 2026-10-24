@@ -1,11 +1,11 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
-import type { RoomMode, RoomSnapshot } from "./types";
+import type { RoomSnapshot } from "./types";
 
 let client: SupabaseClient | undefined;
 export function roomClient(): SupabaseClient {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
-  if (!url || !key) throw new Error("Connected Mode is currently unavailable. Please check the conversation setup.");
+  if (!url || !key) throw new Error("Headset Mode is currently unavailable. Please check the conversation setup.");
   return client ??= createClient(url, key);
 }
 
@@ -28,4 +28,3 @@ export async function roomRequest<T = RoomSnapshot>(action: string, values: Reco
   if (!response.ok) throw new Error(data.message ?? "The conversation could not be reached.");
   return data as T;
 }
-export function normalizeRoomMode(value: unknown): RoomMode { return value === "headset" ? "headset" : "connected"; }

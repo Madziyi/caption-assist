@@ -1,3 +1,4 @@
+-- Persistence compatibility regression: legacy Connected data is intentionally supported by the service-only RPC. The current app rejects it (CAPTION-009).
 -- Run on a migrated development project. Every synthetic identity/room is rolled back.
 begin;
 create temp table caption_test_fixture (host uuid, guest uuid, other_guest uuid, outsider uuid, room uuid, headset_room uuid, host_participant uuid, guest_participant uuid);

@@ -1,13 +1,13 @@
 import { afterEach, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { HeadsetSensitivity, HeadsetSpeakingBoard, HeadsetDelay, HeadsetHiddenDuplicates } from "./headset-panels";
-import { idleRoomView, type ConnectedRoom, type RoomView } from "@/lib/rooms/controller";
+import { idleRoomView, type HeadsetRoom, type RoomView } from "@/lib/rooms/controller";
 const presence = { mic: "on" as const, setup: "ready" as const, input: "headset" as const, label: "AirPods", processing: null, floorDb: -70, ownDb: -25, visible: true, sensitivityDb: -6, tuned: false, openDb: -22 };
 const view: RoomView = { ...idleRoomView, headsetHost: { people: { a: { presence, speaking: false }, b: { presence, speaking: false } }, canStartCheck: true, check: null, preview: { durationMs: 0, participants: {}, pairs: [] } } };
 afterEach(cleanup);
 it("renders a labelled native slider, live threshold and quiet-speech warning; commits the final value", () => {
   const setHeadsetSensitivity = vi.fn();
-  render(<HeadsetSensitivity view={view} room={{ setHeadsetSensitivity } as unknown as ConnectedRoom} />);
+  render(<HeadsetSensitivity view={view} room={{ setHeadsetSensitivity } as unknown as HeadsetRoom} />);
   const slider = screen.getAllByRole("slider", { name: "Sensitivity for Participant" })[0];
   expect(slider).toHaveAttribute("min", "-15"); expect(slider).toHaveAttribute("max", "6");
   expect(slider).toHaveAttribute("aria-valuetext", "Less sensitive (−6 dB)");

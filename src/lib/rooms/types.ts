@@ -1,5 +1,4 @@
 import type { SpeakerProfile, TranscriptionEvent } from "../captions/types";
-import { VOICE_PHASES, type VoicePhase } from "./voice-identity";
 import type { HeadsetControl } from "../headset/messages";
 import { validEvidence, type CaptionEvidence } from "../headset/evidence";
 
@@ -21,27 +20,13 @@ export type RoomSnapshot = {
   mode: RoomMode;
   joinUrl?: string;
 };
+// Persistence compatibility only. Active controllers accept Headset exclusively.
 export type RoomMode = "connected" | "headset";
 export type ParticipantStatus = "Connected" | "Reconnecting" | "Disconnected" | "Removed";
-export type IdentifyAction = "request" | "cancel";
 export type RoomControl = { type: "room-ended" } | { type: "participant-removed"; participantId: string } | { type: "registry-changed" }
-  /** `requests` names the phone request each participant's phase answers, so stale phases cannot end a newer request. */
-  | { type: "voice-identification"; phases: Record<string, VoicePhase>; requests: Record<string, string> }
   | HeadsetControl;
-export const IDENTIFY_REQUEST_ID = /^[A-Za-z0-9-]{8,64}$/;
-// Personal-microphone caption relay envelope, retained for a future Hybrid Mode.
+// Headset caption relay envelope.
 export type CaptionEnvelope = { event: TranscriptionEvent; sequence: number; readyAt: number; streamId: string; evidence?: CaptionEvidence };
-
-export function validIdentificationPhases(value: unknown): value is Record<string, VoicePhase> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const entries = Object.entries(value);
-  return entries.length <= 64 && entries.every(([id, phase]) => id.length < 100 && VOICE_PHASES.includes(phase as VoicePhase));
-}
-export function validIdentifyRequests(value: unknown): value is Record<string, string> {
-  if (!value || typeof value !== "object" || Array.isArray(value)) return false;
-  const entries = Object.entries(value);
-  return entries.length <= 64 && entries.every(([id, request]) => id.length < 100 && typeof request === "string" && IDENTIFY_REQUEST_ID.test(request));
-}
 
 export function validateName(value: unknown): string {
   if (typeof value !== "string" || !value.trim() || [...value.trim()].length > 40) throw new Error("Enter a name of 1–40 characters.");
@@ -55,7 +40,7 @@ export function participantProfiles(participants: Participant[]): SpeakerProfile
     displayName: participant.displayName,
     side: index % 2 ? "right" : "left",
     accentIndex: participant.role === "host" ? HOST_ACCENT_INDEX : participant.accentIndex ?? 0,
-    identityOrigin: participant.role === "host" ? "connected-host" : "connected-participant",
+    identityOrigin: participant.role === "host" ? "headset-host" : "headset-participant",
   }));
 }
 
