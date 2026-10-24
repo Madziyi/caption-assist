@@ -168,3 +168,5 @@ None expected initially. None verified.
 - Supabase catalog on `cqnyvevhuxwfzhqpmccn`: caption_room_action security-invoker, anon/authenticated EXECUTE false, service_role true; caption_rooms_read, caption_participants_read, caption_realtime_send/receive policies present. No schema, RLS, quota or secret change. Full transactional SQL test did not return a result (connector request-state error); no success inferred.
 - Current application rejects legacy Connected rooms while database values/RPC remain for expiry compatibility; this is a source contract until deployment checks below. Historical Connected evidence is retained above and no longer describes an available mode.
 - Physical Open and Headset UAT and deployed real-microphone operation remain unverified.
+
+- CAPTION-009 publication: implementation `bc73b191ac034f629231b0ede87235f4cbecbd65` pushed to main; GitHub Vercel status **success** observed: [deployment status](https://vercel.com/madziyis-projects/caption-assist/3fngbgtCfXZaasrfLg1eSNX95Kmh). Status only; deployed microphone/device behavior and physical acceptance remain unverified. Final documentation-only handoff follows this implementation.

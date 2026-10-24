@@ -61,3 +61,7 @@ A direct catalog query confirmed security-invoker RPC with no anon/authenticated
 6. Headset: short two-person wired/Bluetooth conversation; confirm exact names, unchanged duplicate handling and similar perceived latency. No new provider benchmark.
 
 Hybrid and CAPTION-005/006/007 are not started. CAPTION-003 experiments remain historical evidence.
+
+### Publication
+
+Implementation `bc73b191ac034f629231b0ede87235f4cbecbd65` pushed to main. Vercel reported success: [deployment status](https://vercel.com/madziyis-projects/caption-assist/3fngbgtCfXZaasrfLg1eSNX95Kmh). This confirms a deployment check, not physical or deployed-microphone acceptance. Documentation-only publication is checked separately in the final Builder response.

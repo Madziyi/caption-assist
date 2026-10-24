@@ -456,3 +456,5 @@ Use this format:
 - Live catalog confirmed service-only/security-invoker RPC and existing policies. Full rollback SQL regression attempt failed at connector request-state level; no passed SQL test claimed. Test rooms ended, runner audio removed, browsers/server closed. Physical Open five-scenario and short Headset acceptance still required; see CAPTION-009-OPEN-MODE.md.
 
 - Final post-CSS/key-stability build passed on Next.js 16.4.1; focused Open reading suite rechecked 7/7 after retaining the first caption key across 80-word growth. Typecheck/lint/full suite had passed; final diff check passed. Remote main rechecked unchanged before publication.
+
+- CAPTION-009 publication: implementation `bc73b191ac034f629231b0ede87235f4cbecbd65` pushed to main; GitHub Vercel status **success** observed: [deployment status](https://vercel.com/madziyis-projects/caption-assist/3fngbgtCfXZaasrfLg1eSNX95Kmh). Status only; deployed microphone/device behavior and physical acceptance remain unverified. Final documentation-only handoff follows this implementation.
