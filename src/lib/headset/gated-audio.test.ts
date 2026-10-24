@@ -25,4 +25,15 @@ describe("gated audio", () => {
     audio.reset();
     expect(audio.push(frame(3), true)).toBeNull();
   });
+  it("reports activity for the delayed frame and preserves its 300 ms look-ahead cadence", () => {
+    const audio = new GatedAudio(3);
+    expect(audio.pushDetailed(frame(1), false)).toBeNull();
+    expect(audio.pushDetailed(frame(2), false)).toBeNull();
+    expect(audio.pushDetailed(frame(3), false)).toBeNull();
+    expect(audio.pushDetailed(frame(4), true)?.active).toBe(true);
+    expect(new Uint8Array(audio.pushDetailed(frame(5), false)!.frame)[0]).toBe(2);
+    expect(audio.pushDetailed(frame(6), false)?.active).toBe(true);
+    expect(audio.pushDetailed(frame(7), false)?.active).toBe(true);
+    expect(audio.pushDetailed(frame(8), false)?.active).toBe(false);
+  });
 });

@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { HeadsetParticipant, type HeadsetParticipantView } from "./headset-participant";
 import { classifyInput } from "./input-label";
+import { Pcm16Resampler16To24 } from "./resampler";
 
 describe("headset calibration browser timers", () => {
   beforeEach(() => { vi.useFakeTimers(); });
@@ -97,6 +98,28 @@ describe("headset calibration browser timers", () => {
     expect(setPresence.mock.calls.filter(([p]) => p.latency)).toHaveLength(1);
     await vi.advanceTimersByTimeAsync(10000); publish(event);
     expect(setPresence.mock.calls.filter(([p]) => p.latency)).toHaveLength(2);
+    await participant.stopMicrophone();
+  });
+  it("feeds the same delayed active frames to AssemblyAI and the opt-in resampled shadow, then commits after delayed silence", async () => {
+    const primaryFrames: ArrayBuffer[] = []; const shadowFrames: ArrayBuffer[] = []; const callbacks: Array<{ onState(state: "connecting" | "on" | "unavailable"): void }> = []; const commits: boolean[] = [];
+    const participant = new HeadsetParticipant("test-person", { setPresence: async () => undefined, sendSignal: async () => undefined }, () => undefined, {
+      benchmark: { roomId: "room" },
+      transcriberFactory: () => ({ start: async () => undefined, stop: async () => undefined, sendFrame: (frame) => primaryFrames.push(frame) }),
+      shadowFactory: (_roomId, cb) => { callbacks.push(cb); cb.onState("on"); return { start: async () => undefined, stop: async () => undefined, setKeywords: () => undefined, appendAudio: (frame) => { shadowFrames.push(frame); return true; }, commit: () => { commits.push(true); return true; } }; },
+    });
+    const state = participant as unknown as { view: HeadsetParticipantView; gate: { open: boolean; reset(): void }; frame(level: number, data: ArrayBuffer): void };
+    state.view = { ...state.view, setup: "ready", mic: "on" };
+    state.gate = { open: true, reset: () => undefined };
+    for (let i = 1; i <= 4; i++) { const frame = new Int16Array([i * 100, -i * 100]).buffer; state.frame(-20, frame); }
+    state.gate.open = false;
+    for (let i = 5; i <= 8; i++) state.frame(-80, new Int16Array([i * 100, -i * 100]).buffer);
+    const resampler = new Pcm16Resampler16To24();
+    const expected = primaryFrames.slice(0, 4).flatMap((frame) => [...new Int16Array(resampler.push(frame))]);
+    const actual = shadowFrames.flatMap((frame) => [...new Int16Array(frame)]);
+    expect(actual).toEqual(expected);
+    expect(primaryFrames).toHaveLength(5);
+    expect(commits).toHaveLength(1);
+    expect(callbacks).toHaveLength(1);
     await participant.stopMicrophone();
   });
 });

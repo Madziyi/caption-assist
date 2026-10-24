@@ -49,16 +49,24 @@ export type AssemblyAIStreamingOptions = {
   voiceFocus?: VoiceFocusProfile;
   mode?: "min_latency" | "balanced" | "max_accuracy";
   revisionIntervalMs?: number;
+  interruptionDelayMs?: number;
+  minTurnSilenceMs?: number;
+  maxTurnSilenceMs?: number;
 };
 
 export function connectedVoiceFocusProfile(value = typeof process === "undefined" ? undefined : process.env.NEXT_PUBLIC_CONNECTED_VOICE_FOCUS_PROFILE): VoiceFocusProfile {
   return value === "near-field" ? "near-field" : "far-field";
 }
 
-export function connectedAssemblyAIOptions(profile = connectedVoiceFocusProfile()): Required<Omit<AssemblyAIStreamingOptions, "revisionIntervalMs">> {
+export function connectedAssemblyAIOptions(profile = connectedVoiceFocusProfile()): Required<Pick<AssemblyAIStreamingOptions, "speechModel" | "diarization" | "voiceFocus" | "mode">> {
   return { speechModel: "universal-3-6-pro", diarization: false, voiceFocus: profile, mode: "balanced" };
 }
-export const HEADSET_ASSEMBLYAI_OPTIONS = connectedAssemblyAIOptions("near-field");
+export const HEADSET_ASSEMBLYAI_OPTIONS = {
+  ...connectedAssemblyAIOptions("near-field"),
+  interruptionDelayMs: 0,
+  minTurnSilenceMs: 100,
+  maxTurnSilenceMs: 1000,
+} as const;
 
 export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvider {
   private socket: WebSocket | null = null;
@@ -70,14 +78,14 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
   private fallbackTurnCounter = 0;
   private readonly finalTurnTexts = new Map<number, string>();
 
-  private readonly options: Required<Pick<AssemblyAIStreamingOptions, "speechModel" | "diarization">> & Pick<AssemblyAIStreamingOptions, "voiceFocus" | "mode" | "revisionIntervalMs">;
+  private readonly options: Required<Pick<AssemblyAIStreamingOptions, "speechModel" | "diarization">> & Pick<AssemblyAIStreamingOptions, "voiceFocus" | "mode" | "revisionIntervalMs" | "interruptionDelayMs" | "minTurnSilenceMs" | "maxTurnSilenceMs">;
 
   constructor(private readonly token: string, connectionId = createProviderConnectionId(), options: AssemblyAIStreamingOptions | boolean = TABLE_ASSEMBLYAI_OPTIONS) {
     this.connectionId = connectionId;
     this.options = typeof options === "boolean"
       ? { speechModel: TABLE_ASSEMBLYAI_OPTIONS.speechModel, diarization: options }
       : { speechModel: options.speechModel ?? TABLE_ASSEMBLYAI_OPTIONS.speechModel, diarization: options.diarization ?? TABLE_ASSEMBLYAI_OPTIONS.diarization,
-          voiceFocus: options.voiceFocus, mode: options.mode, revisionIntervalMs: options.revisionIntervalMs };
+          voiceFocus: options.voiceFocus, mode: options.mode, revisionIntervalMs: options.revisionIntervalMs, interruptionDelayMs: options.interruptionDelayMs, minTurnSilenceMs: options.minTurnSilenceMs, maxTurnSilenceMs: options.maxTurnSilenceMs };
   }
 
   connect(): Promise<void> {
@@ -93,6 +101,9 @@ export class AssemblyAIStreamingProvider implements StreamingTranscriptionProvid
     if (this.options.voiceFocus) params.set("voice_focus", this.options.voiceFocus);
     if (this.options.mode) params.set("mode", this.options.mode);
     if (this.options.diarization && this.options.revisionIntervalMs) params.set("speaker_labels_revision_interval_ms", String(this.options.revisionIntervalMs));
+    if (this.options.interruptionDelayMs !== undefined) params.set("interruption_delay", String(this.options.interruptionDelayMs));
+    if (this.options.minTurnSilenceMs !== undefined) params.set("min_turn_silence", String(this.options.minTurnSilenceMs));
+    if (this.options.maxTurnSilenceMs !== undefined) params.set("max_turn_silence", String(this.options.maxTurnSilenceMs));
 
     return new Promise((resolve, reject) => {
       const socket = new WebSocket(`${ASSEMBLYAI_WS_URL}?${params.toString()}`);

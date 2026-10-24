@@ -146,3 +146,10 @@ None expected initially. None verified.
 
 - Implementation `a308e231b3c14a6f319cb4096692d64ad0d2da77` pushed to main. GitHub Vercel check reported success: [Deployment status](https://vercel.com/madziyis-projects/caption-assist/Hy8PjJApogR2SvEXk9oX8m9yfY2u). Existing Git workflow used; no hosting/provider configuration changes.
 - All required gates passed: typecheck, lint, 109 tests / 15 files, production build and staged diff check. Source and local browser verification do not establish physical-device suppression acceptance. CAPTION-003 stays open; next test uses ?captionDebug=1.
+
+## CAPTION-008.4 source and deployment status — 2026-10-24
+
+- Source adds an optional authenticated OpenAI Realtime transcription secret route for open Headset rooms. `OPENAI_API_KEY` is server-only in source and optional. No deployment variable inventory was available in this pass, so its presence in Vercel is **unverified**; deployed OpenAI benchmark availability is not claimed.
+- AssemblyAI source query adds Headset-only interruption/silence parameters. No deployed provider session with those values was opened in this pass; deployed latency effect is **unverified**.
+- No hosting/provider configuration, database state, schema, retention policy or production STT selection was changed. No live OpenAI credential/session/audio was used.
+- Local production build on 2026-10-24 emitted Next.js's October 14, 2026 upstream security advisory because the project is pinned to Next.js 16.4.0. The official patched version is 16.4.1. No dependency upgrade was made as part of this feature task; deployed runtime version/status was not inspected.

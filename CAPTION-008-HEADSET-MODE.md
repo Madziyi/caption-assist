@@ -734,3 +734,15 @@ Adopt a lever only if accuracy is not visibly worse.
 ## CAPTION-008.5 outline — physical UAT and closure
 
 Absorbs the remaining recovery items: headset fallback to the built-in microphone, phone lock and page refresh. Then a sustained multi-person session measuring duplicates, missed speech, wrong attribution, latency and cost per person-hour, recorded in QUALITY.md, plus human acceptance.
+
+## CAPTION-008.4 Builder implementation — latency and shadow benchmark
+
+The active 008.4 pass preserves 008.3 behavior and production AssemblyAI captions. Headset options add only `interruption_delay=0`, `min_turn_silence=100`, and `max_turn_silence=1000`; Table and Connected option objects do not receive these values. The 300 ms `GatedAudio` queue, thresholds and 800 ms arbiter hold are unchanged.
+
+The participant page enables a separate benchmark collector only when `?sttBenchmark=1` is present and the member is not the host. It does not open another microphone. Its optional OpenAI WebSocket receives the same delayed gate output frames as the AssemblyAI transcriber, resampled from mono PCM16 16 kHz to 24 kHz with a bounded streaming linear interpolator. It commits only after the delayed stream transitions active→inactive and only when audio was appended. OpenAI output is never published as captions and provider failure only sets the benchmark state unavailable.
+
+The server endpoint authenticates room membership, requires an open Headset room, and mints a GA Realtime transcription client secret using server-only `OPENAI_API_KEY`. The browser receives only the ephemeral value and expiry. Baseline model configuration is `gpt-live-transcribe`, low delay, English, accessibility-caption prompt, empty keywords and no noise reduction; optional context hints send only display names when the tester enables the toggle. No secret, audio or transcript is logged or persisted. Benchmark utterances, selected phrases, outputs and scores are memory-only, with 25 utterances retained.
+
+Timing is monotonic within the participant browser and records gate-open, first delayed audio sent, first AssemblyAI text/final, first OpenAI delta/completion, and delayed gate-close. UI durations are shown from speech start and from gate-close separately; AssemblyAI's existing signed `receivedAt - audioEndAt` diagnostic remains intact. Script scoring is normalized WER and exact entity preservation only when a reference phrase is selected. No winner is claimed until physical wired/Bluetooth trials are completed.
+
+Automated verification and local browser evidence are appended to `QUALITY.md` after checks run. Deployment configuration for `OPENAI_API_KEY` is not inferred from source; if not independently inspected, deployed benchmark availability stays unverified.

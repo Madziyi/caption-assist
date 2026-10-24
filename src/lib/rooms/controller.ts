@@ -11,6 +11,7 @@ import { HeadsetParticipant, type HeadsetParticipantView } from "../headset/head
 import type { HeadsetPresence, HeadsetSignal } from "../headset/messages";
 import type { Sensitivity } from "../headset/calibration";
 import { HeadsetTranscriber } from "../headset/headset-transcriber";
+import { isHeadsetBenchmarkEnabled } from "../headset/benchmark";
 import { exactIdentity } from "./types";
 import type { CaptionEnvelope } from "./types";
 import { HeadsetArbiter } from "../headset/arbiter";
@@ -183,7 +184,7 @@ export class ConnectedRoom {
           this.syncHeadsetStats();
         } else if (startMicrophone) void this.startRoomMicrophone();
       } else if (snapshot.mode === "headset") {
-        if (!this.headsetParticipantInstance) this.headsetParticipantInstance = new HeadsetParticipant(snapshot.self.id, { setPresence: (presence) => this.transport?.setHeadsetPresence?.(presence) ?? Promise.resolve(), sendSignal: (signal) => this.transport?.sendHeadsetSignal?.(signal) ?? Promise.resolve(), sendCaption: (event, streamId, evidence) => this.transport?.sendCaption?.(event, streamId, evidence) ?? Promise.resolve() }, (view) => this.update({ headsetSelf: view }), { transcriberFactory: (publish, onState) => new HeadsetTranscriber(snapshot.roomId, publish, onState) });
+        if (!this.headsetParticipantInstance) this.headsetParticipantInstance = new HeadsetParticipant(snapshot.self.id, { setPresence: (presence) => this.transport?.setHeadsetPresence?.(presence) ?? Promise.resolve(), sendSignal: (signal) => this.transport?.sendHeadsetSignal?.(signal) ?? Promise.resolve(), sendCaption: (event, streamId, evidence) => this.transport?.sendCaption?.(event, streamId, evidence) ?? Promise.resolve() }, (view) => this.update({ headsetSelf: view }), { transcriberFactory: (publish, onState) => new HeadsetTranscriber(snapshot.roomId, publish, onState), ...(headsetBenchmarkRequested(snapshot.self.role) ? { benchmark: { roomId: snapshot.roomId, hints: () => (this.view.snapshot?.participants ?? []).map((participant) => participant.displayName) } } : {}) });
         this.headsetParticipantInstance.setVisible(document.visibilityState === "visible");
           this.update({ headsetSelf: this.headsetParticipantInstance.currentView });
         document.addEventListener("visibilitychange", this.visibilityHandler);
@@ -343,7 +344,8 @@ export class ConnectedRoom {
       const io = this.isHost
         ? { setPresence: async (presence: HeadsetPresence) => this.headsetHostInstance?.presence(selfId, presence), sendSignal: async (signal: HeadsetSignal) => this.receiveHeadsetSignal(selfId, signal, true), sendCaption: async (event: TranscriptionEvent, streamId: string, evidence?: CaptionEvidence) => this.receiveHeadsetCaption(selfId, event, { event, streamId, readyAt: this.now(), sequence: 1, evidence }, true) }
         : { setPresence: async (presence: HeadsetPresence) => this.transport?.setHeadsetPresence?.(presence), sendSignal: async (signal: HeadsetSignal) => this.transport?.sendHeadsetSignal?.(signal), sendCaption: async (event: TranscriptionEvent, streamId: string, evidence?: CaptionEvidence) => this.transport?.sendCaption?.(event, streamId, evidence) };
-      this.headsetParticipantInstance = new HeadsetParticipant(selfId, { setPresence: async (presence) => { await io.setPresence(presence); }, sendSignal: async (signal) => { await io.sendSignal(signal); }, sendCaption: async (event, streamId, evidence) => { await io.sendCaption(event, streamId, evidence); } }, (view) => this.update({ headsetSelf: view }), { transcriberFactory: (publish, onState) => new HeadsetTranscriber(this.view.snapshot!.roomId, publish, onState) });
+      const roomId = this.view.snapshot.roomId;
+      this.headsetParticipantInstance = new HeadsetParticipant(selfId, { setPresence: async (presence) => { await io.setPresence(presence); }, sendSignal: async (signal) => { await io.sendSignal(signal); }, sendCaption: async (event, streamId, evidence) => { await io.sendCaption(event, streamId, evidence); } }, (view) => this.update({ headsetSelf: view }), { transcriberFactory: (publish, onState) => new HeadsetTranscriber(roomId, publish, onState), ...(headsetBenchmarkRequested(this.view.snapshot.self.role) ? { benchmark: { roomId, hints: () => (this.view.snapshot?.participants ?? []).map((participant) => participant.displayName) } } : {}) });
       if (this.isHost) this.headsetHostInstance?.attachLocal(selfId, this.headsetParticipantInstance);
     }
     await this.headsetParticipantInstance.startSetup(deviceId);
@@ -352,6 +354,8 @@ export class ConnectedRoom {
   async chooseHeadsetInput(deviceId: string) { await this.headsetParticipantInstance?.chooseInput(deviceId); }
   async restartHeadsetMicrophone() { await this.headsetParticipantInstance?.restartMicrophone(); }
   async retryHeadsetCaptions() { await this.headsetParticipantInstance?.retryCaptions(); }
+  setHeadsetBenchmarkPhrase(index: number | null) { this.headsetParticipantInstance?.selectBenchmarkPhrase(index); }
+  setHeadsetBenchmarkContextHints(enabled: boolean) { const names = (this.view.snapshot?.participants ?? []).map((participant) => participant.displayName); this.headsetParticipantInstance?.setBenchmarkContextHints(enabled, names); }
   setHeadsetSensitivity(participantId: string, sensitivity: Sensitivity, final = true) { this.headsetHostInstance?.setSensitivity(participantId, sensitivity, final); }
 
   async remove(participantId: string) {
@@ -448,3 +452,4 @@ function identificationNotice(previous: Record<string, VoicePhase>, next: Record
 }
 function message(error: unknown) { return error instanceof Error ? error.message : "The conversation could not be reached."; }
 function normalizeRoomMode(value: unknown): RoomMode { return value === "headset" ? "headset" : "connected"; }
+function headsetBenchmarkRequested(role?: string) { return typeof window !== "undefined" && isHeadsetBenchmarkEnabled(window.location.search, role ?? "guest"); }

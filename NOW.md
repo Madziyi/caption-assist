@@ -1,13 +1,19 @@
 # Active Initiative
 
 **Initiative:** CAPTION-008 - Headset Mode (separate mode: every speaker wears AirPods/a headset on their own phone; no room microphone)
-**Active slice:** CAPTION-008.3 UI/readability follow-up — polished input picker, phone and compact host speaking indicators, flowing same-speaker paragraphs; human approved implementation after discussion.
-**Status:** Human reports deployed 008.3 "works perfectly now". Approved UI/readability follow-up implemented, locally verified and deployed as `7d4e8b0` (Vercel success). Human visual confirmation, quantitative physical measurements, Planner review and separate latency work remain outstanding. Previous source `6695c60` had Vercel success; 008.2 was deployed as `aac146a` (setup fix `df89148`).
+**Active slice:** CAPTION-008.4 — Headset latency tuning and OpenAI shadow STT benchmark.
+**Status:** CAPTION-008.3 remains accepted by the human. This approved experiment targets the reported roughly 2 s perceived delay. AssemblyAI remains the only production caption provider; OpenAI is opt-in, observation-only, and must receive exactly the same delayed gated content. No production migration, Table/Connected behavior change, persistence, gate threshold/look-ahead/arbitration change, or CAPTION-009 work.
 - The human ran it on two phones (wired and Bluetooth headsets): captions work and are named by phone, but bleed still opens the other phone's gate when people sit close, and captions feel about 2 s behind. The human's verdict: "I'm actually happy, it's kind of working."
 - The export shows weak single-phone separation (4.4 and 6.9 dB) and 16 s of both gates open in a 160 s session.
 - But the person actually talking is always 4–7 dB nearer their own calibrated level than the other phone is to its own. 008.3 arbitrates on that.
 - Full specification: `CAPTION-008-HEADSET-MODE.md` ("Planner review of 008.2", "CAPTION-008.3 specification").
-**Owner:** Human reloads and confirms the picker, indicators and flowing paragraphs. Planner resyncs before selecting separate 008.4 latency work.
+**Scope/contracts:** Keep universal-3-6-pro, near-field, balanced, speaker labels off; add Headset-only interruption/silence tuning (0/100/1000 ms). Retain signed provider audio-end latency and add monotonic in-browser episode receipt timings. Enable OpenAI only with `?sttBenchmark=1`; use server-minted ephemeral credentials and a 16→24 kHz streaming resampler on the same gated PCM. Benchmark transcripts and scripted WER remain memory-only. Failure of the shadow path cannot affect AssemblyAI, capture, relay, gate or arbitration.
+
+**Ordered work:** (1) implement isolated options, detailed gated frames, timing and resampling; (2) add opt-in ephemeral-secret/WebSocket shadow path and benchmark panel/script scoring; (3) focused tests and requested automated/browser checks; (4) update durable evidence honestly; (5) commit/push main and inspect deployment status. Physical headset acceptance is handed to the human; synthetic/local evidence is not physical acceptance.
+
+**Owner:** Builder implements and verifies source/local browser behavior. Human configures `OPENAI_API_KEY` in deployment if desired and performs wired/Bluetooth physical UAT; no provider winner is declared without that evidence.
+
+**Builder progress:** Source and focused/full automated checks are implemented and passing locally. Existing Playwright browser scripts require an external Playwright/Chromium path that is not installed in this workspace; physical-device and deployed OpenAI availability remain unverified. Deployment and Git handoff are pending.
 
 ## Approved UI/readability follow-up (current Builder pass)
 

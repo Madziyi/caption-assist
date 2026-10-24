@@ -260,6 +260,12 @@ select:focus-visible { outline: 4px solid #f1bd4b; outline-offset: 3px; }
 .headset-matrix th, .headset-matrix td { border: 1px solid var(--line); padding: 0.45rem; text-align: left; }
 .headset-matrix th { background: var(--surface); }
 .headset-setup { display: grid; gap: 0.65rem; }
+.headset-benchmark { display: grid; gap: 0.55rem; min-width: 0; padding: 0.85rem; border: 1px dashed var(--line); border-radius: 0.8rem; background: var(--surface); font-size: 0.9rem; overflow-wrap: anywhere; }
+.headset-benchmark h3, .headset-benchmark p { margin: 0; }
+.headset-benchmark select { display: block; width: 100%; min-height: 2.6rem; margin-top: 0.3rem; padding: 0.4rem; border: 1px solid var(--line); border-radius: 0.55rem; background: var(--panel); color: var(--ink); font: inherit; }
+.benchmark-hints { display: flex; align-items: center; gap: 0.5rem; min-height: 2.5rem; font-weight: 700; }
+.benchmark-hints input { width: 1.2rem; height: 1.2rem; }
+.benchmark-summary, .benchmark-latest { display: grid; gap: 0.3rem; padding-top: 0.45rem; border-top: 1px solid var(--line); }
 .headset-setup p { margin: 0; }
 .headset-level { color: var(--muted); font-size: 0.95rem; }
 @media (min-width: 1200px) {

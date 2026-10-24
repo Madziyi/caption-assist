@@ -84,12 +84,17 @@ describe("AssemblyAIStreamingProvider", () => {
     expect(params.get("mode")).toBe("balanced");
     expect(params.get("format_turns")).toBe("true");
     expect(params.get("sample_rate")).toBe("16000");
+    expect(params.get("interruption_delay")).toBe("0");
+    expect(params.get("min_turn_silence")).toBe("100");
+    expect(params.get("max_turn_silence")).toBe("1000");
   });
   it("selects near-field only for the explicit valid profile and defaults safely", () => {
     expect(connectedVoiceFocusProfile("near-field")).toBe("near-field");
     expect(connectedVoiceFocusProfile("near_field")).toBe("far-field");
     expect(connectedVoiceFocusProfile("unexpected")).toBe("far-field");
     expect(TABLE_ASSEMBLYAI_OPTIONS).toEqual({ speechModel: "universal-streaming-english", diarization: true });
+    expect(TABLE_ASSEMBLYAI_OPTIONS).not.toHaveProperty("interruptionDelayMs");
+    expect(CONNECTED_ROOM_ASSEMBLYAI_OPTIONS).not.toHaveProperty("minTurnSilenceMs");
   });
   it("surfaces a non-secret Voice Focus rejection category without fallback", async () => {
     vi.stubGlobal("WebSocket", FakeWebSocket);

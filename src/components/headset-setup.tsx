@@ -2,7 +2,8 @@
 import type { HeadsetParticipantView } from "@/lib/headset/headset-participant";
 import { sensitivityLabel } from "@/lib/headset/calibration";
 import { HeadsetActivity } from "./headset-activity";
-export function HeadsetSetup({ view, start, useAnyway, retry, retryCaptions, choose }: { view: HeadsetParticipantView | null; start(): void; useAnyway(): void; retry(): void; retryCaptions?: () => void; choose(deviceId: string): void }) {
+import { BENCHMARK_PHRASES, percentile } from "@/lib/headset/benchmark";
+export function HeadsetSetup({ view, start, useAnyway, retry, retryCaptions, choose, selectBenchmarkPhrase, setContextHints }: { view: HeadsetParticipantView | null; start(): void; useAnyway(): void; retry(): void; retryCaptions?: () => void; choose(deviceId: string): void; selectBenchmarkPhrase?: (index: number | null) => void; setContextHints?: (enabled: boolean) => void }) {
   // Joining now publishes an initialized view before the user grants mic access.
   if (!view || (view.setup === "not_started" && view.mic === "off")) return <button type="button" className="button button-secondary" onClick={start}>Start headset check</button>;
   if (view.mic === "starting") return <p role="status">Starting microphone… Allow microphone access if your browser asks.</p>;
@@ -21,6 +22,7 @@ export function HeadsetSetup({ view, start, useAnyway, retry, retryCaptions, cho
     </>}
     </div>
     <HeadsetActivity state={{ ...view, checking: view.check !== null }} />
+    {view.benchmark && <BenchmarkPanel benchmark={view.benchmark} selectPhrase={selectBenchmarkPhrase} setContextHints={setContextHints} />}
     {view.setup === "input" && <div className="notice notice-warning"><p>Connect your headset before continuing.</p><div className="notice-actions"><button type="button" className="button button-secondary" onClick={retry}>Check again</button><button type="button" className="button button-quiet" onClick={useAnyway}>Use this microphone anyway</button></div></div>}
     {view.setup === "quiet" && <p role="status">Stay quiet for 3 seconds…</p>}
     {view.setup === "voice" && <p role="status">Now read this out loud at your normal volume: “I&apos;m checking my headset so the captions know when I&apos;m talking.”</p>}
@@ -33,3 +35,25 @@ export function HeadsetSetup({ view, start, useAnyway, retry, retryCaptions, cho
     {view.setup !== "ready" && view.setup !== "input" && <p className="headset-level">Current level: {view.levelDb.toFixed(1)} dB</p>}
   </section>;
 }
+
+function BenchmarkPanel({ benchmark, selectPhrase, setContextHints }: { benchmark: NonNullable<HeadsetParticipantView["benchmark"]>; selectPhrase?: (index: number | null) => void; setContextHints?: (enabled: boolean) => void }) {
+  const latest = benchmark.rows.at(-1);
+  const summary = (key: "assemblyFirstTextMs" | "assemblyFinalMs" | "openaiFirstTextMs" | "openaiFinalMs") => {
+    const values = benchmark.rows.map((row) => row.timings[key]).filter((value): value is number => value !== null);
+    const p50 = percentile(values, .5), p90 = percentile(values, .9);
+    return values.length ? `${Math.round(p50!)} / ${Math.round(p90!)} ms` : "—";
+  };
+  return <section className="headset-benchmark" aria-label="STT benchmark">
+    <h3>STT Benchmark</h3>
+    <p>Primary: AssemblyAI Universal-3.6 Pro · interruption 0 · silence 100 / 1000 ms</p>
+    <p>Shadow: OpenAI gpt-live-transcribe · delay low</p>
+    <p role="status">{benchmark.state === "on" ? "Shadow benchmark connected" : benchmark.state === "connecting" ? "Connecting shadow benchmark…" : "Shadow benchmark unavailable. AssemblyAI captions continue."}</p>
+    <label>Script phrase before speaking <select value={benchmark.selectedPhrase ?? ""} onChange={(event) => selectPhrase?.(event.target.value === "" ? null : Number(event.target.value))}>
+      <option value="">No reference phrase</option>{BENCHMARK_PHRASES.map((phrase, index) => <option key={index} value={index}>{index + 1}. {phrase.text}</option>)}
+    </select></label>
+    <label className="benchmark-hints"><input type="checkbox" checked={benchmark.contextHints} onChange={(event) => setContextHints?.(event.target.checked)} /> Context hints: {benchmark.contextHints ? "ON" : "OFF"}</label>
+    <div className="benchmark-summary"><strong>Rolling P50 / P90</strong><span>Assembly first text: {summary("assemblyFirstTextMs")}</span><span>Assembly final: {summary("assemblyFinalMs")}</span><span>OpenAI first text: {summary("openaiFirstTextMs")}</span><span>OpenAI final: {summary("openaiFinalMs")}</span></div>
+    {latest && <div className="benchmark-latest"><strong>Latest utterance</strong><p>Assembly first text {formatMs(latest.timings.assemblyFirstTextMs)} · final {formatMs(latest.timings.assemblyFinalMs)} · gate-close to final {formatMs(latest.timings.gateCloseToAssemblyFinalMs)}</p><p>OpenAI first text {formatMs(latest.timings.openaiFirstTextMs)} · final {formatMs(latest.timings.openaiFinalMs)} · gate-close to final {formatMs(latest.timings.gateCloseToOpenaiFinalMs)}</p><p><b>AssemblyAI</b><br />{latest.assemblyText || "(waiting)"}</p><p><b>OpenAI shadow</b><br />{latest.openaiText || "(waiting)"}</p>{latest.scores && <p>WER: Assembly {Math.round(latest.scores.assemblyWer * 100)}% · OpenAI {Math.round(latest.scores.openaiWer * 100)}% · exact entities {Math.round(latest.scores.assemblyEntities * 100)}% / {Math.round(latest.scores.openaiEntities * 100)}%</p>}</div>}
+  </section>;
+}
+function formatMs(value: number | null) { return value === null ? "—" : `${Math.round(value)} ms`; }

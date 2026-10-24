@@ -427,3 +427,11 @@ Use this format:
 
 - Source `7d4e8b02c3fde98543ebdb285e9cea625972722e` pushed to main; GitHub combined status reported Vercel success: https://vercel.com/madziyis-projects/caption-assist/DApfCBtoFZrxyavYjxTZp735nioo.
 - Presentation-only deployment, no configuration/timing/infrastructure changes. Next: human reloads host/phones and confirms picker, speaking pills and flowing paragraphs; latency optimization still requires separate approval.
+
+### 2026-10-24 — CAPTION-008.4 latency tuning and OpenAI shadow implementation
+
+- Synced clean `main` at `07555fead1d3c289e84d7ccfd036f952a522942e`. The human's explicit request reprioritized active work from the 008.3 UI follow-up to 008.4; 008.3 acceptance remains intact.
+- Added Headset-only AssemblyAI `interruption_delay=0`, `min_turn_silence=100`, `max_turn_silence=1000`. Table and Connected options remain unchanged. The 300 ms look-ahead, gate thresholds, and 800 ms arbitration remain unchanged.
+- Added monotonic local benchmark episodes, delayed-frame activity metadata, bounded PCM16 16→24 kHz interpolation, authenticated optional OpenAI client-secret route, ephemeral-key WebSocket shadow provider, opt-in participant panel, scripted references, normalized WER and entity matching. OpenAI remains observation-only and cannot publish or replace captions. No persistence/logging of transcripts, audio or credentials was added.
+- Verification: `npm run typecheck`, `npm run lint`, serial Vitest (252 tests / 40 files), and `git diff --check` passed. `npm run build` completed successfully on retry after resource-related UI timeouts and Next `EPERM`; it printed the security-upgrade reminder for installed Next.js 16.4.0. The official Next.js advisory names 16.4.1 as patched; dependency upgrade is a separate follow-up and was not included here. Existing Playwright browser script could not run because its Playwright/Chromium prerequisites were absent. No live OpenAI call, deployment environment check, or physical-device test.
+- Next: publish source handoff, inspect deployment status, and provide human wired/Bluetooth headset benchmark script. Do not claim provider winner or production migration before physical evidence.
