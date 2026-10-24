@@ -24,12 +24,14 @@ Use these states:
     - latency measurement;
     - export version 3.
     - Final synthetic live comparison: four correct-owner target sentences once each, zero target misses; bypass two duplicates/two wrong-name lines. Earlier run escaped one duplicate; do not treat the final pass as sustained acoustic acceptance. All source gates pass; exact counts and signed latency caveats in QUALITY.md.
-  - **008.4** `[in-progress]` — Tune Headset-only AssemblyAI turn timing and add the opt-in OpenAI `gpt-live-transcribe` shadow benchmark on identical gated audio. AssemblyAI remains production primary; no Table/Connected change or provider migration. Physical wired/Bluetooth comparison remains required before naming a winner.
+  - **008.4** `[done]` — Headset-only AssemblyAI timing controls and opt-in OpenAI shadow benchmark shipped in `0d8f3da`; Vercel check succeeded. Physical wired/Bluetooth comparison and deployed `OPENAI_API_KEY` availability remain unverified.
   - **008.3 UI/readability follow-up** `[done]` — Human reports deployed duplicate control works perfectly; approved polished native microphone picker, rounded phone speaking indicator, compact replacement host pills and flowing same-speaker paragraphs. Implemented with display-only 2 s pause/80-word turn-boundary limits; 238 tests/36 files, source gates and isolated browser/capture checks pass. Published `7d4e8b0`, Vercel success; human visual confirmation pending. Provider/gate/arbiter timing unchanged.
   - **008.5** `[planned]` — Remaining recovery items, physical multi-person UAT and closure.
 - **CAPTION-003** `[in-progress]` — Paused while CAPTION-008 is active. Reopened after deployed user testing revealed duplicate speech on nearby personal microphones. CAPTION-003.1 text reconciliation, CAPTION-003.2 episode continuity and CAPTION-003.3 Voice Focus all failed real acceptance, so personal-microphone work stopped. CAPTION-003.4 pivots Connected Mode to one host room microphone + AssemblyAI diarization + one-time session voice identification from QR phones that do not record audio. Closure awaits physical multi-person UAT and user acceptance.
 
 ## Ready
+
+- **SEC-002** `[ready]` — Triage the two pre-existing `npm audit` high findings: `undici@7.30.0` via `jsdom` and `zod@4.6.5` via `eslint-config-next`. Both were present at the 2026-10-24 baseline and remained after the scoped Next.js 16.4.1 update; evaluate and patch separately.
 
 ## Planned
 

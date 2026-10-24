@@ -436,3 +436,11 @@ Use this format:
 - Verification: `npm run typecheck`, `npm run lint`, serial Vitest (252 tests / 40 files), and `git diff --check` passed. `npm run build` completed successfully on retry after resource-related UI timeouts and Next `EPERM`; it printed the security-upgrade reminder for installed Next.js 16.4.0. The official Next.js advisory names 16.4.1 as patched; dependency upgrade is a separate follow-up and was not included here. Existing Playwright browser script could not run because its Playwright/Chromium prerequisites were absent. No live OpenAI call, deployment environment check, or physical-device test.
 - Publication: `0d8f3da9005629fe773f659837ae660d5b416334` pushed to `main`; GitHub combined status reported Vercel success: https://vercel.com/madziyis-projects/caption-assist/BDZa8s3Hi4UzTE6YtSdiUuTcoYUJ. This is deployment-check evidence only; no deployed runtime, secret, or headset behavior was verified.
 - Next: human wired/Bluetooth headset benchmark and deployment `OPENAI_API_KEY` confirmation if shadow testing is desired. Do not claim provider winner or production migration before physical evidence.
+
+### 2026-10-24 — SEC-001 Next.js security patch
+
+- Synced clean `main` at `8fda79ac122627ba144d4f9c0e0990a051e6c374`. The prior production build had displayed the Next.js October 14 upstream security advisory; Next.js identifies 16.4.1 as patched.
+- Updated exact pins `next` and `eslint-config-next` from 16.4.0 to 16.4.1 and refreshed `package-lock.json`; no application source or other direct dependency changed.
+- Verification: typecheck, lint, serial Vitest (252 tests / 40 files), production build on Next.js 16.4.1, and diff check passed. The build completed without the prior Next security reminder.
+- `npm audit` reports two high findings that are unchanged from the baseline lockfile: `undici@7.30.0` via jsdom and `zod@4.6.5` via eslint-config-next. Left outside SEC-001 scope; recorded as SEC-002 for separate triage.
+- Next: commit/push this separate dependency patch and inspect the deployment check; that check does not establish deployed runtime version.

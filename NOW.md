@@ -1,19 +1,19 @@
 # Active Initiative
 
 **Initiative:** CAPTION-008 - Headset Mode (separate mode: every speaker wears AirPods/a headset on their own phone; no room microphone)
-**Active slice:** CAPTION-008.4 — Headset latency tuning and OpenAI shadow STT benchmark.
-**Status:** CAPTION-008.3 remains accepted by the human. This approved experiment targets the reported roughly 2 s perceived delay. AssemblyAI remains the only production caption provider; OpenAI is opt-in, observation-only, and must receive exactly the same delayed gated content. No production migration, Table/Connected behavior change, persistence, gate threshold/look-ahead/arbitration change, or CAPTION-009 work.
+**Active slice:** CAPTION-008.4 — Human wired/Bluetooth headset benchmark and optional OpenAI shadow deployment check.
+**Status:** Source shipped and verified locally. AssemblyAI remains production primary; OpenAI remains opt-in and observation-only. No provider winner is declared until representative physical results are recorded.
 - The human ran it on two phones (wired and Bluetooth headsets): captions work and are named by phone, but bleed still opens the other phone's gate when people sit close, and captions feel about 2 s behind. The human's verdict: "I'm actually happy, it's kind of working."
 - The export shows weak single-phone separation (4.4 and 6.9 dB) and 16 s of both gates open in a 160 s session.
 - But the person actually talking is always 4–7 dB nearer their own calibrated level than the other phone is to its own. 008.3 arbitrates on that.
 - Full specification: `CAPTION-008-HEADSET-MODE.md` ("Planner review of 008.2", "CAPTION-008.3 specification").
-**Scope/contracts:** Keep universal-3-6-pro, near-field, balanced, speaker labels off; add Headset-only interruption/silence tuning (0/100/1000 ms). Retain signed provider audio-end latency and add monotonic in-browser episode receipt timings. Enable OpenAI only with `?sttBenchmark=1`; use server-minted ephemeral credentials and a 16→24 kHz streaming resampler on the same gated PCM. Benchmark transcripts and scripted WER remain memory-only. Failure of the shadow path cannot affect AssemblyAI, capture, relay, gate or arbitration.
+**Scope/contracts:** Keep universal-3-6-pro, near-field, balanced, speaker labels off; Headset-only timing is 0/100/1000 ms. Retain signed provider audio-end latency and the monotonic in-browser timings. OpenAI is enabled only with `?sttBenchmark=1`, using ephemeral credentials and the same gated PCM. Results remain memory-only; failure of the shadow path cannot affect captions.
 
-**Ordered work:** (1) implement isolated options, detailed gated frames, timing and resampling; (2) add opt-in ephemeral-secret/WebSocket shadow path and benchmark panel/script scoring; (3) focused tests and requested automated/browser checks; (4) update durable evidence honestly; (5) commit/push main and inspect deployment status. Physical headset acceptance is handed to the human; synthetic/local evidence is not physical acceptance.
+**Ordered work:** Human runs the same scripted phrases and natural speech on wired and Bluetooth headsets where available; compare AssemblyAI/OpenAI first-text and final latency, WER/entity scores, names/numbers/technical terms, truncation and delayed finals. Confirm `OPENAI_API_KEY` is configured in deployment if shadow testing is desired. Do not claim OpenAI availability until that check occurs.
 
-**Owner:** Builder implements and verifies source/local browser behavior. Human configures `OPENAI_API_KEY` in deployment if desired and performs wired/Bluetooth physical UAT; no provider winner is declared without that evidence.
+**Owner:** Human performs headset benchmark and confirms deployment key presence if OpenAI comparison is desired; Builder supports follow-up fixes based on evidence.
 
-**Builder progress:** Source is committed and pushed to `main` as `0d8f3da9005629fe773f659837ae660d5b416334`; GitHub reported the Vercel check as successful. Automated gates passed locally. Existing Playwright browser scripts require an external Playwright/Chromium path that is not installed in this workspace; physical-device and deployed OpenAI availability remain unverified. Next: human wired/Bluetooth headset comparison and deployment `OPENAI_API_KEY` confirmation if shadow testing is desired.
+**Builder progress:** CAPTION-008.4 source is at `0d8f3da`; its Vercel check succeeded. Separate security follow-up SEC-001 upgraded Next.js and eslint-config-next to 16.4.1 in a local change; typecheck, lint, 252 tests, and build passed. Publication is pending.
 
 ## Approved UI/readability follow-up (current Builder pass)
 
